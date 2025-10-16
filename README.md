@@ -1,26 +1,113 @@
-# Lumen PHP Framework
+## LMS Portal API (Lumen 10)
 
-[![Build Status](https://travis-ci.org/laravel/lumen-framework.svg)](https://travis-ci.org/laravel/lumen-framework)
-[![Total Downloads](https://img.shields.io/packagist/dt/laravel/lumen-framework)](https://packagist.org/packages/laravel/lumen-framework)
-[![Latest Stable Version](https://img.shields.io/packagist/v/laravel/lumen-framework)](https://packagist.org/packages/laravel/lumen-framework)
-[![License](https://img.shields.io/packagist/l/laravel/lumen)](https://packagist.org/packages/laravel/lumen-framework)
+A lightweight microservice-style API built with Lumen 10 featuring:
 
-Laravel Lumen is a stunningly fast PHP micro-framework for building web applications with expressive, elegant syntax. We believe development must be an enjoyable, creative experience to be truly fulfilling. Lumen attempts to take the pain out of development by easing common tasks used in the majority of web projects, such as routing, database abstraction, queueing, and caching.
+- JWT authentication (tymon/jwt-auth)
+- Role/Permission (RBAC) with models and relationships
+- Repository + Service layers
+- API Resources for consistent responses
+- Centralized response/error handling
 
-> **Note:** In the years since releasing Lumen, PHP has made a variety of wonderful performance improvements. For this reason, along with the availability of [Laravel Octane](https://laravel.com/docs/octane), we no longer recommend that you begin new projects with Lumen. Instead, we recommend always beginning new projects with [Laravel](https://laravel.com).
+### Requirements
+- PHP 8.1+
+- Composer
+- MySQL (or compatible) database
 
-## Official Documentation
+### Installation
+```bash
+git clone <repo-url>
+cd lms-protal
+composer install
+```
 
-Documentation for the framework can be found on the [Lumen website](https://lumen.laravel.com/docs).
+### Environment
+Create your env file and configure DB + JWT:
+```bash
+cp .env.example .env   # if not present, create and fill values
+```
+Required keys in `.env`:
+- DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+- JWT_SECRET (run command below to generate)
 
-## Contributing
+### Bootstrap
+```bash
+# Generate JWT secret
+php artisan jwt:secret
 
-Thank you for considering contributing to Lumen! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# Run migrations
+php artisan migrate
 
-## Security Vulnerabilities
+# Seed roles/permissions
+php artisan db:seed --class=RolePermissionSeeder
+```
 
-If you discover a security vulnerability within Lumen, please send an e-mail to Taylor Otwell at taylor@laravel.com. All security vulnerabilities will be promptly addressed.
+### Run
+```bash
+php -S localhost:8000 -t public
+# or use your preferred PHP server
+```
 
-## License
+### API Base URL
+- `http://localhost:8000/api/v1`
 
-The Lumen framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Auth Endpoints
+- POST `/auth/register` – register
+- POST `/auth/login` – login
+- POST `/auth/logout` – logout (JWT required)
+- POST `/auth/refresh` – refresh token (JWT required)
+- GET `/auth/me` – current user (JWT required)
+
+Authorization header:
+```
+Authorization: Bearer <JWT>
+```
+
+### User Endpoints (permissions required)
+- GET `/users` (`users:read`)
+- GET `/users/{id}` (`users:read`)
+- GET `/users/search` (`users:read`)
+- GET `/users/statistics` (`users:read`)
+- POST `/users` (`users:create`)
+- PUT `/users/{id}` (`users:update`)
+- DELETE `/users/{id}` (`users:delete`)
+- POST `/users/{id}/change-password` (`users:update`)
+
+### Role/Permission Model Overview
+- `User` ↔ `Role` (many-to-many via `user_roles`)
+- `User` ↔ `Permission` (many-to-many via `user_permissions`)
+- `Role` ↔ `Permission` (many-to-many via `role_permissions`)
+
+User helpers:
+- `hasRole(string $role)`
+- `hasPermission(string $permission)`
+- `hasAnyPermission(array $permissions)`
+- `hasAllPermissions(array $permissions)`
+
+### Consistent Responses
+All endpoints return a normalized shape:
+```json
+{
+  "success": true,
+  "message": "...",
+  "data": {},
+  "meta": { "timestamp": "...", "status_code": 200 }
+}
+```
+Errors:
+```json
+{
+  "success": false,
+  "message": "...",
+  "errors": {},
+  "error_code": "VALIDATION_ERROR|UNAUTHORIZED|FORBIDDEN|NOT_FOUND|SERVER_ERROR",
+  "meta": { "timestamp": "...", "status_code": 422 }
+}
+```
+
+### Development Notes
+- App config enables facades/eloquent and registers JWT + custom middlewares
+- Route groups under `routes/api.php` (prefixed `/api/v1`)
+- See `API_DOCUMENTATION.md` for deeper details and examples
+
+### License
+MIT
