@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Auth\AuthenticationException;
@@ -16,6 +17,21 @@ use Throwable;
 class ResponseService
 {
     /**
+     * Common HTTP status codes
+     */
+    public const HTTP_OK = 200;
+    public const HTTP_CREATED = 201;
+    public const HTTP_ACCEPTED = 202;
+    public const HTTP_NO_CONTENT = 204;
+    public const HTTP_BAD_REQUEST = 400;
+    public const HTTP_UNAUTHORIZED = 401;
+    public const HTTP_FORBIDDEN = 403;
+    public const HTTP_NOT_FOUND = 404;
+    public const HTTP_METHOD_NOT_ALLOWED = 405;
+    public const HTTP_UNPROCESSABLE_ENTITY = 422;
+    public const HTTP_SERVER_ERROR = 500;
+
+    /**
      * Success response
      *
      * @param mixed $data
@@ -23,17 +39,21 @@ class ResponseService
      * @param int $statusCode
      * @return JsonResponse
      */
-    public function success($data = null, string $message = 'Success', int $statusCode = 200): JsonResponse
+    public function success($data = null, string $message = 'Success', int $statusCode = self::HTTP_OK): JsonResponse
     {
-        return response()->json([
+        $payload = [
             'success' => true,
             'message' => $message,
-            'data' => $data,
             'meta' => [
-                'timestamp' => now()->toISOString(),
+                'timestamp' => Carbon::now()->toISOString(),
                 'status_code' => $statusCode,
             ]
-        ], $statusCode);
+        ];
+
+        // Attach data
+        $payload['data'] = $this->transformDataWithPagination($data, $payload['meta']);
+
+        return response()->json($payload, $statusCode);
     }
 
     /**
@@ -45,7 +65,7 @@ class ResponseService
      * @param string $errorCode
      * @return JsonResponse
      */
-    public function error(string $message = 'Error', $errors = null, int $statusCode = 400, string $errorCode = null): JsonResponse
+    public function error(string $message = 'Error', $errors = null, int $statusCode = self::HTTP_BAD_REQUEST, string $errorCode = null): JsonResponse
     {
         return response()->json([
             'success' => false,
@@ -53,7 +73,7 @@ class ResponseService
             'errors' => $errors,
             'error_code' => $errorCode,
             'meta' => [
-                'timestamp' => now()->toISOString(),
+                'timestamp' => Carbon::now()->toISOString(),
                 'status_code' => $statusCode,
             ]
         ], $statusCode);
@@ -68,7 +88,7 @@ class ResponseService
      */
     public function validationError(array $errors, string $message = 'Validation failed'): JsonResponse
     {
-        return $this->error($message, $errors, 422, 'VALIDATION_ERROR');
+        return $this->error($message, $errors, self::HTTP_UNPROCESSABLE_ENTITY, 'VALIDATION_ERROR');
     }
 
     /**
@@ -79,7 +99,7 @@ class ResponseService
      */
     public function unauthorized(string $message = 'Unauthorized'): JsonResponse
     {
-        return $this->error($message, null, 401, 'UNAUTHORIZED');
+        return $this->error($message, null, self::HTTP_UNAUTHORIZED, 'UNAUTHORIZED');
     }
 
     /**
@@ -90,7 +110,7 @@ class ResponseService
      */
     public function forbidden(string $message = 'Forbidden'): JsonResponse
     {
-        return $this->error($message, null, 403, 'FORBIDDEN');
+        return $this->error($message, null, self::HTTP_FORBIDDEN, 'FORBIDDEN');
     }
 
     /**
@@ -101,7 +121,7 @@ class ResponseService
      */
     public function notFound(string $message = 'Resource not found'): JsonResponse
     {
-        return $this->error($message, null, 404, 'NOT_FOUND');
+        return $this->error($message, null, self::HTTP_NOT_FOUND, 'NOT_FOUND');
     }
 
     /**
@@ -112,7 +132,7 @@ class ResponseService
      */
     public function methodNotAllowed(string $message = 'Method not allowed'): JsonResponse
     {
-        return $this->error($message, null, 405, 'METHOD_NOT_ALLOWED');
+        return $this->error($message, null, self::HTTP_METHOD_NOT_ALLOWED, 'METHOD_NOT_ALLOWED');
     }
 
     /**
@@ -124,7 +144,7 @@ class ResponseService
      */
     public function serverError(string $message = 'Internal server error', $errors = null): JsonResponse
     {
-        return $this->error($message, $errors, 500, 'SERVER_ERROR');
+        return $this->error($message, $errors, self::HTTP_SERVER_ERROR, 'SERVER_ERROR');
     }
 
     /**
@@ -136,7 +156,7 @@ class ResponseService
      */
     public function created($data = null, string $message = 'Resource created successfully'): JsonResponse
     {
-        return $this->success($data, $message, 201);
+        return $this->success($data, $message, self::HTTP_CREATED);
     }
 
     /**
@@ -148,7 +168,7 @@ class ResponseService
      */
     public function updated($data = null, string $message = 'Resource updated successfully'): JsonResponse
     {
-        return $this->success($data, $message, 200);
+        return $this->success($data, $message, self::HTTP_OK);
     }
 
     /**
@@ -159,7 +179,7 @@ class ResponseService
      */
     public function deleted(string $message = 'Resource deleted successfully'): JsonResponse
     {
-        return $this->success(null, $message, 200);
+        return $this->success(null, $message, self::HTTP_OK);
     }
 
     /**
@@ -171,7 +191,23 @@ class ResponseService
      */
     public function paginated($data, string $message = 'Data retrieved successfully'): JsonResponse
     {
-        return $this->success($data, $message, 200);
+        return $this->success($data, $message, self::HTTP_OK);
+    }
+
+    /**
+     * Accepted response (202)
+     */
+    public function accepted($data = null, string $message = 'Accepted'): JsonResponse
+    {
+        return $this->success($data, $message, self::HTTP_ACCEPTED);
+    }
+
+    /**
+     * No content response (204)
+     */
+    public function noContent(): JsonResponse
+    {
+        return response()->json(null, self::HTTP_NO_CONTENT);
     }
 
     /**
@@ -239,7 +275,7 @@ class ResponseService
         bool $success,
         $data = null,
         string $message = '',
-        int $statusCode = 200,
+        int $statusCode = self::HTTP_OK,
         $errors = null,
         string $errorCode = null
     ): JsonResponse {
@@ -247,18 +283,47 @@ class ResponseService
             'success' => $success,
             'message' => $message,
             'meta' => [
-                'timestamp' => now()->toISOString(),
+                'timestamp' => Carbon::now()->toISOString(),
                 'status_code' => $statusCode,
             ]
         ];
 
         if ($success) {
-            $response['data'] = $data;
+            $response['data'] = $this->transformDataWithPagination($data, $response['meta']);
         } else {
             $response['errors'] = $errors;
             $response['error_code'] = $errorCode;
         }
 
         return response()->json($response, $statusCode);
+    }
+
+    /**
+     * If resource is a paginator, attach pagination meta automatically.
+     */
+    protected function transformDataWithPagination($data, array &$meta)
+    {
+        if ($data instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator) {
+            $meta['pagination'] = [
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'total' => $data->total(),
+                'last_page' => $data->lastPage(),
+                'from' => $data->firstItem(),
+                'to' => $data->lastItem(),
+            ];
+            return $data->items();
+        }
+
+        if ($data instanceof \Illuminate\Contracts\Pagination\Paginator) {
+            $meta['pagination'] = [
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'has_more_pages' => $data->hasMorePages(),
+            ];
+            return $data->items();
+        }
+
+        return $data;
     }
 }
