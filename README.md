@@ -107,7 +107,7 @@ Errors:
 ### Development Notes
 - App config enables facades/eloquent and registers JWT + custom middlewares
 - Route groups under `routes/api.php` (prefixed `/api/v1`)
-- See `API_DOCUMENTATION.md` for deeper details and examples
+
 
 ### License
 MIT
