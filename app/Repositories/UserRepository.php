@@ -2,132 +2,134 @@
 
 namespace App\Repositories;
 
-use App\Contracts\Repositories\UserRepositoryInterface;
 use App\Models\User;
+use App\Contracts\Repositories\UserRepositoryInterface;
+use Carbon\Carbon;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class UserRepository extends BaseRepository implements UserRepositoryInterface
 {
     /**
-     * Constructor
-     *
-     * @param User $model
+     * Return the model class associated with this repository
      */
-    public function __construct(User $model)
+    protected function getModelClass(): string
     {
-        parent::__construct($model);
-    }
-
-    /**
-     * Find user by email
-     *
-     * @param string $email
-     * @return User|null
-     */
-    public function findByEmail(string $email): ?User
-    {
-        return $this->model->where('email', $email)->first();
+        return User::class;
     }
 
     /**
      * Get all users with pagination
-     *
-     * @param int $perPage
-     * @return LengthAwarePaginator
      */
     public function all(int $perPage = 15): LengthAwarePaginator
     {
-        return $this->model->with(['profile'])->paginate($perPage);
+        $modelClass = $this->modelClass;
+        return $modelClass::paginate($perPage);
     }
 
     /**
-     * Search users by criteria
-     *
-     * @param array $criteria
-     * @param int $perPage
-     * @return LengthAwarePaginator
+     * Find a user by ID
+     */
+    public function find(int $id): ?User
+    {
+        return parent::find($id);
+    }
+
+    /**
+     * Find user by email
+     */
+    public function findByEmail(string $email): ?User
+    {
+        return User::where('email', $email)->first();
+    }
+
+    /**
+     * Create a new user
+     */
+    public function create(array $data): User
+    {
+        return parent::create($data);
+    }
+
+    /**
+     * Update user by ID
+     */
+    public function update(int $id, array $data): bool
+    {
+        return parent::update($id, $data);
+    }
+
+    /**
+     * Delete user by ID
+     */
+    public function delete(int $id): bool
+    {
+        return parent::delete($id);
+    }
+
+    /**
+     * Get user with relationships
+     */
+    public function findWithRelations(int $id, array $relations = []): ?User
+    {
+        return parent::findWithRelations($id, $relations);
+    }
+
+    /**
+     * Search users by criteria with pagination
      */
     public function search(array $criteria, int $perPage = 15): LengthAwarePaginator
     {
-        $query = $this->model->newQuery();
+        $modelClass = $this->modelClass;
+        $query = $modelClass::query();
 
         foreach ($criteria as $field => $value) {
-            if (in_array($field, ['name', 'email'])) {
-                $query->where($field, 'like', "%{$value}%");
-            } elseif ($field === 'role') {
-                $query->where('role', $value);
-            } elseif ($field === 'status') {
-                $query->where('status', $value);
-            } elseif ($field === 'created_at') {
-                if (is_array($value) && count($value) === 2) {
-                    $query->whereBetween('created_at', $value);
-                }
-            }
+            $query->where($field, $value);
         }
 
-        return $query->with(['profile'])->paginate($perPage);
+        return $query->paginate($perPage);
     }
 
     /**
-     * Get active users
-     *
-     * @param int $perPage
-     * @return LengthAwarePaginator
+     * Get users by conditions
      */
-    public function getActiveUsers(int $perPage = 15): LengthAwarePaginator
+    public function findBy(array $conditions): Collection
     {
-        return $this->model->active()->with(['profile'])->paginate($perPage);
+        $modelClass = $this->modelClass;
+        return $modelClass::where($conditions)->get();
     }
 
     /**
-     * Get admin users
-     *
-     * @return Collection
+     * Get first user by conditions
      */
-    public function getAdminUsers(): Collection
+    public function findFirstBy(array $conditions): ?User
     {
-        return $this->model->admins()->with(['profile'])->get();
+        $modelClass = $this->modelClass;
+        return $modelClass::where($conditions)->first();
     }
 
     /**
-     * Get verified users
-     *
-     * @param int $perPage
-     * @return LengthAwarePaginator
+     * Count users by conditions
      */
-    public function getVerifiedUsers(int $perPage = 15): LengthAwarePaginator
+    public function countBy(array $conditions): int
     {
-        return $this->model->verified()->with(['profile'])->paginate($perPage);
+        $modelClass = $this->modelClass;
+        return $modelClass::where($conditions)->count();
     }
 
     /**
-     * Update last login time
-     *
-     * @param int $userId
-     * @return bool
+     * Update the last login timestamp of a user
      */
-    public function updateLastLogin(int $userId): bool
+    public function updateLastLogin(int $userId): ?User
     {
-        return $this->model->where('id', $userId)->update([
-            'last_login_at' => now()
-        ]);
-    }
+        $user = $this->find($userId);
+        if (!$user) {
+            return null;
+        }
 
-    /**
-     * Get user statistics
-     *
-     * @return array
-     */
-    public function getStatistics(): array
-    {
-        return [
-            'total' => $this->model->count(),
-            'active' => $this->model->active()->count(),
-            'inactive' => $this->model->where('status', 'inactive')->count(),
-            'admins' => $this->model->admins()->count(),
-            'verified' => $this->model->verified()->count(),
-            'unverified' => $this->model->whereNull('email_verified_at')->count(),
-        ];
+        $user->last_login_at = Carbon::now();
+        $user->save();
+
+        return $user;
     }
 }

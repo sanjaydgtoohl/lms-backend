@@ -70,7 +70,7 @@ class AuthController extends Controller
     {
         try {
             $result = $this->authService->login($request->all());
-            
+            dd("asdfasdf");
             return $this->responseService->success(
                 new AuthResource($result['user'], $result['token'], $result['token_type'], $result['expires_in']),
                 'Login successful'

@@ -65,8 +65,7 @@ class ResponseService
      * @param string $errorCode
      * @return JsonResponse
      */
-    public function error(string $message = 'Error', $errors = null, int $statusCode = self::HTTP_BAD_REQUEST, string $errorCode = null): JsonResponse
-    {
+   public function error(string $message = 'Error',?array $errors = null,int $statusCode = self::HTTP_BAD_REQUEST,?string $errorCode = null): JsonResponse {
         return response()->json([
             'success' => false,
             'message' => $message,
@@ -78,6 +77,7 @@ class ResponseService
             ]
         ], $statusCode);
     }
+
 
     /**
      * Validation error response
@@ -264,20 +264,20 @@ class ResponseService
      * API response with consistent structure
      *
      * @param bool $success
-     * @param mixed $data
+     * @param mixed|null $data
      * @param string $message
      * @param int $statusCode
-     * @param mixed $errors
-     * @param string $errorCode
+     * @param mixed|null $errors
+     * @param string|null $errorCode
      * @return JsonResponse
      */
     public function apiResponse(
         bool $success,
-        $data = null,
+        mixed $data = null,           // explicitly nullable
         string $message = '',
         int $statusCode = self::HTTP_OK,
-        $errors = null,
-        string $errorCode = null
+        mixed $errors = null,         // explicitly nullable
+        ?string $errorCode = null     // explicitly nullable
     ): JsonResponse {
         $response = [
             'success' => $success,
@@ -287,7 +287,7 @@ class ResponseService
                 'status_code' => $statusCode,
             ]
         ];
-
+        
         if ($success) {
             $response['data'] = $this->transformDataWithPagination($data, $response['meta']);
         } else {

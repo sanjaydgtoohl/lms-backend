@@ -8,7 +8,7 @@ use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\SoftDeletes as EloquentSoftDeletes;
+// use Illuminate\Database\Eloquent\SoftDeletes as EloquentSoftDeletes;
 use Laravel\Lumen\Auth\Authorizable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use App\Traits\HasTimestamps;
@@ -18,8 +18,7 @@ use App\Traits\SoftDeletes;
 
 class User extends Model implements AuthenticatableContract, AuthorizableContract, JWTSubject
 {
-    use Authenticatable, Authorizable, HasFactory, EloquentSoftDeletes;
-    use HasTimestamps, HasUuid, HasApiTokens, SoftDeletes;
+    use Authenticatable, Authorizable, HasFactory,HasTimestamps, HasUuid, HasApiTokens, SoftDeletes;
 
     /**
      * The table associated with the model.

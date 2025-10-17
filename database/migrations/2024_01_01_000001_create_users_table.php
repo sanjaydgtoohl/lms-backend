@@ -29,7 +29,6 @@ return new class extends Migration
             $table->softDeletes();
             
             $table->index(['email', 'status']);
-            $table->index(['role', 'status']);
             $table->index('uuid');
         });
     }

@@ -43,7 +43,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'Admin Access', 'slug' => 'admin:access', 'resource' => 'admin', 'action' => 'access'],
             ['name' => 'System Settings', 'slug' => 'system:settings', 'resource' => 'system', 'action' => 'settings'],
         ];
-
+       
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(
                 ['slug' => $permission['slug']],
@@ -63,9 +63,9 @@ class RolePermissionSeeder extends Seeder
         );
 
         $moderatorRole = Role::firstOrCreate(
-            ['slug' => 'moderator'],
+            ['slug' => 'BDM'],
             [
-                'name' => 'Moderator',
+                'name' => 'BDM',
                 'description' => 'Limited admin access for content moderation',
                 'level' => 50,
                 'is_active' => true

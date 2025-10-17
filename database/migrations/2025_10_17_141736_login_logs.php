@@ -15,23 +15,23 @@ return new class extends Migration
     {
         Schema::create('login_logs', function (Blueprint $table) {
             $table->id();
-            
-            $table->string('email_attempted'); 
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade'); 
-            $table->ipAddress('ip_address');
-            $table->text('user_agent')->nullable();
-            $table->enum('status', ['success', 'failure']);
-            $table->string('failure_reason')->nullable(); 
-            
-            // --- LMS Specific Columns ---
-            $table->string('auth_method')->default('password'); 
-            $table->foreignId('role_id')->nullable()->constrained()->onDelete('set null'); 
-            $table->foreignId('impersonator_user_id')->nullable()->constrained('users')->onDelete('cascade'); 
-            
-            // --- Timestamps ---
-            $table->timestamp('login_time');
+
+            // Foreign key to users table
+            $table->foreignId('user_id')
+                  ->nullable()
+                  ->constrained('users')
+                  ->onDelete('cascade');
+
+            // JSON data (can store IP, browser, device info, location, etc.)
+            $table->json('login_data')->nullable();
+
+            // Login and logout timestamps
+            $table->timestamp('login_time')->useCurrent();
             $table->timestamp('logout_time')->nullable();
-            $table->softDeletes(); 
+
+            // Soft deletes and created/updated timestamps
+            $table->softDeletes();
+            $table->timestamps();
         });
     }
 

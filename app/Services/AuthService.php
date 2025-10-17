@@ -39,7 +39,7 @@ class AuthService
     public function register(array $data): array
     {
         $this->validateRegistrationData($data);
-
+       
         // Create user
         $user = $this->userService->createUser($data);
 
@@ -64,9 +64,9 @@ class AuthService
     public function login(array $credentials): array
     {
         $this->validateLoginData($credentials);
-
+ 
         $user = $this->userService->authenticateUser($credentials);
-
+       
         if (!$user) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.']
@@ -75,7 +75,7 @@ class AuthService
 
         // Generate token
         $token = $user->generateToken();
-
+ dd("ADf sd");
         return [
             'user' => $user,
             'token' => $token,

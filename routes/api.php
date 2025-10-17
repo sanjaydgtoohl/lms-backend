@@ -9,13 +9,13 @@ use App\Http\Controllers\Api\UserController;
 // Public routes (no authentication required)
 // -------------------------------------------------------
 
-$router->group(['prefix' => 'api/v1'], function () use ($router) {
-
+$router->group(['prefix' => 'v1'], function () use ($router) {
+    
     // Authentication routes
-    $router->group(['prefix' => 'auth'], function () use ($router) {
+    $router->group(['prefix' => 'auth'], function () use ($router) {      
         $router->post('register', 'Api\AuthController@register');
         $router->post('login', 'Api\AuthController@login');
-        $router->post('forgot-password', 'Api\AuthController@forgotPassword');
+        $router->post('forgot-password','Api\AuthController@forgotPassword');
         $router->post('reset-password', 'Api\AuthController@resetPassword');
     });
 });
@@ -24,7 +24,7 @@ $router->group(['prefix' => 'api/v1'], function () use ($router) {
 // Protected routes (JWT authentication required)
 // -------------------------------------------------------
 
-$router->group(['prefix' => 'api/v1', 'middleware' => 'jwt.auth'], function () use ($router) {
+$router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use ($router) {
 
     // Auth routes
     $router->group(['prefix' => 'auth'], function () use ($router) {
@@ -56,7 +56,7 @@ $router->group(['prefix' => 'api/v1', 'middleware' => 'jwt.auth'], function () u
 // Admin routes (admin role required)
 // -------------------------------------------------------
 
-$router->group(['prefix' => 'api/v1/admin', 'middleware' => ['jwt.auth', 'role:admin']], function () use ($router) {
+$router->group(['prefix' => 'v1/admin', 'middleware' => ['jwt.auth', 'role:admin']], function () use ($router) {
     $router->get('dashboard', function () {
         return response()->json([
             'success' => true,

@@ -61,7 +61,7 @@ class UserService
     public function createUser(array $data): User
     {
         $this->validateUserData($data);
-
+    
         // Hash password if provided
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
@@ -69,7 +69,7 @@ class UserService
 
         // Set default values
         $data['status'] = $data['status'] ?? 'active';
-        $data['role'] = $data['role'] ?? 'user';
+        // $data['role'] = $data['role'] ?? 'user';
 
         return $this->userRepository->create($data);
     }
@@ -203,7 +203,7 @@ class UserService
             'email' => 'required|email|max:255',
             'password' => 'sometimes|required|string|min:8',
             'phone' => 'nullable|string|max:20',
-            'role' => 'sometimes|in:admin,user,moderator',
+            // 'role' => 'sometimes|in:admin,user,moderator',
             'status' => 'sometimes|in:active,inactive,suspended',
         ];
 
