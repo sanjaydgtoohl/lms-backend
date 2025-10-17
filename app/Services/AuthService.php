@@ -75,7 +75,7 @@ class AuthService
 
         // Generate token
         $token = $user->generateToken();
- dd("ADf sd");
+ 
         return [
             'user' => $user,
             'token' => $token,

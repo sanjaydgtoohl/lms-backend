@@ -61,7 +61,7 @@ class AuthResource extends BaseResource
     public function toArray($request): array
     {
         return [
-            'user' => $this->userResource->toArray($request),
+            // 'user' => $this->userResource->toArray($request),
             'token' => $this->token,
             'token_type' => $this->tokenType,
             'expires_in' => $this->expiresIn,

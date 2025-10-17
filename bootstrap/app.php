@@ -102,6 +102,7 @@ $app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
 // Enable route:list command
 $app->register(\Flipbox\LumenGenerator\LumenGeneratorServiceProvider::class);
 
+
 /*
 |--------------------------------------------------------------------------
 | Load The Application Routes
