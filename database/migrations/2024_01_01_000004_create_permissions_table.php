@@ -18,6 +18,7 @@ return new class extends Migration
             $table->uuid('uuid')->unique();
             $table->string('name');
             $table->string('slug')->unique();
+            $table->string('route_name')->unique();
             $table->text('description')->nullable();
             $table->string('resource', 100); // e.g., 'users', 'posts', 'comments'
             $table->string('action', 100); // e.g., 'create', 'read', 'update', 'delete'
