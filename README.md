@@ -20,6 +20,7 @@ cd lms-protal
 composer install
 ```
 
+
 ### Environment
 Create your env file and configure DB + JWT:
 ```bash
@@ -28,6 +29,12 @@ cp .env.example .env   # if not present, create and fill values
 Required keys in `.env`:
 - DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
 - JWT_SECRET (run command below to generate)
+
+
+### App Key
+```bash
+php -r "file_put_contents('.env', preg_replace('/^APP_KEY=.*$/m', 'APP_KEY=base64:'.base64_encode(random_bytes(32)), file_get_contents('.env')));"
+```
 
 ### Bootstrap
 ```bash
