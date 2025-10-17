@@ -20,6 +20,7 @@ return new class extends Migration
             $table->timestamp('assigned_at')->useCurrent();
             $table->foreignId('assigned_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
+            $table->softDeletes();
 
             $table->unique(['user_id', 'role_id']);
             $table->index(['user_id', 'assigned_at']);
