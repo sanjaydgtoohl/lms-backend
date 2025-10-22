@@ -10,7 +10,9 @@ class CreateIndustriesTable extends Migration
     {
         Schema::create('industries', function (Blueprint $table) {
             $table->id();
-            $table->string('industry_name');
+            $table->string('name');
+            $table->string('slug');
+            $table->enum('status',[1,2,15])->deflut(1)->comment('1 is active 2 is deaction and 15 is user doft delete');
             $table->timestamps(); // Date & Time
             $table->softDeletes(); // Soft delete 
         });

@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
-// --- Dono files ko import karein ---
 use App\Contracts\Repositories\IndustryRepositoryInterface;
 use App\Repositories\IndustryRepository;
+
+use App\Interfaces\DesignationRepositoryInterface;
+use App\Repositories\DesignationRepository;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -17,12 +19,14 @@ class RepositoryServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        // Yeh line Laravel/Lumen ko batati hai:
-        // Jab bhi koi 'IndustryRepositoryInterface' maange...
-        // ... toh use 'IndustryRepository' ka naya object do.
         $this->app->bind(
             IndustryRepositoryInterface::class,
             IndustryRepository::class
+        );
+
+        $this->app->bind(
+            DesignationRepositoryInterface::class,
+            DesignationRepository::class
         );
     }
 
@@ -33,6 +37,6 @@ class RepositoryServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        // Is project ke liye boot() mein kuch nahi chahiye
+        
     }
 }

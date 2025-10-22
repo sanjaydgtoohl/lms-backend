@@ -48,6 +48,13 @@ $app->singleton(
     App\Console\Kernel::class
 );
 
+/**
+ * 🔹 Bind your repository interface to implementation
+ */
+$app->bind(
+    App\Contracts\Repositories\DesignationRepositoryInterface::class,
+    App\Repositories\DesignationRepository::class
+);
 /*
 |--------------------------------------------------------------------------
 | Register Config Files

@@ -10,17 +10,15 @@ class Industry extends Model
     use SoftDeletes;
 
     protected $table = 'industries';
-    
+
     protected $fillable = [
-        'industry_name',
+        'name',
+        'slug',
+        'status',
     ];
 
-    /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
-     */
     protected $casts = [
         'deleted_at' => 'datetime',
+        'status' => 'integer',
     ];
 }

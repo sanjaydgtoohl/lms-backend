@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Services;
-
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Carbon\Carbon;
@@ -252,7 +252,7 @@ class ResponseService
         }
 
         // Log the exception for debugging
-        \Log::error('Unhandled exception: ' . $exception->getMessage(), [
+        Log::error('Unhandled exception: ' . $exception->getMessage(), [
             'exception' => $exception,
             'trace' => $exception->getTraceAsString()
         ]);
