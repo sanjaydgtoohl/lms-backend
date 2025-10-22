@@ -4,6 +4,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\IndustryController;
 
 // -------------------------------------------------------
 // Public routes (no authentication required)
@@ -12,7 +13,7 @@ use App\Http\Controllers\Api\UserController;
 $router->group(['prefix' => 'v1'], function () use ($router) {
     
     // Authentication routes
-    $router->group(['prefix' => 'auth'], function () use ($router) {      
+    $router->group(['prefix' => 'auth'], function () use ($router) {     
         $router->post('register', 'Api\AuthController@register');
         $router->post('login', 'Api\AuthController@login');
         $router->post('forgot-password','Api\AuthController@forgotPassword');
@@ -50,6 +51,17 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('/', 'Api\UserController@me');
         $router->put('/', 'Api\UserController@updateProfile');
         $router->get('login-history', 'Api\UserController@getLoginHistory');
+    });
+
+    // Industry routes
+    
+    $router->group(['prefix' => 'industries'], function () use ($router) {
+    
+        $router->get('/', 'IndustryController@index');
+        $router->post('/', 'IndustryController@store');
+        $router->get('{id}', 'IndustryController@show');
+        $router->put('{id}', 'IndustryController@update');
+        $router->delete('{id}', 'IndustryController@destroy');
     });
 });
 
