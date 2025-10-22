@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\LoginLog;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Services\AuthService;
 use App\Services\ResponseService;
@@ -70,7 +72,29 @@ class AuthController extends Controller
     {
         try {
             $result = $this->authService->login($request->all());
-           
+
+            // --- YAHAN LOGGING LOGIC ADD KAREIN ---
+            if (isset($result['user'])) {
+                /** @var \App\Models\User $user */
+                $user = $result['user'];
+
+                // (Optional) Purane "active" sessions ko logout mark karein
+             $user->loginLogs()
+                 ->whereNull('logout_time')
+                 ->update(['logout_time' => \Carbon\Carbon::now()]);
+
+                // Naya log banayein
+                LoginLog::create([
+                    'user_id' => $user->id,
+                    'login_time' => \Carbon\Carbon::now(),
+                    'login_data' => [
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->header('User-Agent'),
+                    ],
+                ]);
+            }
+            // --- LOGGING LOGIC END ---
+            
             return $this->responseService->success(
                 new AuthResource($result['user'], $result['token'], $result['token_type'], $result['expires_in']),
                 'Login successful'
@@ -91,6 +115,24 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         try {
+            // --- LOGGING LOGIC ADD KAREIN (Logout se pehle) ---
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user(); // User ko logout karne se pehle lein
+
+            if ($user) {
+                // User ka sabse latest active log dhundein
+                $log = $user->loginLogs()
+                           ->whereNull('logout_time')
+                           ->latest('login_time')
+                           ->first();
+
+                // Agar mila hai, toh uska logout time update karein
+                if ($log) {
+                    $log->update(['logout_time' => \Carbon\Carbon::now()]);
+                }
+            }
+            // --- LOGGING LOGIC END ---
+
             $success = $this->authService->logout();
             
             if ($success) {

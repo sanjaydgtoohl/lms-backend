@@ -15,6 +15,8 @@ use App\Traits\HasTimestamps;
 use App\Traits\HasUuid;
 use App\Traits\HasApiTokens;
 use App\Traits\SoftDeletes;
+use App\Models\LoginLog;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Model implements AuthenticatableContract, AuthorizableContract, JWTSubject
 {
@@ -186,6 +188,14 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     {
         return $this->hasOne(Profile::class);
     }
+    /**
+     * Get the login logs for the user.
+     */
+    public function loginLogs(): HasMany
+    {
+        // Yahan login_time ke hisaab se sort kar rahe hain (latest pehle)
+        return $this->hasMany(LoginLog::class)->latest('login_time');
+    }
 
     /**
      * Check if user has role
@@ -268,9 +278,9 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function assignRole(Role $role): void
     {
-        $this->roles()->syncWithoutDetaching([
+            $this->roles()->syncWithoutDetaching([
             $role->id => [
-                'assigned_at' => now(),
+                'assigned_at' => \Carbon\Carbon::now(),
                 'assigned_by' => auth()->id(),
             ]
         ]);
@@ -291,7 +301,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     {
         $this->permissions()->syncWithoutDetaching([
             $permission->id => [
-                'granted_at' => now(),
+                'granted_at' => \Carbon\Carbon::now(),
                 'granted_by' => auth()->id(),
             ]
         ]);

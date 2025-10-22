@@ -15,6 +15,10 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\ExampleEvent::class => [
             \App\Listeners\ExampleListener::class,
         ],
+        // Log successful login events to the login_logs table
+        \Illuminate\Auth\Events\Login::class => [
+            \App\Listeners\LogSuccessfulLogin::class,
+        ],
     ];
 
     /**

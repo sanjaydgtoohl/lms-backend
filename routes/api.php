@@ -49,6 +49,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     $router->group(['prefix' => 'profile'], function () use ($router) {
         $router->get('/', 'Api\UserController@me');
         $router->put('/', 'Api\UserController@updateProfile');
+        $router->get('login-history', 'Api\UserController@getLoginHistory');
     });
 });
 
