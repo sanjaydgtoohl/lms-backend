@@ -81,6 +81,22 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('{id}', 'DepartmentController@update');
         $router->delete('{id}', 'DepartmentController@destroy');
     });
+
+    $router->group(['prefix' => 'lead-sources'], function () use ($router) {
+        $router->get('/', 'LeadSourceController@index');
+        $router->post('/', 'LeadSourceController@store');
+        $router->get('{id}', 'LeadSourceController@show');
+        $router->put('{id}', 'LeadSourceController@update');
+        $router->delete('{id}', 'LeadSourceController@destroy');
+    });
+
+    $router->group(['prefix' => 'lead-sub-sources'], function () use ($router) {
+        $router->get('/', 'LeadSubSourceController@index');
+        $router->post('/', 'LeadSubSourceController@store');
+        $router->get('{id}', 'LeadSubSourceController@show');
+        $router->put('{id}', 'LeadSubSourceController@update');
+        $router->delete('{id}', 'LeadSubSourceController@destroy');
+    });
 });
 
 // -------------------------------------------------------

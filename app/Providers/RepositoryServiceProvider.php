@@ -13,6 +13,12 @@ use App\Contracts\Repositories\DesignationRepositoryInterface;
 use App\Repositories\DepartmentRepository;
 use App\Contracts\Repositories\DepartmentRepositoryInterface;
 
+use App\Repositories\LeadSourceRepository;
+use App\Contracts\Repositories\LeadSourceRepositoryInterface;
+
+use App\Repositories\LeadSubSourceRepository;
+use App\Contracts\Repositories\LeadSubSourceRepositoryInterface;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -35,6 +41,16 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             DepartmentRepositoryInterface::class,
             DepartmentRepository::class
+        );
+
+        $this->app->bind(
+            LeadSourceRepositoryInterface::class,
+            LeadSourceRepository::class
+        );
+
+        $this->app->bind(
+            LeadSubSourceRepositoryInterface::class,
+            LeadSubSourceRepository::class
         );
     }
 
