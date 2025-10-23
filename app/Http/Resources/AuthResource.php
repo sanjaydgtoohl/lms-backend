@@ -80,7 +80,7 @@ class AuthResource extends BaseResource
         return [
             'meta' => [
                 'version' => '1.0',
-                'timestamp' => now()->toISOString(),
+                'timestamp' => Carbon::now()->toISOString(),
                 'message' => 'Authentication successful',
             ]
         ];
