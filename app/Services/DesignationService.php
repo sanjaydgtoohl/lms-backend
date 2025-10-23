@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Contracts\Repositories\DesignationRepositoryInterface;
 use Illuminate\Support\Str;
 use DomainException;
+use Illuminate\Database\QueryException;
+use Exception;
 
 class DesignationService
 {
@@ -17,77 +19,108 @@ class DesignationService
 
     public function getAllDesignations()
     {
-        return $this->designationRepository->getAllDesignations();
+        try {
+            return $this->designationRepository->getAllDesignations();
+        } catch (QueryException $e) {
+            throw new DomainException('Database error while fetching designations: ' . $e->getMessage());
+        } catch (Exception $e) {
+            throw new DomainException('Unexpected error while fetching designations: ' . $e->getMessage());
+        }
     }
 
     public function createNewDesignation(array $data)
     {
-        // Normalize input keys: accept 'designation_name' or 'title'
-        if (isset($data['designation_name']) && !isset($data['title'])) {
-            $data['title'] = $data['designation_name'];
-            unset($data['designation_name']);
-        }
-
-        // Ensure slug exists and is unique
-        if (!empty($data['title'])) {
-            $baseSlug = Str::slug($data['title']);
-            $slug = $baseSlug;
-            $attempt = 0;
-            while ($this->designationRepository->slugExists($slug) && $attempt < 50) {
-                $attempt++;
-                $slug = $baseSlug . '-' . $attempt;
+        try {
+            if (isset($data['designation_name']) && !isset($data['title'])) {
+                $data['title'] = $data['designation_name'];
+                unset($data['designation_name']);
             }
 
-            if ($this->designationRepository->slugExists($slug)) {
-                throw new DomainException('Unable to generate a unique slug for the designation.');
+            if (!empty($data['title'])) {
+                $baseSlug = Str::slug($data['title']);
+                $slug = $baseSlug;
+                $attempt = 0;
+
+                while ($this->designationRepository->slugExists($slug) && $attempt < 50) {
+                    $attempt++;
+                    $slug = $baseSlug . '-' . $attempt;
+                }
+
+                if ($this->designationRepository->slugExists($slug)) {
+                    throw new DomainException('Unable to generate a unique slug for the designation.');
+                }
+
+                $data['slug'] = $slug;
             }
 
-            $data['slug'] = $slug;
-        }
+            if (!isset($data['status'])) {
+                $data['status'] = '1';
+            }
 
-        // Default status
-        if (!isset($data['status'])) {
-            $data['status'] = '1';
+            return $this->designationRepository->createDesignation($data);
+        } catch (QueryException $e) {
+            throw new DomainException('Database error while creating designation: ' . $e->getMessage());
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            throw new DomainException('Unexpected error while creating designation: ' . $e->getMessage());
         }
-
-        return $this->designationRepository->createDesignation($data);
     }
 
     public function getDesignation($id)
     {
-        return $this->designationRepository->getDesignationById($id);
+        try {
+            return $this->designationRepository->getDesignationById($id);
+        } catch (QueryException $e) {
+            throw new DomainException('Database error while fetching designation: ' . $e->getMessage());
+        } catch (Exception $e) {
+            throw new DomainException('Designation not found or unexpected error occurred.');
+        }
     }
 
     public function updateDesignation($id, array $data)
     {
-        // Normalize title key
-        if (isset($data['designation_name']) && !isset($data['title'])) {
-            $data['title'] = $data['designation_name'];
-            unset($data['designation_name']);
-        }
-
-        // Regenerate slug if title changed and ensure uniqueness (exclude this id)
-        if (!empty($data['title'])) {
-            $baseSlug = Str::slug($data['title']);
-            $slug = $baseSlug;
-            $attempt = 0;
-            while ($this->designationRepository->slugExists($slug, $id) && $attempt < 50) {
-                $attempt++;
-                $slug = $baseSlug . '-' . $attempt;
+        try {
+            if (isset($data['designation_name']) && !isset($data['title'])) {
+                $data['title'] = $data['designation_name'];
+                unset($data['designation_name']);
             }
 
-            if ($this->designationRepository->slugExists($slug, $id)) {
-                throw new DomainException('Unable to generate a unique slug for the designation.');
+            if (!empty($data['title'])) {
+                $baseSlug = Str::slug($data['title']);
+                $slug = $baseSlug;
+                $attempt = 0;
+
+                while ($this->designationRepository->slugExists($slug, $id) && $attempt < 50) {
+                    $attempt++;
+                    $slug = $baseSlug . '-' . $attempt;
+                }
+
+                if ($this->designationRepository->slugExists($slug, $id)) {
+                    throw new DomainException('Unable to generate a unique slug for the designation.');
+                }
+
+                $data['slug'] = $slug;
             }
 
-            $data['slug'] = $slug;
+            return $this->designationRepository->updateDesignation($id, $data);
+        } catch (QueryException $e) {
+            throw new DomainException('Database error while updating designation: ' . $e->getMessage());
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            throw new DomainException('Unexpected error while updating designation: ' . $e->getMessage());
         }
-
-        return $this->designationRepository->updateDesignation($id, $data);
     }
 
     public function deleteDesignation($id)
     {
-        return $this->designationRepository->deleteDesignation($id);
+        try {
+            return $this->designationRepository->deleteDesignation($id);
+        } catch (QueryException $e) {
+            throw new DomainException('Database error while deleting designation: ' . $e->getMessage());
+        } catch (Exception $e) {
+            throw new DomainException('Unexpected error while deleting designation: ' . $e->getMessage());
+        }
     }
 }

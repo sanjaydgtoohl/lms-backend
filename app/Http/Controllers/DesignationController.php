@@ -26,8 +26,41 @@ class DesignationController extends Controller
 
     public function index()
     {
-        $designations = $this->designationService->getAllDesignations();
-        return $this->responseService->paginated($designations, 'Designations fetched successfully.');
+        try {
+            $designations = $this->designationService->getAllDesignations();
+
+            // Check if any records exist
+            if ($designations->isEmpty()) {
+                return $this->responseService->success([], 'No designations found.');
+            }
+
+            return $this->responseService->paginated($designations, 'Designations fetched successfully.');
+        } 
+        catch (QueryException $e) {
+            // Handles database-related issues
+            return $this->responseService->error(
+                'Database error: ' . $e->getMessage(),
+                null,
+                500,
+                'DB_ERROR'
+            );
+        } 
+        catch (DomainException $e) {
+            // Handles domain or business logic issues
+            return $this->responseService->error(
+                $e->getMessage(),
+                null,
+                400,
+                'DOMAIN_ERROR'
+            );
+        } 
+        catch (Exception $e) {
+            // Generic fallback for unexpected issues
+            return $this->responseService->serverError(
+                'An unexpected error occurred while fetching designations.',
+                $e->getMessage()
+            );
+        }
     }
 
     public function store(Request $request)
@@ -85,7 +118,7 @@ class DesignationController extends Controller
         }
     }
 
-    // destroy() method ko change nahi kiya gaya hai
+    // destroy()
     public function destroy($id)
     {
         try {

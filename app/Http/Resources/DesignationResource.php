@@ -21,6 +21,7 @@ class DesignationResource extends JsonResource
             'description' => $this->description,
             'status' => $this->status,
             'created_at' => $this->created_at ? $this->created_at->format('d-m-Y H:i:s') : null,
+            'updated_at' => $this->updated_at ? $this->updated_at->format('d-m-Y H:i:s') : null,
         ];
     }
 }

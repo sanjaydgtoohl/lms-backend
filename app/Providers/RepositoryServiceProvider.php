@@ -7,8 +7,11 @@ use Illuminate\Support\ServiceProvider;
 use App\Contracts\Repositories\IndustryRepositoryInterface;
 use App\Repositories\IndustryRepository;
 
-use App\Interfaces\DesignationRepositoryInterface;
 use App\Repositories\DesignationRepository;
+use App\Contracts\Repositories\DesignationRepositoryInterface;
+
+use App\Repositories\DepartmentRepository;
+use App\Contracts\Repositories\DepartmentRepositoryInterface;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -27,6 +30,11 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             DesignationRepositoryInterface::class,
             DesignationRepository::class
+        );
+
+        $this->app->bind(
+            DepartmentRepositoryInterface::class,
+            DepartmentRepository::class
         );
     }
 

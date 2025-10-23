@@ -73,6 +73,14 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('{id}', 'DesignationController@update');
         $router->delete('{id}', 'DesignationController@destroy');
     });
+
+    $router->group(['prefix' => 'departments'], function () use ($router) {
+        $router->get('/', 'DepartmentController@index');
+        $router->post('/', 'DepartmentController@store');
+        $router->get('{id}', 'DepartmentController@show');
+        $router->put('{id}', 'DepartmentController@update');
+        $router->delete('{id}', 'DepartmentController@destroy');
+    });
 });
 
 // -------------------------------------------------------

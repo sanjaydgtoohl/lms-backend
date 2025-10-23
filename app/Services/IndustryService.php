@@ -2,22 +2,18 @@
 
 namespace App\Services;
 
-use App\Contracts\Repositories\IndustryRepositoryInterface; // Interface ko import karein
-use Illuminate\Support\Facades\Log; // Logging ke liye (optional)
+use App\Contracts\Repositories\IndustryRepositoryInterface;
+use Illuminate\Support\Facades\Log;
+use DomainException;
+use Illuminate\Database\QueryException;
+use Exception;
 
-/**
- * Yeh hamari Business Logic layer hai.
- * Controller isse call karega.
- * Service, Repository ko call karegi.
- */
 class IndustryService
 {
     protected $industryRepository;
 
     /**
-     * Yahan hum Interface ko inject kar rahe hain.
-     * Provider (Step 5) ki wajah se Laravel ko pata hai
-     * ki iski jagah IndustryRepository deni hai.
+     * Inject the Industry repository interface
      */
     public function __construct(IndustryRepositoryInterface $industryRepository)
     {
@@ -25,59 +21,104 @@ class IndustryService
     }
 
     /**
-     * Saari industries laane ki service
+     * Get all industries
      */
     public function getAllIndustries()
     {
-        // Abhi ke liye simple hai
-        return $this->industryRepository->getAllIndustries();
+        try {
+            return $this->industryRepository->getAllIndustries();
+        } catch (QueryException $e) {
+            Log::error('Database error fetching industries: ' . $e->getMessage());
+            throw new DomainException('Database error while fetching industries.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching industries: ' . $e->getMessage());
+            throw new DomainException('Unexpected error while fetching industries.');
+        }
     }
 
     /**
-     * Nayi industry banane ki service
+     * Create a new industry
      */
     public function createNewIndustry(array $data)
     {
-        /**
-         * YAHAN BUSINESS LOGIC AATA HAI
-         * Example: Agar aapko 'industry_name' ko save karne se pehle
-         * hamesha UPPERCASE mein convert karna hai, toh aap woh yahan karenge.
-         *
-         * $data['industry_name'] = strtoupper($data['industry_name']);
-         */
-        
-        // Logic ke baad, data ko repository ke paas bhej do save hone ke liye
-        return $this->industryRepository->createIndustry($data);
+        try {
+            if (empty($data['name'])) {
+                throw new DomainException('Industry name is required.');
+            }
+
+            return $this->industryRepository->createIndustry($data);
+        } catch (QueryException $e) {
+            Log::error('Database error creating industry: ' . $e->getMessage());
+            throw new DomainException('Database error while creating industry.');
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('Unexpected error creating industry: ' . $e->getMessage());
+            throw new DomainException('Unexpected error while creating industry.');
+        }
     }
 
     /**
-     * Ek industry laane ki service
+     * Get a single industry by ID
      */
     public function getIndustry($id)
     {
-        return $this->industryRepository->getIndustryById($id);
+        try {
+            $industry = $this->industryRepository->getIndustryById($id);
+            if (!$industry) {
+                throw new DomainException('Industry not found.');
+            }
+            return $industry;
+        } catch (QueryException $e) {
+            Log::error('Database error fetching industry: ' . $e->getMessage());
+            throw new DomainException('Database error while fetching industry.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching industry: ' . $e->getMessage());
+            throw new DomainException('Unexpected error while fetching industry.');
+        }
     }
 
     /**
-     * Industry update karne ki service
+     * Update an existing industry
      */
     public function updateIndustry($id, array $data)
     {
-        // Yahan bhi update se pehle business logic aa sakta hai
-        // $data['industry_name'] = strtoupper($data['industry_name']);
+        try {
+            $industry = $this->industryRepository->getIndustryById($id);
+            if (!$industry) {
+                throw new DomainException('Industry not found.');
+            }
 
-        return $this->industryRepository->updateIndustry($id, $data);
+            return $this->industryRepository->updateIndustry($id, $data);
+        } catch (QueryException $e) {
+            Log::error('Database error updating industry: ' . $e->getMessage());
+            throw new DomainException('Database error while updating industry.');
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('Unexpected error updating industry: ' . $e->getMessage());
+            throw new DomainException('Unexpected error while updating industry.');
+        }
     }
 
     /**
-     * Industry delete karne ki service
+     * Delete an industry
      */
     public function deleteIndustry($id)
     {
-        // Yahan delete se pehle logic aa sakta hai
-        // Jaise: check karo ki is industry mein koi user toh nahi hai?
-        // Agar hai, toh delete mat karo aur error return karo.
-        
-        return $this->industryRepository->deleteIndustry($id);
+        try {
+            $industry = $this->industryRepository->getIndustryById($id);
+            if (!$industry) {
+                throw new DomainException('Industry not found.');
+            }
+
+            return $this->industryRepository->deleteIndustry($id);
+        } catch (QueryException $e) {
+            Log::error('Database error deleting industry: ' . $e->getMessage());
+            throw new DomainException('Database error while deleting industry.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error deleting industry: ' . $e->getMessage());
+            throw new DomainException('Unexpected error while deleting industry.');
+        }
     }
 }
