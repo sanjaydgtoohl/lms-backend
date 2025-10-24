@@ -18,5 +18,6 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
         ]);
         $this->call(LeadSourceSeeder::class);
+        $this->call(AgencyTypeSeeder::class);
     }
 }
