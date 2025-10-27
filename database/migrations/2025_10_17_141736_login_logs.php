@@ -24,7 +24,6 @@ return new class extends Migration
 
             // JSON data (can store IP, browser, device info, location, etc.)
             $table->json('login_data')->nullable();
-
             // Login and logout timestamps
             $table->timestamp('login_time')->useCurrent();
             $table->timestamp('logout_time')->nullable();

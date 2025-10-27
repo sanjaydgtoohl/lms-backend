@@ -13,18 +13,13 @@ class CreateLeadSubSourceTable extends Migration
     {
         Schema::create('lead_sub_source', function (Blueprint $table) {
             $table->id();
-
-            // --- Foreign Key Connection ---
             $table->unsignedBigInteger('lead_source_id');
-            // ------------------------------
             $table->string('name');
             $table->string('slug');
             $table->text('description')->nullable();
-
             $table->enum('status', ['1', '2', '15'])
                 ->default('1')
                 ->comment('1 = active, 2 = deactivated, 15 = user soft delete');
-
             $table->timestamps();
             $table->softDeletes();
 

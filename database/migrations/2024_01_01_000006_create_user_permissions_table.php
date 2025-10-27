@@ -21,8 +21,6 @@ return new class extends Migration
             $table->foreignId('granted_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
-
-
             $table->unique(['user_id', 'permission_id']);
             $table->index(['user_id', 'granted_at']);
             $table->index(['permission_id', 'granted_at']);
