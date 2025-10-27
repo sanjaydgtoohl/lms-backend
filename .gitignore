@@ -31,4 +31,8 @@ auth.json
 /storage/logs
 /storage/framework
 /storage/app
+
+# SQL & Dumps
 *.sql
+*.sql.zip
+dump_db.sql
