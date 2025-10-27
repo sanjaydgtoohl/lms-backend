@@ -15,6 +15,8 @@ class AgencyTypeSeeder extends Seeder
      */
     public function run(): void
     {
+        DB::table('agency_type')->truncate();
+        
         $now = Carbon::now();
 
         // Define the agency types

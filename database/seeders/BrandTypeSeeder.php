@@ -15,6 +15,8 @@ class BrandTypeSeeder extends Seeder
      */
     public function run(): void
     {
+        DB::table('brand_types')->truncate();
+        
         $types = [
             'National',
             'Regional',
