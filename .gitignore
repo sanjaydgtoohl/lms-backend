@@ -35,4 +35,4 @@ auth.json
 # SQL & Dumps
 *.sql
 *.sql.zip
-dump_db.sql
+# dump_db.sql
