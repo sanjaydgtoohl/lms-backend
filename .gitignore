@@ -31,3 +31,4 @@ auth.json
 /storage/logs
 /storage/framework
 /storage/app
+*.sql
