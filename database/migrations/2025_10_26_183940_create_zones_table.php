@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('group_agency', function (Blueprint $table) {
+        Schema::create('zones', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('slug');
+            $table->string('slug')->unique();
+            // Aapke standard status column ke style ke anusaar
             $table->enum('status', ['1', '2', '15'])
-                ->default('1')
-                ->comment('1 = active, 2 = deactivated, 15 = user soft delete');
-            $table->timestamps();
-            $table->softDeletes();
+                  ->default('1')
+                  ->comment('1 = active, 2 = deactivated, 15 = user soft delete');
+
+            $table->timestamps(); // created_at aur updated_at
+            $table->softDeletes(); // deleted_at
         });
     }
 
@@ -28,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('group_agency');
+        Schema::dropIfExists('zones');
     }
 };

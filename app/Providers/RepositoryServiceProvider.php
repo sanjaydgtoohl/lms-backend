@@ -19,6 +19,15 @@ use App\Contracts\Repositories\LeadSourceRepositoryInterface;
 use App\Repositories\LeadSubSourceRepository;
 use App\Contracts\Repositories\LeadSubSourceRepositoryInterface;
 
+use App\Repositories\AgencyGroupRepository;
+use App\Contracts\Repositories\AgencyGroupRepositoryInterface;
+
+use App\Repositories\AgencyTypeRepository;
+use App\Contracts\Repositories\AgencyTypeRepositoryInterface;
+
+use App\Repositories\AgencyRepository;
+use App\Contracts\Repositories\AgencyRepositoryInterface;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -51,6 +60,21 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             LeadSubSourceRepositoryInterface::class,
             LeadSubSourceRepository::class
+        );
+
+        $this->app->bind(
+            AgencyGroupRepositoryInterface::class,
+            AgencyGroupRepository::class
+        );
+
+        $this->app->bind(
+            AgencyTypeRepositoryInterface::class,
+            AgencyTypeRepository::class
+        );
+
+        $this->app->bind(
+            AgencyRepositoryInterface::class,
+            AgencyRepository::class
         );
     }
 

@@ -19,5 +19,6 @@ class DatabaseSeeder extends Seeder
         ]);
         $this->call(LeadSourceSeeder::class);
         $this->call(AgencyTypeSeeder::class);
+        $this->call(BrandTypeSeeder::class);
     }
 }

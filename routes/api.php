@@ -6,6 +6,14 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\IndustryController;
+use App\Http\Controllers\DesignationController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\LeadSourceController;
+use App\Http\Controllers\LeadSubSourceController;
+use App\Http\Controllers\AgencyGroupController;
+use App\Http\Controllers\AgencyTypeController;
+use App\Http\Controllers\AgencyController;
+use App\Http\Controllers\LocationController;
 use Carbon\Carbon;
 
 // -------------------------------------------------------
@@ -96,6 +104,35 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('{id}', 'LeadSubSourceController@show');
         $router->put('{id}', 'LeadSubSourceController@update');
         $router->delete('{id}', 'LeadSubSourceController@destroy');
+    });
+    //Agency Group (Simple CRUD)
+    $router->group(['prefix' => 'agency-groups'], function () use ($router) {
+        $router->get('/', 'AgencyGroupController@index');
+        $router->post('/', 'AgencyGroupController@store');
+        $router->get('{id}', 'AgencyGroupController@show');
+        $router->put('{id}', 'AgencyGroupController@update');
+        $router->delete('{id}', 'AgencyGroupController@destroy');
+    });
+    
+    //Agency Type (list)
+    $router->group(['prefix' => 'agency-types'], function () use ($router) {
+        $router->get('/', 'AgencyTypeController@index');
+    });
+
+    //Agency (Main Complex CRUD)
+    $router->group(['prefix' => 'agencies'], function () use ($router) {
+        $router->get('/', 'AgencyController@index');
+        $router->post('/', 'AgencyController@store'); // Complex bulk create
+        $router->get('{id}', 'AgencyController@show');
+        $router->put('{id}', 'AgencyController@update'); // Simple update
+        $router->delete('{id}', 'AgencyController@destroy');
+    });
+
+    // Location routes
+    $router->group(['prefix' => 'locations'], function () use ($router) {
+        $router->get('countries', 'LocationController@getCountries');
+        $router->get('states/{country_id}', 'LocationController@getStates');
+        $router->get('cities/{state_id}', 'LocationController@getCities');
     });
 });
 

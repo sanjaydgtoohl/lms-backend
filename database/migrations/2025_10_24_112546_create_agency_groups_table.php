@@ -4,33 +4,26 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+// return new class extends Migration
+class CreateAgencyGroupsTable extends Migration // Class name badla
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('agency_brand', function (Blueprint $table) {
+        // Table ka naam 'agency_groups' rakha (kyunki agency table ise refer kar rahi hai)
+        Schema::create('agency_groups', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('slug');
             $table->enum('status', ['1', '2', '15'])
                 ->default('1')
                 ->comment('1 = active, 2 = deactivated, 15 = user soft delete');
-            $table->foreignId('agency_id')
-                  ->constrained('agency') 
-                  ->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('agency_brand');
+        Schema::dropIfExists('agency_groups');
     }
 };

@@ -11,15 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('agency_brand', function (Blueprint $table) {
+        Schema::create('agency', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('slug');
             $table->enum('status', ['1', '2', '15'])
                 ->default('1')
                 ->comment('1 = active, 2 = deactivated, 15 = user soft delete');
-            $table->foreignId('agency_id')
-                  ->constrained('agency') 
+
+            $table->foreignId('agency_group_id')
+                  ->nullable()                   
+                  ->constrained('agency_groups') 
+                  ->onDelete('set null');
+
+            $table->foreignId('agency_type_id')
+                  ->constrained('agency_type') 
                   ->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
@@ -31,6 +37,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('agency_brand');
+        Schema::dropIfExists('agency');
     }
 };
