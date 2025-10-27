@@ -34,5 +34,5 @@ auth.json
 
 # SQL & Dumps
 *.sql
-*.sql.zip
-# dump_db.sql
+# *.sql.zip
+dump_db.sql
