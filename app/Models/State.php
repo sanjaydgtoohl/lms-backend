@@ -2,25 +2,24 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // <-- Add karein
 
 class State extends Model
 {
-    use HasFactory, SoftDeletes; // <-- Add karein
-
-    public $incrementing = false;
-    protected $guarded = [];
-
+    protected $table = 'states';
+    protected $fillable = ['name', 'country_id'];
+    
+    public $timestamps = true;
+    
+    // Relationship with country
     public function country()
     {
         return $this->belongsTo(Country::class);
     }
-
+    
+    // Relationship with cities
     public function cities()
     {
         return $this->hasMany(City::class);
     }
 }
-

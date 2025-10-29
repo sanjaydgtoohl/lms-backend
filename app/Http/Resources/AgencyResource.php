@@ -12,7 +12,7 @@ class AgencyResource extends JsonResource
             'status' => $this->status,
             'agency_group' => new AgencyGroupResource($this->whenLoaded('agencyGroup')),
             'agency_type' => new AgencyTypeResource($this->whenLoaded('agencyType')),
-            'brands' => AgencyBrandResource::collection($this->whenLoaded('brands')),
+            'brand' => new BrandResource($this->whenLoaded('brand')),
             'created_at' => $this->created_at->format('d-m-Y H:i:s'),
         ];
     }

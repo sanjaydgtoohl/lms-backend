@@ -28,6 +28,11 @@ class DepartmentController extends Controller
     {
         try {
             $departments = $this->departmentService->getAllDepartments();
+            // Transform each item using DepartmentResource while keeping paginator meta
+            $departments->setCollection(
+                $departments->getCollection()->map(fn($item) => new DepartmentResource($item))
+            );
+
             return $this->responseService->paginated($departments, 'Departments fetched successfully.');
         } catch (DomainException $e) {
             return $this->responseService->error($e->getMessage(), null, 500, 'DOMAIN_ERROR');

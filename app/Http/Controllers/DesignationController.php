@@ -28,13 +28,15 @@ class DesignationController extends Controller
     {
         try {
             $designations = $this->designationService->getAllDesignations();
-
             // Check if any records exist
             if ($designations->isEmpty()) {
                 return $this->responseService->success([], 'No designations found.');
             }
 
-            return $this->responseService->paginated($designations, 'Designations fetched successfully.');
+            return $this->responseService->paginated(
+            DesignationResource::collection($designations),
+            'Designations fetched successfully.'
+        );
         } 
         catch (QueryException $e) {
             // Handles database-related issues

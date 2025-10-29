@@ -7,7 +7,7 @@ class AgencyTypeResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'slug' => $this->slug,
+            //'slug' => $this->slug,
         ];
     }
 }

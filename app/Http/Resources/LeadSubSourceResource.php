@@ -14,11 +14,11 @@ class LeadSubSourceResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'slug' => $this->slug,
-            'description' => $this->description,
-            'status' => $this->status,
+            //'slug' => $this->slug,
+            //'description' => $this->description,
+            //'status' => $this->status,
             'created_at' => $this->created_at->format('d-m-Y H:i:s'),
-            'lead_source' => new LeadSourceResource($this->whenLoaded('leadSource')),
+            //'lead_source' => new LeadSourceResource($this->whenLoaded('leadSource')),
         ];
     }
 }

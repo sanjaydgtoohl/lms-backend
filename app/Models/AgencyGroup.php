@@ -2,21 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Agency;
 
 class AgencyGroup extends Model
 {
-    use SoftDeletes;
-    protected $table = 'agency_groups';
-    protected $fillable = ['name', 'slug', 'status'];
-    protected $casts = ['deleted_at' => 'datetime'];
+    use HasFactory, SoftDeletes;
 
-    // Ek group mein kai agencies ho sakti hain
-    public function agencies(): HasMany
-    {
-        return $this->hasMany(Agency::class, 'agency_group_id');
-    }
+    // The table name 'agency_groups' matches the model name 'AgencyGroup'
+    // so you don't strictly need to set $table, but it's good practice.
+    protected $table = 'agency_groups';
+
+    protected $fillable = [
+        'name',
+        'slug',
+        'status',
+    ];
 }

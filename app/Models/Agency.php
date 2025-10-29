@@ -2,33 +2,56 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Agency extends Model
 {
-    use SoftDeletes;
-    protected $table = 'agency';
-    protected $fillable = ['name', 'slug', 'status', 'agency_group_id', 'agency_type_id'];
-    protected $casts = ['deleted_at' => 'datetime'];
+    use HasFactory, SoftDeletes;
 
-    // Agency ka group (optional)
-    public function agencyGroup(): BelongsTo
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'agency'; // <-- IMPORTANT
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'name',
+        'slug',
+        'status',
+        'agency_group_id',
+        'agency_type_id',
+        'brand_id',
+    ];
+
+    /**
+     * Get the group this agency belongs to.
+     */
+    public function agencyGroup()
     {
         return $this->belongsTo(AgencyGroup::class, 'agency_group_id');
     }
 
-    // Agency ka type
-    public function agencyType(): BelongsTo
+    /**
+     * Get the type of this agency.
+     */
+    public function agencyType()
     {
         return $this->belongsTo(AgencyType::class, 'agency_type_id');
     }
 
-    // Agency ke brands
-    public function brands(): HasMany
+    /**
+     * Get the brand (client) this agency is for.
+     */
+    public function brand()
     {
-        return $this->hasMany(AgencyBrand::class, 'agency_id');
+        return $this->belongsTo(Brand::class, 'brand_id'); // Assumes App\Models\Brand
     }
 }

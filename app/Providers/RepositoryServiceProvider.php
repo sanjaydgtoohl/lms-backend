@@ -19,14 +19,30 @@ use App\Contracts\Repositories\LeadSourceRepositoryInterface;
 use App\Repositories\LeadSubSourceRepository;
 use App\Contracts\Repositories\LeadSubSourceRepositoryInterface;
 
-use App\Repositories\AgencyGroupRepository;
 use App\Contracts\Repositories\AgencyGroupRepositoryInterface;
 
-use App\Repositories\AgencyTypeRepository;
 use App\Contracts\Repositories\AgencyTypeRepositoryInterface;
 
-use App\Repositories\AgencyRepository;
+use App\Repositories\EloquentAgencyRepository;
 use App\Contracts\Repositories\AgencyRepositoryInterface;
+
+use App\Repositories\LocationRepository;
+use App\Contracts\Repositories\LocationRepositoryInterface;
+
+use App\Repositories\BrandTypeRepository;
+use App\Contracts\Repositories\BrandTypeRepositoryInterface;
+
+use App\Repositories\BrandRepository;
+use App\Contracts\Repositories\BrandRepositoryInterface;
+
+use App\Repositories\RegionRepository;
+use App\Contracts\Repositories\RegionRepositoryInterface;
+
+use App\Repositories\EloquentAgencyTypeRepository;
+
+use App\Repositories\EloquentAgencyGroupRepository;
+
+// Duplicate imports removed
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -57,24 +73,28 @@ class RepositoryServiceProvider extends ServiceProvider
             LeadSourceRepository::class
         );
 
+        $this->app->bind(AgencyRepositoryInterface::class, EloquentAgencyRepository::class);
+        $this->app->bind(AgencyTypeRepositoryInterface::class, EloquentAgencyTypeRepository::class);
+        $this->app->bind(AgencyGroupRepositoryInterface::class, EloquentAgencyGroupRepository::class);
+
         $this->app->bind(
-            LeadSubSourceRepositoryInterface::class,
-            LeadSubSourceRepository::class
+            LocationRepositoryInterface::class,
+            LocationRepository::class
         );
 
         $this->app->bind(
-            AgencyGroupRepositoryInterface::class,
-            AgencyGroupRepository::class
+            BrandTypeRepositoryInterface::class,
+            BrandTypeRepository::class
         );
 
         $this->app->bind(
-            AgencyTypeRepositoryInterface::class,
-            AgencyTypeRepository::class
+            BrandRepositoryInterface::class,
+            BrandRepository::class
         );
 
         $this->app->bind(
-            AgencyRepositoryInterface::class,
-            AgencyRepository::class
+            RegionRepositoryInterface::class,
+            RegionRepository::class
         );
     }
 

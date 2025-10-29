@@ -1,12 +1,12 @@
 <?php
+
 namespace App\Contracts\Repositories;
 
-interface AgencyGroupRepositoryInterface
+interface AgencyGroupRepositoryInterface 
 {
-    public function getAll();
-    public function findById($id);
+    public function allActive();
+    public function findById(int $id);
     public function create(array $data);
-    public function update($id, array $data);
-    public function delete($id);
-    public function findBySlug(string $slug);
+    public function update(int $id, array $data);
+    public function delete(int $id);
 }

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -15,29 +14,29 @@ class AgencyTypeSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('agency_type')->truncate();
-        
+        // Disable foreign key checks (important)
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+        DB::table('agency_type')->truncate(); // Clear table
+
+        // Re-enable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
         $now = Carbon::now();
 
-        // Define the agency types
-        $types = [
-            'Online',
-            'Offline',
-            'Both'
-        ];
+        $types = ['Online', 'Offline', 'Both'];
 
         $data = [];
         foreach ($types as $type) {
             $data[] = [
-                'name' => $type,
-                'slug' => Str::slug($type),
-                'status' => '1',
+                'name'       => $type,
+                'slug'       => Str::slug($type),
+                'status'     => 1,
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
         }
 
-        // Insert the data into the database
         DB::table('agency_type')->insert($data);
     }
 }

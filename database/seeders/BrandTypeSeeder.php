@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -15,6 +16,7 @@ class BrandTypeSeeder extends Seeder
      */
     public function run(): void
     {
+        Schema::disableForeignKeyConstraints();
         DB::table('brand_types')->truncate();
         
         $types = [
@@ -32,5 +34,6 @@ class BrandTypeSeeder extends Seeder
                 'updated_at' => Carbon::now()  // <-- [FIX 2] Ise badlein
             ]);
         }
+        Schema::enableForeignKeyConstraints(); // <-- 3. Re-enable checks
     }
 }

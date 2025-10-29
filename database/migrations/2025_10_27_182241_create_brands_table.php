@@ -31,6 +31,7 @@ return new class extends Migration
             $table->foreignId('state_id')->nullable()->constrained('states');
             $table->foreignId('city_id')->nullable()->constrained('cities');
             $table->foreignId('region_id')->nullable()->constrained('regions');
+            $table->foreignId('subregions_id')->nullable()->constrained('subregions');
 
             // Optional agency and creator
             $table->foreignId('agency_id')->nullable()->constrained('agency');
