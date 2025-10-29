@@ -29,8 +29,8 @@ return new class extends Migration
             // Correct country reference — must match countries.id type
             $table->foreignId('country_id')
                 ->nullable()
-                ->constrained('countries')
-                ->cascadeOnDelete();
+                ->constrained('countries');
+                // ->cascadeOnDelete();
 
             // Optional location data
             $table->foreignId('state_id')->nullable()->constrained('states');
