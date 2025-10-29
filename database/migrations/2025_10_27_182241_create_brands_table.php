@@ -16,28 +16,30 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->unique();
 
-            // Optional contact person (usually a user)
+            // Optional contact person (user)
             $table->foreignId('contact_person_id')
                 ->nullable()
                 ->constrained('users')
                 ->nullOnDelete();
 
             // Core relationships
-            $table->foreignId('brand_type_id')->constrained('brand_types');
-            $table->foreignId('industry_id')->constrained('industries');
-            $table->foreignId('country_id')->constrained('countries'); // ✅ FIXED
+            $table->foreignId('brand_type_id')->constrained('brand_types')->cascadeOnDelete();
+            $table->foreignId('industry_id')->constrained('industries')->cascadeOnDelete();
+            
+            // ✅ Correct country foreign key (use country_id instead of id)
+            $table->foreignId('country_id')->constrained('countries')->cascadeOnDelete();
 
             // Optional location data
-            $table->foreignId('state_id')->nullable()->constrained('states');
-            $table->foreignId('city_id')->nullable()->constrained('cities');
-            $table->foreignId('region_id')->nullable()->constrained('regions');
-            $table->foreignId('subregions_id')->nullable()->constrained('subregions');
+            $table->foreignId('state_id')->nullable()->constrained('states')->nullOnDelete();
+            $table->foreignId('city_id')->nullable()->constrained('cities')->nullOnDelete();
+            $table->foreignId('region_id')->nullable()->constrained('regions')->nullOnDelete();
+            $table->foreignId('subregion_id')->nullable()->constrained('subregions')->nullOnDelete();
 
             // Optional agency and creator
-            $table->foreignId('agency_id')->nullable()->constrained('agency');
-            $table->foreignId('created_by')->nullable()->constrained('users');
+            $table->foreignId('agency_id')->nullable()->constrained('agency')->nullOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
 
-            // Brand info
+            // Additional info
             $table->string('website')->nullable();
             $table->string('postal_code')->nullable();
 
