@@ -26,8 +26,10 @@ return new class extends Migration
             $table->foreignId('brand_type_id')->constrained('brand_types')->cascadeOnDelete();
             $table->foreignId('industry_id')->constrained('industries')->cascadeOnDelete();
             
-            // ✅ Correct country foreign key (use country_id instead of id)
-            $table->foreignId('country_id')->constrained('countries')->cascadeOnDelete();
+            // Correct country foreign key (use country_id instead of id)
+            $table->unsignedInteger('country_id');
+            $table->foreign('country_id')->references('id')->on('countries')->cascadeOnDelete();
+            // $table->foreignId('country_id')->constrained('countries')->cascadeOnDelete();
 
             // Optional location data
             $table->foreignId('state_id')->nullable()->constrained('states')->nullOnDelete();
