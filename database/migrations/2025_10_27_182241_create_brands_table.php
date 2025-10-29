@@ -25,7 +25,7 @@ return new class extends Migration
             // Core relationships
             $table->foreignId('brand_type_id')->constrained('brand_types');
             $table->foreignId('industry_id')->constrained('industries');
-            $table->foreignId('country_id')->constrained('countries');
+            $table->foreignId('id')->constrained('countries');
 
             // Optional location data
             $table->foreignId('state_id')->nullable()->constrained('states');
