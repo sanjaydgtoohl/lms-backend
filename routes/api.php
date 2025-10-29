@@ -13,10 +13,12 @@ use App\Http\Controllers\LeadSubSourceController;
 use App\Http\Controllers\AgencyGroupController;
 use App\Http\Controllers\AgencyTypeController;
 use App\Http\Controllers\AgencyController;
-use App\Http\Controllers\LocationController;
+use App\Http\Controllers\CountryController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\BrandTypeController;
 use App\Http\Controllers\RegionController;
+use App\Http\Controllers\StateController;
+use App\Http\Controllers\CityController;
 
 use Carbon\Carbon;
 
@@ -109,27 +111,14 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('{id}', 'LeadSubSourceController@update');
         $router->delete('{id}', 'LeadSubSourceController@destroy');
     });
-    
-    // Location routes
-    $router->group(['prefix' => 'locations'], function () use ($router) {
-        // Country routes
-        $router->get('countries', 'LocationController@getCountries');
-        $router->post('countries', 'LocationController@storeCountry');
-        $router->put('countries/{id}', 'LocationController@updateCountry');
-        $router->delete('countries/{id}', 'LocationController@deleteCountry');
-        
-        // State routes
-    $router->get('states/{country_id}', 'LocationController@getStates');
-        $router->post('states', 'LocationController@storeState');
-        $router->put('states/{id}', 'LocationController@updateState');
-        $router->delete('states/{id}', 'LocationController@deleteState');
-        
-        // City routes
-    $router->get('cities/{country_id}/{state_id}', 'LocationController@getCities');
-        $router->post('cities', 'LocationController@storeCity');
-        $router->put('cities/{id}', 'LocationController@updateCity');
-        $router->delete('cities/{id}', 'LocationController@deleteCity');
+
+    $router->group(['prefix' => 'countries'], function () use ($router) {
+        $router->get('/', 'CountryController@index');
+        $router->get('{id:[0-9]+}', 'CountryController@show');
+        $router->get('{id:[0-9]+}/states', 'StateController@getStatesByCountry');
+        $router->get('{id:[0-9]+}/cities', 'CityController@getCitiesByCountry');
     });
+    
     $router->group(['prefix' => 'agency-groups'], function () use ($router) {
         $router->get('/', 'AgencyGroupController@index');
         $router->post('/', 'AgencyGroupController@store');
@@ -183,6 +172,29 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('/{id:[0-9]+}', 'RegionController@update');
         $router->patch('/{id:[0-9]+}', 'RegionController@update');
         $router->delete('/{id:[0-9]+}', 'RegionController@destroy');
+    });
+
+    // States routes
+    $router->group(['prefix' => 'states'], function () use ($router) {
+        $router->get('/', 'StateController@index');
+        $router->get('all', 'StateController@getAll');
+        $router->post('/', 'StateController@store');
+        $router->get('{id:[0-9]+}', 'StateController@show');
+        $router->put('{id:[0-9]+}', 'StateController@update');
+        $router->patch('{id:[0-9]+}', 'StateController@update');
+        $router->delete('{id:[0-9]+}', 'StateController@destroy');
+        $router->get('{id:[0-9]+}/cities', 'CityController@getCitiesByState');
+    });
+
+    // Cities routes
+    $router->group(['prefix' => 'cities'], function () use ($router) {
+        $router->get('/', 'CityController@index');
+        $router->get('all', 'CityController@getAll');
+        $router->post('/', 'CityController@store');
+        $router->get('{id:[0-9]+}', 'CityController@show');
+        $router->put('{id:[0-9]+}', 'CityController@update');
+        $router->patch('{id:[0-9]+}', 'CityController@update');
+        $router->delete('{id:[0-9]+}', 'CityController@destroy');
     });
 });
 
