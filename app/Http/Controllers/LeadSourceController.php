@@ -27,10 +27,12 @@ class LeadSourceController extends Controller
     {
         try {
             $leadSources = $this->leadSourceService->getAllLeadSources();
-            return $this->responseService->paginated(
-                $leadSources,
-                'Lead sources fetched successfully.'
+            // Transform each item using the resource while preserving paginator meta
+            $leadSources->setCollection(
+                $leadSources->getCollection()->map(fn($item) => new LeadSourceResource($item))
             );
+
+            return $this->responseService->paginated($leadSources, 'Lead sources fetched successfully.');
         } catch (Exception $e) {
             return $this->responseService->error('Failed to fetch lead sources.', [$e->getMessage()], 500);
         }

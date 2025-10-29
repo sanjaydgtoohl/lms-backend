@@ -13,6 +13,8 @@ class LeadSourceSeeder extends Seeder
      */
     public function run(): void
     {
+        DB::table('lead_source')->truncate();
+        
         DB::table('lead_source')->insert([
             [
                 'name' => 'Social Media',

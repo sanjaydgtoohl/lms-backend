@@ -32,7 +32,10 @@ class IndustryController extends Controller
                 return $this->responseService->success([], 'No industries found.');
             }
 
-            return $this->responseService->paginated($industries, 'Industries fetched successfully.');
+            return $this->responseService->paginated(
+                IndustryResource::collection($industries),
+                'Industries fetched successfully.'
+            );
         } catch (QueryException $e) {
             return $this->responseService->error('Database error: ' . $e->getMessage(), null, 500, 'DB_ERROR');
         } catch (DomainException $e) {

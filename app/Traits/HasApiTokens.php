@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Illuminate\Support\Facades\Log;
 
 trait HasApiTokens
 {
@@ -16,7 +17,7 @@ trait HasApiTokens
             return JWTAuth::fromUser($this); // Generate token for this user
         } catch (JWTException $e) {
             // Log the error if needed
-            \Log::error('JWT token generation failed: ' . $e->getMessage());
+            Log::error('JWT token generation failed: ' . $e->getMessage());
             return $e->getMessage(); // Return null if token cannot be generated
         }
     }
