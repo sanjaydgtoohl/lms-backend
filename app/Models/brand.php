@@ -43,9 +43,6 @@ class Brand extends Model
         // 'created_at' => 'datetime:Y-m-d H:i:s',
     ];
 
-    // --- DEFINE RELATIONSHIPS ---
-    // These are needed for the 'with()' in the controller's index/show methods
-
     public function brandType()
     {
         return $this->belongsTo(BrandType::class);
