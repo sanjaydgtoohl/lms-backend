@@ -26,9 +26,7 @@ return new class extends Migration
 
             $table->unsignedInteger('agency_type_id');
 
-            $table->foreignId(('brand_id'))
-                    ->constrained('brands')
-                    ->onDelete('cascade');
+           
             $table->timestamps();
             $table->softDeletes();
         });
