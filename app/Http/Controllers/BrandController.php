@@ -65,7 +65,6 @@ class BrandController extends Controller
                 'city_id' => 'nullable|integer|exists:cities,id',
                 'region_id' => 'nullable|integer|exists:regions,id',
                 'subregions_id' => 'nullable|integer|exists:subregions,id',
-                'contact_person_id' => 'nullable|integer|exists:users,id',
                 'agency_id' => 'nullable|integer|exists:agency,id',
             ]);
 
