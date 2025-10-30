@@ -42,6 +42,7 @@ use App\Repositories\EloquentAgencyGroupRepository;
 
 use App\Repositories\EloquentCountryRepository;
 use App\Contracts\Repositories\CountryRepositoryInterface;
+
 use App\Repositories\EloquentStateRepository;
 use App\Contracts\Repositories\StateRepositoryInterface;
 
@@ -84,16 +85,26 @@ class RepositoryServiceProvider extends ServiceProvider
             LeadSubSourceRepository::class
         );
 
-        $this->app->bind(AgencyRepositoryInterface::class, EloquentAgencyRepository::class);
-        $this->app->bind(AgencyTypeRepositoryInterface::class, EloquentAgencyTypeRepository::class);
-        $this->app->bind(AgencyGroupRepositoryInterface::class, EloquentAgencyGroupRepository::class);
+        $this->app->bind(
+            AgencyRepositoryInterface::class, 
+            EloquentAgencyRepository::class
+        );
 
-         $this->app->bind(
+        $this->app->bind(
+            AgencyTypeRepositoryInterface::class, 
+            EloquentAgencyTypeRepository::class
+        );
+
+        $this->app->bind(
+            AgencyGroupRepositoryInterface::class,
+             EloquentAgencyGroupRepository::class
+        );
+
+        $this->app->bind(
             CityRepositoryInterface::class,
             EloquentCityRepository::class
         );
         
-
         $this->app->bind(
             BrandTypeRepositoryInterface::class,
             BrandTypeRepository::class
