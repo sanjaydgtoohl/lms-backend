@@ -28,16 +28,15 @@ return new class extends Migration
             
             // Correct country reference — must match countries.id type
             $table->unsignedInteger('country_id');
-            $table->foreign('country_id')->references('id')->on('countries')->cascadeOnDelete();
 
             // Optional location data
-            $table->foreignId('state_id')->nullable()->constrained('states');
-            $table->foreignId('city_id')->nullable()->constrained('cities');
-            $table->foreignId('region_id')->nullable()->constrained('regions');
-            $table->foreignId('subregion_id')->nullable()->constrained('subregions');
+            $table->unsignedInteger('state_id');
+            $table->unsignedInteger('city_id');
+            $table->unsignedInteger('region_id');
+            $table->unsignedInteger('subregion_id');
 
-            // Optional agency and creator
-            $table->foreignId('agency_id')->nullable()->constrained('agency');
+            // Option creator
+            
             $table->foreignId('created_by')->nullable()->constrained('users');
 
             // Brand info

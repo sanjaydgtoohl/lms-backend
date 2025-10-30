@@ -24,9 +24,7 @@ return new class extends Migration
                   ->constrained('agency_groups') 
                   ->onDelete('set null');
 
-            $table->foreignId('agency_type_id')
-                  ->constrained('agency_type') 
-                  ->onDelete('cascade');
+            $table->unsignedInteger('agency_type_id');
 
             $table->foreignId(('brand_id'))
                     ->constrained('brands')
