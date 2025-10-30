@@ -27,10 +27,8 @@ return new class extends Migration
             $table->foreignId('industry_id')->constrained('industries');
             
             // Correct country reference — must match countries.id type
-            $table->foreignId('country_id')
-                ->nullable()
-                ->constrained('countries');
-                // ->cascadeOnDelete();
+            $table->unsignedInteger('country_id');
+            $table->foreign('country_id')->references('id')->on('countries')->cascadeOnDelete();
 
             // Optional location data
             $table->foreignId('state_id')->nullable()->constrained('states');
