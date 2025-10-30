@@ -79,6 +79,11 @@ class RepositoryServiceProvider extends ServiceProvider
             LeadSourceRepository::class
         );
 
+        $this->app->bind(
+            LeadSubSourceRepositoryInterface::class,
+            LeadSubSourceRepository::class
+        );
+
         $this->app->bind(AgencyRepositoryInterface::class, EloquentAgencyRepository::class);
         $this->app->bind(AgencyTypeRepositoryInterface::class, EloquentAgencyTypeRepository::class);
         $this->app->bind(AgencyGroupRepositoryInterface::class, EloquentAgencyGroupRepository::class);
