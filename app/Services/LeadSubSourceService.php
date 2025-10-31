@@ -18,12 +18,12 @@ class LeadSubSourceService
     }
 
     /**
-     * Fetch all lead sub-sources with optional filters
+     * Fetch all lead sub-sources with optional filters AND pagination
      */
-    public function getAllLeadSubSources(array $filters = [])
+    public function getAllLeadSubSources(array $filters = [], int $perPage = 10) // <-- perPage added
     {
         try {
-            return $this->leadSubSourceRepository->getAllLeadSubSources($filters);
+            return $this->leadSubSourceRepository->getAllLeadSubSources($filters, $perPage); // <-- perPage passed
         } catch (QueryException $e) {
             throw new Exception('Database query failed while fetching lead sub-sources: ' . $e->getMessage());
         } catch (Exception $e) {

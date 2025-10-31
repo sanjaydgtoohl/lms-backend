@@ -24,17 +24,27 @@ class LeadSubSourceController extends Controller
     }
 
     /**
-     * Filter: /api/v1/lead-sub-sources?lead_source_id=1
+     * Filter: /api/v1/lead-sub-sources?lead_source_id=1&per_page=5
      */
     public function index(Request $request)
     {
         try {
+            // Validate the lead_source_id filter
             $this->validate($request, [
                 'lead_source_id' => 'nullable|integer|exists:lead_source,id'
             ]);
             
+            // 1. Get filters and pagination parameter
             $filters = $request->only(['lead_source_id']);
-            $leadSubSources = $this->leadSubSourceService->getAllLeadSubSources($filters);
+            $perPage = (int) $request->get('per_page', 10); // Get per_page, default 10
+            
+            // 2. Pass both filters and perPage to the Service
+            $leadSubSources = $this->leadSubSourceService->getAllLeadSubSources($filters, $perPage);
+
+            // Handle empty result set gracefully
+            if ($leadSubSources->isEmpty() && !($leadSubSources instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $leadSubSources->total() > 0)) {
+                return $this->responseService->success([], 'No lead sub-sources found.');
+            }
 
             return $this->responseService->paginated(
                 LeadSubSourceResource::collection($leadSubSources),

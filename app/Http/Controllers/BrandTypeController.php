@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 // --- Use your new Service and Resource ---
-use App\Services\BrandTypeService;
+use App\Services\BrandTypeService; 
 use App\Http\Resources\BrandTypeResource;
 // --- Use your existing Response Service ---
 use App\Services\ResponseService;

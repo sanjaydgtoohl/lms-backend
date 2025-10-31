@@ -19,6 +19,7 @@ use App\Http\Controllers\BrandTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\CityController;
+use App\Http\Controllers\BrandAgencyRelationshipController;
 
 use Carbon\Carbon;
 
@@ -172,6 +173,15 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('/{id:[0-9]+}', 'RegionController@update');
         $router->patch('/{id:[0-9]+}', 'RegionController@update');
         $router->delete('/{id:[0-9]+}', 'RegionController@destroy');
+    });
+
+    // --- BRAND AGENCY RELATIONSHIP ROUTES (NEW) ---
+    $router->group(['prefix' => 'brand-agency-relationships'], function () use ($router) {
+        $router->get('/', 'BrandAgencyRelationshipController@index');
+        $router->post('/', 'BrandAgencyRelationshipController@store'); // Attach/Create
+        $router->get('{id:[0-9]+}', 'BrandAgencyRelationshipController@show');
+        // We explicitly skip PUT/PATCH as update is not meaningful for simple pivot tables
+        $router->delete('{id:[0-9]+}', 'BrandAgencyRelationshipController@destroy'); // Detach/Delete
     });
 
     // States routes

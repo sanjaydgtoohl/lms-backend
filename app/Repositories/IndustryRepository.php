@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Contracts\Repositories\IndustryRepositoryInterface; // Interface ko import karein
-use App\Models\Industry;                         // Model ko import karein
+use App\Models\Industry;                              // Industry model ko import karein
 
 /**
  * Yeh class hamare Interface ko implement karti hai.
@@ -19,8 +19,6 @@ class IndustryRepository implements IndustryRepositoryInterface
 
     /**
      * Constructor Injection
-     * Hum Laravel se bol rahe hain ki jab bhi IndustryRepository
-     * banaye, toh usmein Industry Model ka object daal de.
      */
     public function __construct(Industry $industry)
     {
@@ -30,11 +28,9 @@ class IndustryRepository implements IndustryRepositoryInterface
     /**
      * Saari industries laao (paginate karke)
      */
-    public function getAllIndustries() 
+    public function getAllIndustries(int $perPage = 10) // <--- $perPage accept kiya
     {
-        // Model mein SoftDeletes trait add karne se,
-        // yeh automatically sirf wahi records laayega jo delete nahi hue hain.
-        return $this->model->orderBy('created_at', 'desc')->paginate(10);
+        return $this->model->orderBy('created_at', 'desc')->paginate($perPage); 
     }
 
     /**

@@ -13,6 +13,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
+use Illuminate\Http\Resources\Json\ResourceCollection; 
 
 class ResponseService
 {
@@ -191,7 +192,7 @@ class ResponseService
      */
     public function paginated($data, string $message = 'Data retrieved successfully'): JsonResponse
     {
-        return $this->success($data, $message, self::HTTP_OK);
+        return $this->success($data, $message, self::HTTP_OK); 
     }
 
     /**
@@ -303,6 +304,33 @@ class ResponseService
      */
     protected function transformDataWithPagination($data, array &$meta)
     {
+        // 1. Check if the data is a ResourceCollection wrapping a Paginator (This handles the Controller call)
+        if ($data instanceof ResourceCollection && $data->resource instanceof \Illuminate\Contracts\Pagination\Paginator) {
+            $paginator = $data->resource;
+
+            if ($paginator instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator) {
+                $meta['pagination'] = [
+                    'current_page' => $paginator->currentPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                    'last_page' => $paginator->lastPage(),
+                    'from' => $paginator->firstItem(),
+                    'to' => $paginator->lastItem(),
+                ];
+            } else {
+                // Simple Paginator (if not LengthAware)
+                $meta['pagination'] = [
+                    'current_page' => $paginator->currentPage(),
+                    'per_page' => $paginator->perPage(),
+                    'has_more_pages' => $paginator->hasMorePages(),
+                ];
+            }
+            
+            // ResourceCollection::toArray() returns the data array.
+            return $data->toArray(request());
+        }
+
+        // 2. Original logic for raw Paginator objects (kept for safety if Controller passes raw Paginator)
         if ($data instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator) {
             $meta['pagination'] = [
                 'current_page' => $data->currentPage(),

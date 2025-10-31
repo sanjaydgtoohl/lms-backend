@@ -23,15 +23,22 @@ class LeadSourceController extends Controller
         $this->responseService = $responseService;
     }
 
-    public function index()
+    public function index(Request $request) // <-- Request object added
     {
         try {
-            $leadSources = $this->leadSourceService->getAllLeadSources();
-            // Transform each item using the resource while preserving paginator meta
+            // 1. Get per_page parameter from request, default to 10
+            $perPage = $request->get('per_page', 10);
+
+            // 2. Pass perPage to the Service layer
+            $leadSources = $this->leadSourceService->getAllLeadSources((int) $perPage);
+            
+            // The logic below ensures that even if you used ->paginate() in the repository
+            // the custom resource is applied to each item before sending to ResponseService
             $leadSources->setCollection(
                 $leadSources->getCollection()->map(fn($item) => new LeadSourceResource($item))
             );
 
+            // ResponseService will now read pagination metadata correctly
             return $this->responseService->paginated($leadSources, 'Lead sources fetched successfully.');
         } catch (Exception $e) {
             return $this->responseService->error('Failed to fetch lead sources.', [$e->getMessage()], 500);

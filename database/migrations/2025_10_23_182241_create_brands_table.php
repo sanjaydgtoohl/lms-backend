@@ -17,10 +17,10 @@ return new class extends Migration
             $table->string('slug')->unique();
 
             // Optional contact person
-            $table->foreignId('contact_person_id')
-                ->nullable()
-                ->constrained('users')
-                ->nullOnDelete();
+            // $table->foreignId('contact_person_id')
+            //     ->nullable()
+            //     ->constrained('users')
+            //     ->nullOnDelete();
 
             // Core relationships
             $table->foreignId('brand_type_id')->constrained('brand_types');

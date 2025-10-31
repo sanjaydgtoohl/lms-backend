@@ -24,16 +24,25 @@ class DepartmentController extends Controller
     /**
      * Get all departments
      */
-    public function index()
+    public function index(Request $request) // <-- Request object added
     {
         try {
-            $departments = $this->departmentService->getAllDepartments();
-            // Transform each item using DepartmentResource while keeping paginator meta
-            $departments->setCollection(
-                $departments->getCollection()->map(fn($item) => new DepartmentResource($item))
-            );
+            // Get per_page parameter from request, default to 10
+            $perPage = $request->get('per_page', 10);
 
-            return $this->responseService->paginated($departments, 'Departments fetched successfully.');
+            // Pass perPage to the Service layer
+            $departments = $this->departmentService->getAllDepartments((int) $perPage);
+            
+            // Check if any records exist (handling paginator object)
+            if ($departments->isEmpty() && !($departments instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $departments->total() > 0)) {
+                return $this->responseService->success([], 'No departments found.');
+            }
+
+            // Use standard Resource Collection wrapping (which preserves pagination meta)
+            return $this->responseService->paginated(
+                DepartmentResource::collection($departments),
+                'Departments fetched successfully.'
+            );
         } catch (DomainException $e) {
             return $this->responseService->error($e->getMessage(), null, 500, 'DOMAIN_ERROR');
         } catch (QueryException $e) {
@@ -50,13 +59,36 @@ class DepartmentController extends Controller
     {
         try {
             $this->validate($request, [
-                'name' => 'required|string|max:255|unique:departments',
+                'name' => 'required|string|max:255|unique:departments,name',
                 'description' => 'nullable|string',
                 'status' => 'nullable|in:1,2,15',
             ]);
 
+            // Always create new department (unique name ensures no duplicates)
             $department = $this->departmentService->createNewDepartment($request->all());
-            return $this->responseService->created(new DepartmentResource($department), 'Department created successfully.');
+
+            return $this->responseService->created(
+                new DepartmentResource($department),
+                'New department created successfully.'
+            );
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Custom message for duplicate name
+            if ($e->validator->errors()->has('name')) {
+                return $this->responseService->error(
+                    'Department with this name already exists. Please use a different name.',
+                    null,
+                    422,
+                    'DUPLICATE_DEPARTMENT'
+                );
+            }
+            return $this->responseService->error(
+                $e->getMessage(),
+                null,
+                422,
+                'VALIDATION_ERROR'
+            );
+
         } catch (DomainException $e) {
             return $this->responseService->error($e->getMessage(), null, 400, 'DOMAIN_ERROR');
         } catch (QueryException $e) {
