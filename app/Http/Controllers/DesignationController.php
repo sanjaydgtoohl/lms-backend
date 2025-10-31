@@ -24,19 +24,25 @@ class DesignationController extends Controller
         $this->responseService = $responseService;
     }
 
-    public function index()
+    public function index(Request $request) // <-- Request object added
     {
         try {
-            $designations = $this->designationService->getAllDesignations();
+            // 1. Get per_page parameter from request, default to 10
+            $perPage = $request->get('per_page', 10);
+
+            // 2. Pass perPage to the Service layer
+            $designations = $this->designationService->getAllDesignations((int) $perPage);
+            
             // Check if any records exist
-            if ($designations->isEmpty()) {
+            if ($designations->isEmpty() && !($designations instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $designations->total() > 0)) {
                 return $this->responseService->success([], 'No designations found.');
             }
 
+            // Paginated data return
             return $this->responseService->paginated(
-            DesignationResource::collection($designations),
-            'Designations fetched successfully.'
-        );
+                DesignationResource::collection($designations),
+                'Designations fetched successfully.'
+            );
         } 
         catch (QueryException $e) {
             // Handles database-related issues
@@ -130,4 +136,4 @@ class DesignationController extends Controller
             return $this->responseService->notFound('Designation not found');
         }
     }
-}   
+}

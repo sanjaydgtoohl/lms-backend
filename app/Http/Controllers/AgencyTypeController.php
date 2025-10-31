@@ -2,89 +2,102 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\AgencyTypeService; // Import Service
-use App\Services\ResponseService;
+use App\Models\AgencyType;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Throwable;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Database\QueryException;
+use Symfony\Component\HttpFoundation\Response;
 
 class AgencyTypeController extends Controller
 {
-    protected $responseService;
-    protected $agencyTypeService; // Inject Service
-
-    public function __construct(ResponseService $responseService, AgencyTypeService $agencyTypeService)
+    public function index()
     {
-        $this->responseService = $responseService;
-        $this->agencyTypeService = $agencyTypeService;
+        $types = AgencyType::where('status', '1')->get(['id', 'name', 'slug', 'status']);
+        return response()->json($types, Response::HTTP_OK);
     }
 
-    public function index(): JsonResponse
+    public function store(Request $request)
     {
         try {
-            $types = $this->agencyTypeService->getTypes();
-            return $this->responseService->success($types, 'Agency types retrieved successfully');
-        } catch (Throwable $e) {
-            return $this->responseService->handleException($e);
-        }
-    }
+            $validatedData = $request->validate([
+                'name' => 'required|string|max:255|unique:agency_type,name',
+                'status' => 'nullable|in:1,2,15',
+            ]);
 
-    public function store(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:agency_types,name', // Fix: agency_type -> agency_types
-        ]);
+            $validatedData['slug'] = Str::slug($validatedData['name']);
+            $validatedData['status'] = $validatedData['status'] ?? '1';
 
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-        
-        try {
-            $agencyType = $this->agencyTypeService->createType($validator->validated());
-            return $this->responseService->created($agencyType, 'Agency type created successfully');
-        } catch (Throwable $e) {
-            return $this->responseService->handleException($e);
-        }
-    }
+            $agencyType = AgencyType::create($validatedData);
 
-    public function show($id): JsonResponse
-    {
-        try {
-            $agencyType = $this->agencyTypeService->getTypeById($id);
-            return $this->responseService->success($agencyType, 'Agency type retrieved successfully');
-        } catch (Throwable $e) {
-            return $this->responseService->handleException($e);
+            return response()->json([
+                'message' => 'Agency Type created successfully.',
+                'type' => $agencyType
+            ], Response::HTTP_CREATED);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation Failed',
+                'errors' => $e->errors()
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Database Error: Could not create Agency Type.',
+                'error_code' => $e->getCode()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
-    public function update(Request $request, $id): JsonResponse
+    public function show($id)
     {
-        // Service/Repo findOrFail karega, isliye $id ko unique rule mein seedha use kar sakte hain
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:agency_types,name,' . $id, // Fix: agency_type -> agency_types
-            'status' => 'required|in:1,2,15',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-        
         try {
-            $agencyType = $this->agencyTypeService->updateType($id, $validator->validated());
-            return $this->responseService->updated($agencyType, 'Agency type updated successfully');
-        } catch (Throwable $e) {
-            return $this->responseService->handleException($e);
+            $type = AgencyType::findOrFail($id);
+            return response()->json($type, Response::HTTP_OK);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Agency Type not found.'], Response::HTTP_NOT_FOUND);
         }
     }
 
-    public function destroy($id): JsonResponse
+    public function update(Request $request, $id)
     {
         try {
-            $this->agencyTypeService->deleteType($id);
-            return $this->responseService->deleted('Agency type deleted successfully');
-        } catch (Throwable $e) {
-            return $this->responseService->handleException($e);
+            $type = AgencyType::findOrFail($id);
+
+            $validatedData = $request->validate([
+                'name' => 'sometimes|required|string|max:255|unique:agency_type,name,' . $id,
+                'status' => 'nullable|in:1,2,15',
+            ]);
+
+            if (isset($validatedData['name'])) {
+                $validatedData['slug'] = Str::slug($validatedData['name']);
+            }
+
+            $type->update($validatedData);
+
+            return response()->json([
+                'message' => 'Agency Type updated successfully.',
+                'type' => $type
+            ], Response::HTTP_OK);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Agency Type not found.'], Response::HTTP_NOT_FOUND);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['message' => 'Validation Failed', 'errors' => $e->errors()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $type = AgencyType::findOrFail($id);
+            $type->delete(); // Soft Delete
+
+            return response()->json([
+                'message' => 'Agency Type deleted successfully (soft deleted).'
+            ], Response::HTTP_NO_CONTENT);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Agency Type not found.'], Response::HTTP_NOT_FOUND);
         }
     }
 }

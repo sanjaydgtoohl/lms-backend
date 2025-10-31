@@ -14,9 +14,10 @@ class DepartmentRepository implements DepartmentRepositoryInterface
         $this->model = $department;
     }
 
-    public function getAllDepartments() 
+    public function getAllDepartments(int $perPage = 10) // <-- Parameter added and used
     {
-        return $this->model->orderBy('created_at', 'desc')->paginate(10);
+        // $perPage variable use ho raha hai
+        return $this->model->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     public function getDepartmentById($id) 
@@ -43,7 +44,7 @@ class DepartmentRepository implements DepartmentRepositoryInterface
     }
 
     /**
-     * NAYA METHOD IMPLEMENT KIYA GAYA
+     * NAYA METHOD IMPLEMENT KIYA GAYA (Assuming this was missing and needed for slug generation)
      */
     public function findBySlug(string $slug)
     {

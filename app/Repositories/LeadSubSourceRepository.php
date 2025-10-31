@@ -14,16 +14,17 @@ class LeadSubSourceRepository implements LeadSubSourceRepositoryInterface
         $this->model = $leadSubSource;
     }
 
-    public function getAllLeadSubSources(array $filters = []) 
+    public function getAllLeadSubSources(array $filters = [], int $perPage = 10) // <-- perPage added
     {
-        $query = $this->model->with('leadSource'); // Parent ko saath mein load karein
+        $query = $this->model->with('leadSource'); 
 
-        // Filter logic: Agar lead_source_id diya hai, toh filter karein
+        // Filter logic
         if (!empty($filters['lead_source_id'])) {
             $query->where('lead_source_id', $filters['lead_source_id']);
         }
 
-        return $query->orderBy('created_at', 'desc')->paginate(10);
+        // Apply pagination using the provided $perPage value
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     public function getLeadSubSourceById($id) 

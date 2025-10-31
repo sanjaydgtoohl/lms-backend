@@ -23,14 +23,11 @@ class IndustryController extends Controller
         $this->responseService = $responseService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $industries = $this->industryService->getAllIndustries();
-
-            if ($industries->isEmpty()) {
-                return $this->responseService->success([], 'No industries found.');
-            }
+            $perPage = $request->get('per_page', 10);
+            $industries = $this->industryService->getAllIndustries($perPage);
 
             return $this->responseService->paginated(
                 IndustryResource::collection($industries),

@@ -14,9 +14,10 @@ class DesignationRepository implements DesignationRepositoryInterface
         $this->model = $designation;
     }
 
-    public function getAllDesignations() 
+    public function getAllDesignations(int $perPage = 10) // <-- Parameter added
     {
-        return $this->model->orderBy('created_at', 'desc')->paginate(10);
+        // $perPage variable use ho raha hai
+        return $this->model->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     public function getDesignationById($id) 

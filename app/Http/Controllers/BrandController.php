@@ -2,26 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\BrandService;
-use App\Services\ResponseService;
-use App\Http\Resources\BrandResource;
+use App\Models\Brand;
+use App\Services\ResponseService; // <-- 1. Import your service
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Exception;
-use DomainException;
-use Illuminate\Database\QueryException;
+use Throwable; // <-- 2. Import Throwable for catching all errors
 
 class BrandController extends Controller
 {
-    protected $brandService;
-    protected $responseService;
+    /**
+     * @var ResponseService
+     */
+    protected $responseService; // <-- 3. Create a property for the service
 
-    public function __construct(BrandService $brandService, ResponseService $responseService)
+    /**
+     * Inject the ResponseService.
+     *
+     * @param ResponseService $responseService
+     */
+    public function __construct(ResponseService $responseService)
     {
-        $this->brandService = $brandService;
-        $this->responseService = $responseService;
+        $this->responseService = $responseService; // <-- 4. Inject the service
     }
 
     /**
@@ -31,18 +34,19 @@ class BrandController extends Controller
     public function index(Request $request)
     {
         try {
-            $perPage = (int) $request->input('per_page', 15);
-            $brands = $this->brandService->getAllBrands($perPage);
-            return $this->responseService->paginated(
-                BrandResource::collection($brands),
-                'Brands retrieved successfully'
-            );
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 500, 'DB_ERROR');
-        } catch (DomainException $e) {
-            return $this->responseService->error($e->getMessage(), null, 400, 'DOMAIN_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->serverError('An unexpected error occurred while fetching brands.', $e->getMessage());
+            $brands = Brand::with([
+                'agency', 'brandType', 'contactPerson', 'industry',
+                'country', 'state', 'city', 'region', 'subregions'
+            ])
+            ->where('status', '1')
+            ->paginate($request->input('per_page', 15));
+
+            // Use your service's 'paginated' method.
+            // Your service will automatically handle the pagination meta.
+            return $this->responseService->paginated($brands, 'Brands retrieved successfully');
+
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -53,8 +57,7 @@ class BrandController extends Controller
     public function store(Request $request)
     {
         try {
-            $data = $request->all();
-            $validator = Validator::make($data, [
+            $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'brand_type_id' => 'required|integer|exists:brand_types,id',
                 'industry_id' => 'required|integer|exists:industries,id',
@@ -65,25 +68,27 @@ class BrandController extends Controller
                 'city_id' => 'nullable|integer|exists:cities,id',
                 'region_id' => 'nullable|integer|exists:regions,id',
                 'subregions_id' => 'nullable|integer|exists:subregions,id',
+                'contact_person_id' => 'nullable|integer|exists:users,id',
                 'agency_id' => 'nullable|integer|exists:agency,id',
             ]);
 
-            if ($validator->fails()) {
-                return $this->responseService->validationError($validator->errors()->toArray());
-            }
+            // This line will automatically throw a ValidationException
+            // if validation fails, which handleException will catch.
+            $validatedData = $validator->validate();
 
-            $data['slug'] = Str::slug($data['name']) . '-' . uniqid();
-            $data['created_by'] = Auth::id();
-            $data['status'] = '1';
+            // Add the non-validated data
+            $validatedData['slug'] = Str::slug($request->name) . '-' . uniqid();
+            $validatedData['created_by'] = Auth::id();
+            $validatedData['status'] = '1';
 
-            $brand = $this->brandService->createBrand($data);
-            return $this->responseService->created(new BrandResource($brand), 'Brand created successfully');
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 409, 'DB_ERROR');
-        } catch (DomainException $e) {
-            return $this->responseService->error($e->getMessage(), null, 409, 'DOMAIN_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->serverError('An unexpected error occurred while creating brand.', $e->getMessage());
+            $brand = Brand::create($validatedData);
+
+            // Use your service's 'created' method
+            return $this->responseService->created($brand, 'Brand created successfully');
+
+        } catch (Throwable $e) {
+            // This will catch ValidationException, DB errors, etc.
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -94,12 +99,17 @@ class BrandController extends Controller
     public function show($id)
     {
         try {
-            $brand = $this->brandService->getBrand($id);
-             return $this->responseService->success(new BrandResource($brand), 'Brand retrieved successfully');
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 500, 'DB_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->notFound('Brand not found');
+            $brand = Brand::with([
+                'agency', 'brandType', 'contactPerson', 'industry',
+                'country', 'state', 'city', 'region', 'subregions'
+            ])->findOrFail($id); // This throws ModelNotFoundException if not found
+
+            // Use your service's 'success' method
+            return $this->responseService->success($brand, 'Brand retrieved successfully');
+
+        } catch (Throwable $e) {
+            // Your handleException method will catch ModelNotFoundException
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -110,16 +120,19 @@ class BrandController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $data = $request->all();
-            $validator = Validator::make($data, [
+            // 1. Find the brand first
+            $brand = Brand::findOrFail($id);
+
+            // 2. Define validation rules (use 'sometimes' for updates)
+            $validator = Validator::make($request->all(), [
                 'name' => 'sometimes|required|string|max:255',
                 'brand_type_id' => 'sometimes|required|integer|exists:brand_types,id',
                 'industry_id' => 'sometimes|required|integer|exists:industries,id',
                 'country_id' => 'sometimes|required|integer|exists:countries,id',
                 'website' => 'sometimes|nullable|url|max:255',
-                'postal_code' => 'sometimes|required|string|max:20',
-                'state_id' => 'sometimes|required|integer|exists:states,id',
-                'city_id' => 'sometimes|required|integer|exists:cities,id',
+                'postal_code' => 'sometimes|nullable|string|max:20',
+                'state_id' => 'sometimes|nullable|integer|exists:states,id',
+                'city_id' => 'sometimes|nullable|integer|exists:cities,id',
                 'region_id' => 'sometimes|nullable|integer|exists:regions,id',
                 'subregions_id' => 'sometimes|nullable|integer|exists:subregions,id',
                 'contact_person_id' => 'sometimes|nullable|integer|exists:users,id',
@@ -127,22 +140,23 @@ class BrandController extends Controller
                 'status' => 'sometimes|required|in:1,2,15',
             ]);
 
-            if ($validator->fails()) {
-                return $this->responseService->validationError($validator->errors()->toArray());
+            // 3. Validate the data
+            $validatedData = $validator->validate();
+
+            // 4. Handle slug update if name changed
+            if ($request->has('name')) {
+                $validatedData['slug'] = Str::slug($request->name) . '-' . $brand->id; // Use ID for uniqueness
             }
 
-            if (!empty($data['name'])) {
-                $data['slug'] = Str::slug($data['name']) . '-' . (string) $id;
-            }
+            // 5. Update the brand
+            $brand->update($validatedData);
 
-            $brand = $this->brandService->updateBrand($id, $data);
-            return $this->responseService->updated(new BrandResource($brand), 'Brand updated successfully');
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 409, 'DB_ERROR');
-        } catch (DomainException $e) {
-            return $this->responseService->error($e->getMessage(), null, 409, 'DOMAIN_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->notFound('Brand not found');
+            // Use your service's 'updated' method
+            return $this->responseService->updated($brand, 'Brand updated successfully');
+
+        } catch (Throwable $e) {
+            // Catches ModelNotFoundException, ValidationException, etc.
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -153,12 +167,16 @@ class BrandController extends Controller
     public function destroy($id)
     {
         try {
-            $this->brandService->deleteBrand($id);
+            $brand = Brand::findOrFail($id);
+            $brand->delete();
+
+            // --- THIS IS THE CHANGE YOU REQUESTED ---
+            // Send a 200 OK with a JSON body
             return $this->responseService->deleted('Brand deleted successfully');
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 500, 'DB_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->notFound('Brand not found');
+
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 }
+

@@ -17,10 +17,10 @@ class DesignationService
         $this->designationRepository = $designationRepository;
     }
 
-    public function getAllDesignations()
+    public function getAllDesignations(int $perPage = 10) // <-- Parameter added
     {
         try {
-            return $this->designationRepository->getAllDesignations();
+            return $this->designationRepository->getAllDesignations($perPage); // <-- Parameter passed
         } catch (QueryException $e) {
             throw new DomainException('Database error while fetching designations: ' . $e->getMessage());
         } catch (Exception $e) {

@@ -14,9 +14,9 @@ class LeadSourceRepository implements LeadSourceRepositoryInterface
         $this->model = $leadSource;
     }
 
-    public function getAllLeadSources() 
+    public function getAllLeadSources(int $perPage = 10) // <-- Parameter added
     {
-        return $this->model->orderBy('created_at', 'asc')->paginate(10);
+        return $this->model->orderBy('created_at', 'asc')->paginate($perPage);
     }
 
     public function getLeadSourceById($id) 
