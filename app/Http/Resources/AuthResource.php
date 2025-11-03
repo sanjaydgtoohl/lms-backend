@@ -36,18 +36,27 @@ class AuthResource extends BaseResource
     protected $expiresIn;
 
     /**
+     * The refresh token
+     *
+     * @var string|null
+     */
+    protected $refreshToken;
+
+    /**
      * Create a new resource instance.
      *
      * @param  mixed  $resource
      * @param  string  $token
      * @param  string  $tokenType
      * @param  int  $expiresIn
+     * @param  string|null  $refreshToken
      * @return void
      */
-    public function __construct($resource, string $token, string $tokenType = 'bearer', int $expiresIn = 3600)
+    public function __construct($resource, string $token, string $tokenType = 'bearer', int $expiresIn = 3600, ?string $refreshToken = null)
     {
         parent::__construct($resource);
         $this->token = $token;
+        $this->refreshToken = $refreshToken;
         $this->tokenType = $tokenType;
         $this->expiresIn = $expiresIn;
         $this->userResource = new UserResource($resource);
@@ -61,12 +70,21 @@ class AuthResource extends BaseResource
      */
     public function toArray($request): array
     {
-        return [
+        $data = [
             // 'user' => $this->userResource->toArray($request),
             'token' => $this->token,
+            'refresh_token' => $this->refreshToken,
             'token_type' => $this->tokenType,
             'expires_in' => $this->expiresIn,
+            
         ];
+        
+        // Include refresh token if available
+        // if ($this->refreshToken !== null) {
+        //     $data['refresh_token'] = $this->refreshToken;
+        // }
+        
+        return $data;
     }
 
     /**

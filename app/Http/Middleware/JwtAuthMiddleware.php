@@ -8,6 +8,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
+use App\Models\User;
 
 class JwtAuthMiddleware
 {
@@ -45,6 +46,24 @@ class JwtAuthMiddleware
             $request->merge(['user' => $user]);
 
         } catch (TokenExpiredException $e) {
+            // For refresh endpoint, allow expired tokens to pass through
+            if ($request->route()->getName() === 'auth.refresh' || 
+                $request->is('api/v1/auth/refresh')) {
+                // Try to get user from expired token payload
+                try {
+                    $payload = JWTAuth::parseToken()->getPayload();
+                    $userId = $payload->get('sub');
+                    $user = User::find($userId);
+                    
+                    if ($user && $user->isActive()) {
+                        $request->merge(['user' => $user]);
+                        return $next($request);
+                    }
+                } catch (\Exception $e) {
+                    // Continue with normal error handling
+                }
+            }
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Token has expired',

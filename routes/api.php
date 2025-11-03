@@ -2,7 +2,6 @@
 
 /** @var \Laravel\Lumen\Routing\Router $router */
 
-
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\IndustryController;
@@ -205,6 +204,16 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('{id:[0-9]+}', 'CityController@update');
         $router->patch('{id:[0-9]+}', 'CityController@update');
         $router->delete('{id:[0-9]+}', 'CityController@destroy');
+    });
+
+    $router->group(['prefix' => 'zones'], function () use ($router) {
+        $router->get('/', 'ZoneController@index');
+        $router->get('all', 'ZoneController@getAll');
+        $router->post('/', 'ZoneController@store');
+        $router->get('{id:[0-9]+}', 'ZoneController@show');
+        $router->put('{id:[0-9]+}', 'ZoneController@update');
+        $router->patch('{id:[0-9]+}', 'ZoneController@update');
+        $router->delete('{id:[0-9]+}', 'ZoneController@destroy');
     });
 });
 

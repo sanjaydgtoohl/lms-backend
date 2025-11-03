@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Contracts\Repositories;
+
+use App\Models\Zone;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+
+interface ZoneRepositoryInterface
+{
+    /**
+     * Get all paginated zones.
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     */
+    public function allPaginated(int $perPage = 10): LengthAwarePaginator;
+
+    /**
+     * Get all active zones as a list.
+     * @return Collection
+     */
+    public function getActiveList(): Collection;
+
+    /**
+     * Find a zone by its ID.
+     * @param int $id
+     * @return Zone
+     */
+    public function findById(int $id): Zone;
+
+    /**
+     * Create a new zone.
+     * @param array $data
+     * @return Zone
+     */
+    public function create(array $data): Zone;
+
+    /**
+     * Update an existing zone.
+     * @param Zone $zone
+     * @param array $data
+     * @return bool
+     */
+    public function update(Zone $zone, array $data): bool;
+
+    /**
+     * Delete a zone.
+     * @param Zone $zone
+     * @return bool
+     */
+    public function delete(Zone $zone): bool;
+}
