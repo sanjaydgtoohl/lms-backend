@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             LeadSourceSeeder::class,
             AgencyTypeSeeder::class,
             BrandTypeSeeder::class,
+            ZoneSeeder::class,
         ]);
         
         // Re-enable foreign key checks

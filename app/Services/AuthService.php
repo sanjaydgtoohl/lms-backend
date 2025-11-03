@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Services\UserService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
@@ -75,10 +77,18 @@ class AuthService
 
         // Generate token
         $token = $user->generateToken();
+        
+        // Generate refresh token
+        $refreshToken = Str::random(64);
+        
+        // Save refresh token to database
+        $user->refresh_token = $refreshToken;
+        $user->save();
  
         return [
             'user' => $user,
             'token' => $token,
+            'refresh_token' => $refreshToken,
             'token_type' => 'bearer',
             'expires_in' => JWTAuth::factory()->getTTL() * 60
         ];
@@ -102,13 +112,44 @@ class AuthService
     /**
      * Refresh token
      *
+     * @param Request|null $request
      * @return array
      * @throws JWTException
      */
-    public function refresh(): array
+    public function refresh(?Request $request = null): array
     {
+        // The user should already be in the request from middleware
+        $user = null;
+        if ($request) {
+            $user = $request->user;
+        }
+        
+        // If no user from request, try to get from auth
+        if (!$user) {
+            try {
+                $user = JWTAuth::user();
+            } catch (\Exception $e) {
+                // Ignore
+            }
+        }
+        
+        // If still no user, try to get from token payload
+        if (!$user) {
+            try {
+                $payload = JWTAuth::parseToken()->getPayload();
+                $userId = $payload->get('sub');
+                $user = $this->userService->getUserById($userId);
+            } catch (\Exception $e) {
+                throw new JWTException('User not found');
+            }
+        }
+        
+        if (!$user) {
+            throw new JWTException('User not found');
+        }
+        
+        // Refresh the token
         $token = JWTAuth::refresh(JWTAuth::getToken());
-        $user = JWTAuth::parseToken()->authenticate();
 
         return [
             'user' => $user,
@@ -157,7 +198,7 @@ class AuthService
     {
         // This would typically send an email with reset link
         // For now, we'll just return true if user exists
-        $user = $this->userService->getUserById($email);
+        $user = $this->userService->getUserByEmail($email);
         return $user !== null;
     }
 

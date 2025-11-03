@@ -38,6 +38,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
         'name',
         'email',
         'password',
+        'refresh_token',
         'phone',
         'avatar',
         'role',
@@ -53,6 +54,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     protected $hidden = [
         'password',
+        'refresh_token',
         'remember_token',
     ];
 
@@ -132,7 +134,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     public function getAvatarUrlAttribute(): string
     {
         if ($this->avatar) {
-            return asset('storage/avatars/' . $this->avatar);
+            return \Illuminate\Support\Facades\Storage::url('avatars/' . $this->avatar);
         }
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
     }

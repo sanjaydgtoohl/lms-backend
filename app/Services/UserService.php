@@ -52,6 +52,17 @@ class UserService
     }
 
     /**
+     * Get user by email
+     *
+     * @param string $email
+     * @return User|null
+     */
+    public function getUserByEmail(string $email): ?User
+    {
+        return $this->userRepository->findByEmail($email);
+    }
+
+    /**
      * Create a new user
      *
      * @param array $data

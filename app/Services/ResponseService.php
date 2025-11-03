@@ -329,29 +329,6 @@ class ResponseService
             // ResourceCollection::toArray() returns the data array.
             return $data->toArray(request());
         }
-
-        // 2. Original logic for raw Paginator objects (kept for safety if Controller passes raw Paginator)
-        if ($data instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator) {
-            $meta['pagination'] = [
-                'current_page' => $data->currentPage(),
-                'per_page' => $data->perPage(),
-                'total' => $data->total(),
-                'last_page' => $data->lastPage(),
-                'from' => $data->firstItem(),
-                'to' => $data->lastItem(),
-            ];
-            return $data->items();
-        }
-
-        if ($data instanceof \Illuminate\Contracts\Pagination\Paginator) {
-            $meta['pagination'] = [
-                'current_page' => $data->currentPage(),
-                'per_page' => $data->perPage(),
-                'has_more_pages' => $data->hasMorePages(),
-            ];
-            return $data->items();
-        }
-
         return $data;
     }
 }

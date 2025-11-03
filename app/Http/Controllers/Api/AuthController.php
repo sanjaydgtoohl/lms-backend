@@ -52,7 +52,13 @@ class AuthController extends Controller
             $result = $this->authService->register($request->all());
             
             return $this->responseService->created(
-                new AuthResource($result['user'], $result['token'], $result['token_type'], $result['expires_in']),
+                new AuthResource(
+                    $result['user'],
+                    $result['token'],
+                    $result['token_type'],
+                    $result['expires_in'],
+                    $result['refresh_token'] ?? null
+                ),
                 'User registered successfully'
             );
         } catch (ValidationException $e) {
@@ -96,7 +102,13 @@ class AuthController extends Controller
             // --- LOGGING LOGIC END ---
             
             return $this->responseService->success(
-                new AuthResource($result['user'], $result['token'], $result['token_type'], $result['expires_in']),
+                new AuthResource(
+                    $result['user'],
+                    $result['token'],
+                    $result['token_type'],
+                    $result['expires_in'],
+                    $result['refresh_token'] ?? null
+                ),
                 'Login successful'
             );
         } catch (ValidationException $e) {

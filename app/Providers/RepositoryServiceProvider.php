@@ -49,6 +49,12 @@ use App\Contracts\Repositories\StateRepositoryInterface;
 use App\Repositories\EloquentCityRepository;
 use App\Contracts\Repositories\CityRepositoryInterface;
 
+use App\Repositories\ZoneRepository;
+use App\Contracts\Repositories\ZoneRepositoryInterface;
+
+use App\Repositories\RefreshTokenRepository;
+use App\Contracts\Repositories\RefreshTokenRepositoryInterface;
+
 // Duplicate imports removed
 
 class RepositoryServiceProvider extends ServiceProvider
@@ -90,15 +96,15 @@ class RepositoryServiceProvider extends ServiceProvider
             EloquentAgencyRepository::class
         );
 
-        $this->app->bind(
-            AgencyTypeRepositoryInterface::class, 
-            EloquentAgencyTypeRepository::class
-        );
+        // $this->app->bind(
+        //     AgencyTypeRepositoryInterface::class, 
+        //     EloquentAgencyTypeRepository::class
+        // );
 
-        $this->app->bind(
-            AgencyGroupRepositoryInterface::class,
-             EloquentAgencyGroupRepository::class
-        );
+        // $this->app->bind(
+        //     AgencyGroupRepositoryInterface::class,
+        //      EloquentAgencyGroupRepository::class
+        // );
 
         $this->app->bind(
             CityRepositoryInterface::class,
@@ -128,6 +134,16 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             StateRepositoryInterface::class,
             EloquentStateRepository::class
+        );
+
+        $this->app->bind(
+            ZoneRepositoryInterface::class,
+            ZoneRepository::class
+        );
+
+        $this->app->bind(
+            RefreshTokenRepositoryInterface::class,
+            RefreshTokenRepository::class
         );
 
     }
