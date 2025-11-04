@@ -14,9 +14,13 @@ class LeadSourceRepository implements LeadSourceRepositoryInterface
         $this->model = $leadSource;
     }
 
-    public function getAllLeadSources(int $perPage = 10) // <-- Parameter added
+    public function getAllLeadSources(int $perPage = 10, ?string $searchTerm = null) // <-- Step 1: $searchTerm ko accept karein
     {
-        return $this->model->orderBy('created_at', 'asc')->paginate($perPage);
+        $query = $this->model->query();
+        if ($searchTerm) {
+            $query->where('name', 'LIKE', "%{$searchTerm}%");
+        }
+        return $query->orderBy('created_at', 'asc')->paginate($perPage);
     }
 
     public function getLeadSourceById($id) 

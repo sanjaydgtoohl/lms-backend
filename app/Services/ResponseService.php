@@ -304,7 +304,7 @@ class ResponseService
      */
     protected function transformDataWithPagination($data, array &$meta)
     {
-        // 1. Check if the data is a ResourceCollection wrapping a Paginator (This handles the Controller call)
+        // Case 1: Data is a ResourceCollection wrapping a paginator
         if ($data instanceof ResourceCollection && $data->resource instanceof \Illuminate\Contracts\Pagination\Paginator) {
             $paginator = $data->resource;
 
@@ -318,17 +318,53 @@ class ResponseService
                     'to' => $paginator->lastItem(),
                 ];
             } else {
-                // Simple Paginator (if not LengthAware)
                 $meta['pagination'] = [
                     'current_page' => $paginator->currentPage(),
                     'per_page' => $paginator->perPage(),
                     'has_more_pages' => $paginator->hasMorePages(),
                 ];
             }
-            
-            // ResourceCollection::toArray() returns the data array.
+
             return $data->toArray(request());
         }
+
+        // Case 2: Data is a paginator directly (LengthAwarePaginator or Paginator)
+        if ($data instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator) {
+            $meta['pagination'] = [
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'total' => $data->total(),
+                'last_page' => $data->lastPage(),
+                'from' => $data->firstItem(),
+                'to' => $data->lastItem(),
+            ];
+
+            $items = $data->items();
+            return array_map(function ($item) {
+                if ($item instanceof \Illuminate\Http\Resources\Json\JsonResource) {
+                    return $item->toArray(request());
+                }
+                return $item;
+            }, $items);
+        }
+
+        if ($data instanceof \Illuminate\Contracts\Pagination\Paginator) {
+            $meta['pagination'] = [
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'has_more_pages' => $data->hasMorePages(),
+            ];
+
+            $items = $data->items();
+            return array_map(function ($item) {
+                if ($item instanceof \Illuminate\Http\Resources\Json\JsonResource) {
+                    return $item->toArray(request());
+                }
+                return $item;
+            }, $items);
+        }
+
+        // Default: return data as-is
         return $data;
     }
 }

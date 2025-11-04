@@ -29,16 +29,23 @@ class LeadSubSourceController extends Controller
     public function index(Request $request)
     {
         try {
-            // Validate the lead_source_id filter
+            // Validate the lead_source_id AND search filters
             $this->validate($request, [
-                'lead_source_id' => 'nullable|integer|exists:lead_source,id'
+                'lead_source_id' => 'nullable|integer|exists:lead_source,id',
+                'search'         => 'nullable|string|max:100' // Search ke liye validation add karein
             ]);
             
-            // 1. Get filters and pagination parameter
-            $filters = $request->only(['lead_source_id']);
-            $perPage = (int) $request->get('per_page', 10); // Get per_page, default 10
+            // 1. Get pagination parameter
+            $perPage = (int) $request->get('per_page', 10);
+
+            // 2. SAHI TAREEKA: Saare filters ko ek hi array mein daalein
+            $filters = [
+                'lead_source_id' => $request->input('lead_source_id'),
+                'search'         => $request->input('search', null) // 'search' ko bhi isi array mein daalein
+            ];
             
-            // 2. Pass both filters and perPage to the Service
+            // 3. Service ko sirf $filters aur $perPage bheinjein
+            // Repository $filters['search'] ko khud check kar lega
             $leadSubSources = $this->leadSubSourceService->getAllLeadSubSources($filters, $perPage);
 
             // Handle empty result set gracefully

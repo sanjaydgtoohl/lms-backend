@@ -14,10 +14,13 @@ class DepartmentRepository implements DepartmentRepositoryInterface
         $this->model = $department;
     }
 
-    public function getAllDepartments(int $perPage = 10) // <-- Parameter added and used
+    public function getAllDepartments(int $perPage = 10, ?string $searchTerm = null)
     {
-        // $perPage variable use ho raha hai
-        return $this->model->orderBy('created_at', 'desc')->paginate($perPage);
+        $query = $this->model->query();
+        if ($searchTerm) {
+            $query->where('name', 'LIKE', "%{$searchTerm}%");
+        }
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     public function getDepartmentById($id) 
