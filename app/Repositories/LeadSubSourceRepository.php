@@ -14,16 +14,28 @@ class LeadSubSourceRepository implements LeadSubSourceRepositoryInterface
         $this->model = $leadSubSource;
     }
 
-    public function getAllLeadSubSources(array $filters = [], int $perPage = 10) // <-- perPage added
+    public function getAllLeadSubSources(array $filters = [], int $perPage = 10,)
     {
         $query = $this->model->with('leadSource'); 
 
-        // Filter logic
+        // --- Filter logic ---
+
+        // 1. Puraana filter: Specific ID se
         if (!empty($filters['lead_source_id'])) {
             $query->where('lead_source_id', $filters['lead_source_id']);
         }
 
-        // Apply pagination using the provided $perPage value
+        // 2. NAYA filter: General search ke liye
+        // Hum maan rahe hain ki search 'name' column par hoga
+        if (!empty($filters['search'])) {
+            $searchTerm = $filters['search'];
+            $query->where('name', 'LIKE', "%{$searchTerm}%"); // 'name' ko apne column naam se badlein
+        }
+        
+        // --- End Filter logic ---
+
+
+        // Apply pagination
         return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 

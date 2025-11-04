@@ -29,9 +29,10 @@ class DepartmentController extends Controller
         try {
             // Get per_page parameter from request, default to 10
             $perPage = $request->get('per_page', 10);
+            $searchTerm = $request->get('search', null);
 
             // Pass perPage to the Service layer
-            $departments = $this->departmentService->getAllDepartments((int) $perPage);
+            $departments = $this->departmentService->getAllDepartments((int) $perPage,$searchTerm);
             
             // Check if any records exist (handling paginator object)
             if ($departments->isEmpty() && !($departments instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $departments->total() > 0)) {

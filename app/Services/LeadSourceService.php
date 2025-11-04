@@ -20,10 +20,10 @@ class LeadSourceService
     /**
      * Fetch all lead sources with pagination
      */
-    public function getAllLeadSources(int $perPage = 10) // <-- Parameter added
+    public function getAllLeadSources(int $perPage = 10, ?string $searchTerm = null)
     {
         try {
-            return $this->leadSourceRepository->getAllLeadSources($perPage); // <-- Parameter passed
+            return $this->leadSourceRepository->getAllLeadSources($perPage, $searchTerm); 
         } catch (QueryException $e) {
             throw new Exception('Database query failed while fetching lead sources: ' . $e->getMessage());
         } catch (Exception $e) {

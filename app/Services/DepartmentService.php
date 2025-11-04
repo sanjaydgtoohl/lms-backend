@@ -17,10 +17,10 @@ class DepartmentService
         $this->departmentRepository = $departmentRepository;
     }
 
-    public function getAllDepartments(int $perPage = 10) // <-- Parameter added
+    public function getAllDepartments(int $perPage = 10,?string $searchTerm = null) // <-- Parameter added
     {
         try {
-            return $this->departmentRepository->getAllDepartments($perPage); // <-- Parameter passed
+            return $this->departmentRepository->getAllDepartments($perPage, $searchTerm); // <-- Parameter passed
         } catch (QueryException $e) {
             throw new DomainException('Database error while fetching departments: ' . $e->getMessage());
         } catch (Exception $e) {

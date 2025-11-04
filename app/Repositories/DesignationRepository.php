@@ -14,10 +14,14 @@ class DesignationRepository implements DesignationRepositoryInterface
         $this->model = $designation;
     }
 
-    public function getAllDesignations(int $perPage = 10) // <-- Parameter added
+    public function getAllDesignations(int $perPage = 10, ?string $searchTerm = null) 
     {
-        // $perPage variable use ho raha hai
-        return $this->model->orderBy('created_at', 'desc')->paginate($perPage);
+        $query = $this->model->query(); // Designation::query()
+
+        if ($searchTerm) {
+            $query->where('title', 'like', '%' . $searchTerm . '%');
+        }
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     public function getDesignationById($id) 

@@ -27,7 +27,8 @@ class IndustryController extends Controller
     {
         try {
             $perPage = $request->get('per_page', 10);
-            $industries = $this->industryService->getAllIndustries($perPage);
+            $searchTerm = $request->get('search', null);
+            $industries = $this->industryService->getAllIndustries($perPage, $searchTerm);
 
             return $this->responseService->paginated(
                 IndustryResource::collection($industries),

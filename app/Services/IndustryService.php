@@ -23,10 +23,10 @@ class IndustryService
     /**
      * Get all industries
      */
-    public function getAllIndustries(int $perPage = 10) // <-- $perPage parameter accept kiya
+    public function getAllIndustries(int $perPage = 10, ?string $searchTerm = null)
     {
         try {
-            return $this->industryRepository->getAllIndustries($perPage); 
+            return $this->industryRepository->getAllIndustries($perPage, $searchTerm); 
         } catch (QueryException $e) {
             Log::error('Database error fetching industries: ' . $e->getMessage());
             throw new DomainException('Database error while fetching industries.');

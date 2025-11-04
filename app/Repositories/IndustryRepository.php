@@ -2,14 +2,9 @@
 
 namespace App\Repositories;
 
-use App\Contracts\Repositories\IndustryRepositoryInterface; // Interface ko import karein
-use App\Models\Industry;                              // Industry model ko import karein
+use App\Contracts\Repositories\IndustryRepositoryInterface; 
+use App\Models\Industry;                              
 
-/**
- * Yeh class hamare Interface ko implement karti hai.
- * Yahan database se data laane, save karne, update karne
- * aur delete karne ka logic hai.
- */
 class IndustryRepository implements IndustryRepositoryInterface 
 {
     /**
@@ -25,25 +20,23 @@ class IndustryRepository implements IndustryRepositoryInterface
         $this->model = $industry;
     }
 
-    /**
-     * Saari industries laao (paginate karke)
-     */
-    public function getAllIndustries(int $perPage = 10) // <--- $perPage accept kiya
+    public function getAllIndustries(int $perPage = 10, ?string $searchTerm = null)
     {
-        return $this->model->orderBy('created_at', 'desc')->paginate($perPage); 
-    }
+        $query = $this->model->query(); 
 
-    /**
-     * Ek industry ko ID se dhoondo
-     */
+        
+        if ($searchTerm) {
+            $query->where('name', 'LIKE', "%{$searchTerm}%");
+        }
+        return $query->orderBy('created_at', 'desc')->paginate($perPage); 
+    }   
+
     public function getIndustryById($id) 
     {
-        // findOrFail ka matlab: dhoondo, agar nahi mila toh
-        // automatically 404 Not Found error return karo.
         return $this->model->findOrFail($id);
     }
     /**
-     * Nayi industry banao
+     * Create industry
      */
     public function createIndustry(array $data)
     {
@@ -57,7 +50,7 @@ class IndustryRepository implements IndustryRepositoryInterface
     }
 
     /**
-     * Industry ko update karo
+     * Industry should update
      */
     public function updateIndustry($id, array $data)
     {

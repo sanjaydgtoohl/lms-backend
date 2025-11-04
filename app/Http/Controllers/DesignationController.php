@@ -29,9 +29,10 @@ class DesignationController extends Controller
         try {
             // 1. Get per_page parameter from request, default to 10
             $perPage = $request->get('per_page', 10);
+            $searchTerm = $request->get('search', null);
 
             // 2. Pass perPage to the Service layer
-            $designations = $this->designationService->getAllDesignations((int) $perPage);
+            $designations = $this->designationService->getAllDesignations((int) $perPage,$searchTerm);
             
             // Check if any records exist
             if ($designations->isEmpty() && !($designations instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $designations->total() > 0)) {
