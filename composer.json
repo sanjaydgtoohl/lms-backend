@@ -11,6 +11,7 @@
         "illuminate/support": "^10.0",
         "illuminate/validation": "^10.0",
         "laravel/lumen-framework": "^10.0",
+        "santigarcor/laratrust": "^8.5",
         "tymon/jwt-auth": "^2.0"
     },
     "require-dev": {
