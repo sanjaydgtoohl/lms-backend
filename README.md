@@ -13,14 +13,6 @@ A lightweight microservice-style API built with Lumen 10 featuring:
 - Composer
 - MySQL (or compatible) database
 
-### Installation
-```bash
-git clone <repo-url>
-cd lms-protal
-composer install
-```
-
-
 ### Environment
 Create your env file and configure DB + JWT:
 ```bash
@@ -34,6 +26,13 @@ Required keys in `.env`:
 ### App Key
 ```bash
 php -r "file_put_contents('.env', preg_replace('/^APP_KEY=.*$/m', 'APP_KEY=base64:'.base64_encode(random_bytes(32)), file_get_contents('.env')));"
+```
+
+### Installation
+```bash
+git clone <repo-url>
+cd lms-protal
+composer install
 ```
 
 ### Bootstrap
