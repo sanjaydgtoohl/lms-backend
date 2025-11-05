@@ -9,11 +9,12 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 interface ZoneRepositoryInterface
 {
     /**
-     * Get all paginated zones.
+     * Get all paginated zones with optional search.
      * @param int $perPage
+     * @param string|null $searchTerm
      * @return LengthAwarePaginator
      */
-    public function allPaginated(int $perPage = 10): LengthAwarePaginator;
+    public function allPaginated(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator;
 
     /**
      * Get all active zones as a list.

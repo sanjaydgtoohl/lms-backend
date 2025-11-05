@@ -128,13 +128,14 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->delete('{id:[0-9]+}', 'AgencyGroupController@destroy');
     });
     
+    // Agency Type routes
     $router->group(['prefix' => 'agency-types'], function () use ($router) {
         $router->get('/', 'AgencyTypeController@index');
         $router->post('/', 'AgencyTypeController@store');
-        $router->get('{id:[0-9]+}', 'AgencyTypeController@show');
-        $router->put('{id:[0-9]+}', 'AgencyTypeController@update');
-        $router->patch('{id:[0-9]+}', 'AgencyTypeController@update');
-        $router->delete('{id:[0-9]+}', 'AgencyTypeController@destroy');
+        $router->get('/{id:[0-9]+}', 'AgencyTypeController@show');
+        $router->put('/{id:[0-9]+}', 'AgencyTypeController@update');
+        $router->patch('/{id:[0-9]+}', 'AgencyTypeController@update');
+        $router->delete('/{id:[0-9]+}', 'AgencyTypeController@destroy');
     });
     
     $router->group(['prefix' => 'agencies'], function () use ($router) {

@@ -2,49 +2,95 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Brand;
-use App\Services\ResponseService; // <-- 1. Import your service
+use App\Http\Resources\BrandResource;
+use App\Services\BrandService;
+use App\Services\ResponseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Throwable; // <-- 2. Import Throwable for catching all errors
+use Throwable;
 
 class BrandController extends Controller
 {
     /**
      * @var ResponseService
      */
-    protected $responseService; // <-- 3. Create a property for the service
+    protected ResponseService $responseService;
 
     /**
-     * Inject the ResponseService.
+     * @var BrandService
+     */
+    protected BrandService $brandService;
+
+    /**
+     * Create a new BrandController instance.
      *
      * @param ResponseService $responseService
+     * @param BrandService $brandService
      */
-    public function __construct(ResponseService $responseService)
+    public function __construct(ResponseService $responseService, BrandService $brandService)
     {
-        $this->responseService = $responseService; // <-- 4. Inject the service
+        $this->responseService = $responseService;
+        $this->brandService = $brandService;
     }
 
     /**
      * Display a listing of the brands.
+     *
      * GET /brands
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
     {
         try {
-            $brands = Brand::with([
-                'agency', 'brandType', 'contactPerson', 'industry',
-                'country', 'state', 'city', 'region', 'subregions'
-            ])
-            ->where('status', '1')
-            ->paginate($request->input('per_page', 15));
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1',
+                'search' => 'nullable|string|max:255',
+            ]);
 
-            // Use your service's 'paginated' method.
-            // Your service will automatically handle the pagination meta.
-            return $this->responseService->paginated($brands, 'Brands retrieved successfully');
+            $perPage = (int) $request->input('per_page', 15);
+            $searchTerm = $request->input('search', null);
 
+            $brands = $this->brandService->getAllBrands($perPage, $searchTerm);
+
+            return $this->responseService->paginated(
+                BrandResource::collection($brands),
+                'Brands retrieved successfully'
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Display the specified brand.
+     *
+     * GET /brands/{id}
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id)
+    {
+        try {
+            $brand = $this->brandService->getBrand((int) $id);
+
+            if (!$brand) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            return $this->responseService->success(
+                new BrandResource($brand),
+                'Brand retrieved successfully'
+            );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -52,7 +98,11 @@ class BrandController extends Controller
 
     /**
      * Store a newly created brand in storage.
+     *
      * POST /brands
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
@@ -66,64 +116,47 @@ class BrandController extends Controller
                 'postal_code' => 'nullable|string|max:20',
                 'state_id' => 'nullable|integer|exists:states,id',
                 'city_id' => 'nullable|integer|exists:cities,id',
-                'region_id' => 'nullable|integer|exists:regions,id',
-                'subregions_id' => 'nullable|integer|exists:subregions,id',
-                'contact_person_id' => 'nullable|integer|exists:users,id',
-                'agency_id' => 'nullable|integer|exists:agency,id',
+                'zone_id' => 'nullable|integer|exists:zones,id',
+                'agency_id' => 'nullable|integer|exists:agencies,id',
             ]);
 
-            // This line will automatically throw a ValidationException
-            // if validation fails, which handleException will catch.
-            $validatedData = $validator->validate();
+            if ($validator->fails()) {
+                return $this->responseService->validationError(
+                    $validator->errors()->toArray(),
+                    'Validation failed'
+                );
+            }
 
-            // Add the non-validated data
+            $validatedData = $validator->validated();
+
+            // Add system-generated fields
             $validatedData['slug'] = Str::slug($request->name) . '-' . uniqid();
             $validatedData['created_by'] = Auth::id();
             $validatedData['status'] = '1';
 
-            $brand = Brand::create($validatedData);
+            $brand = $this->brandService->createBrand($validatedData);
 
-            // Use your service's 'created' method
-            return $this->responseService->created($brand, 'Brand created successfully');
-
+            return $this->responseService->created(
+                new BrandResource($brand),
+                'Brand created successfully'
+            );
         } catch (Throwable $e) {
-            // This will catch ValidationException, DB errors, etc.
-            return $this->responseService->handleException($e);
-        }
-    }
-
-    /**
-     * Display the specified brand.
-     * GET /brands/{id}
-     */
-    public function show($id)
-    {
-        try {
-            $brand = Brand::with([
-                'agency', 'brandType', 'contactPerson', 'industry',
-                'country', 'state', 'city', 'region', 'subregions'
-            ])->findOrFail($id); // This throws ModelNotFoundException if not found
-
-            // Use your service's 'success' method
-            return $this->responseService->success($brand, 'Brand retrieved successfully');
-
-        } catch (Throwable $e) {
-            // Your handleException method will catch ModelNotFoundException
             return $this->responseService->handleException($e);
         }
     }
 
     /**
      * Update the specified brand in storage.
+     *
      * PUT /brands/{id}
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
     {
         try {
-            // 1. Find the brand first
-            $brand = Brand::findOrFail($id);
-
-            // 2. Define validation rules (use 'sometimes' for updates)
             $validator = Validator::make($request->all(), [
                 'name' => 'sometimes|required|string|max:255',
                 'brand_type_id' => 'sometimes|required|integer|exists:brand_types,id',
@@ -133,50 +166,59 @@ class BrandController extends Controller
                 'postal_code' => 'sometimes|nullable|string|max:20',
                 'state_id' => 'sometimes|nullable|integer|exists:states,id',
                 'city_id' => 'sometimes|nullable|integer|exists:cities,id',
-                'region_id' => 'sometimes|nullable|integer|exists:regions,id',
-                'subregions_id' => 'sometimes|nullable|integer|exists:subregions,id',
-                'contact_person_id' => 'sometimes|nullable|integer|exists:users,id',
-                'agency_id' => 'sometimes|nullable|integer|exists:agency,id',
+                'zone_id' => 'sometimes|nullable|integer|exists:zones,id',
+                'agency_id' => 'sometimes|nullable|integer|exists:agencies,id',
                 'status' => 'sometimes|required|in:1,2,15',
             ]);
 
-            // 3. Validate the data
-            $validatedData = $validator->validate();
-
-            // 4. Handle slug update if name changed
-            if ($request->has('name')) {
-                $validatedData['slug'] = Str::slug($request->name) . '-' . $brand->id; // Use ID for uniqueness
+            if ($validator->fails()) {
+                return $this->responseService->validationError(
+                    $validator->errors()->toArray(),
+                    'Validation failed'
+                );
             }
 
-            // 5. Update the brand
-            $brand->update($validatedData);
+            $validatedData = $validator->validated();
 
-            // Use your service's 'updated' method
-            return $this->responseService->updated($brand, 'Brand updated successfully');
+            // Update slug if name changed
+            if ($request->has('name')) {
+                $validatedData['slug'] = Str::slug($request->name) . '-' . $id;
+            }
 
+            $this->brandService->updateBrand((int) $id, $validatedData);
+
+            // Fetch updated brand with relationships
+            $brand = $this->brandService->getBrand((int) $id);
+
+            if (!$brand) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            return $this->responseService->updated(
+                new BrandResource($brand),
+                'Brand updated successfully'
+            );
         } catch (Throwable $e) {
-            // Catches ModelNotFoundException, ValidationException, etc.
             return $this->responseService->handleException($e);
         }
     }
 
     /**
      * Remove the specified brand from storage (Soft Delete).
+     *
      * DELETE /brands/{id}
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy($id)
     {
         try {
-            $brand = Brand::findOrFail($id);
-            $brand->delete();
+            $this->brandService->deleteBrand((int) $id);
 
-            // --- THIS IS THE CHANGE YOU REQUESTED ---
-            // Send a 200 OK with a JSON body
             return $this->responseService->deleted('Brand deleted successfully');
-
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
 }
-

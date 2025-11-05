@@ -7,6 +7,8 @@ use Illuminate\Support\Collection;
 use App\Models\BrandType;
 use Illuminate\Support\Str;
 use App\Exceptions\ResourceInUseException; // We will create this
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Services\ResponseService;
 
 class BrandTypeService
 {
@@ -25,9 +27,10 @@ class BrandTypeService
     /**
      * Get all active brand types.
      */
-    public function getAll(): Collection
+    public function getAll(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator // <-- Parameters aur return type update karein
     {
-        return $this->repository->getAllActive();
+        // Parameters ko repository method mein pass karein
+        return $this->repository->getAllActive($perPage, $searchTerm);
     }
 
     /**

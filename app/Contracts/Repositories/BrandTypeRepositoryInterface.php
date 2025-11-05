@@ -3,16 +3,19 @@
 namespace App\Contracts\Repositories;
 
 use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Models\BrandType;
 
 interface BrandTypeRepositoryInterface 
 {
     /**
-     * Get all active brand types.
+     * Get all active brand types with pagination and optional search.
      *
-     * @return Collection
+     * @param int $perPage
+     * @param string|null $searchTerm
+     * @return LengthAwarePaginator
      */
-    public function getAllActive(): Collection;
+    public function getAllActive(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator;
 
     /**
      * Get a brand type by its ID.

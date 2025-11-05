@@ -4,29 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Brand extends Model
 {
-    // Use the SoftDeletes trait to enable soft deleting
     use SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
         'slug',
-        'contact_person_id',
         'brand_type_id',
         'industry_id',
         'country_id',
         'state_id',
         'city_id',
-        'region_id',
-        'subregions_id',
         'agency_id',
+        'zone_id',
         'created_by',
         'website',
         'postal_code',
@@ -34,61 +32,97 @@ class Brand extends Model
     ];
 
     /**
-     * The attributes that should be cast to native types.
+     * The attributes that should be cast.
      *
-     * @var array
+     * @var array<string, string>
      */
     protected $casts = [
-        // Casts can be added here if needed, e.g.
-        // 'created_at' => 'datetime:Y-m-d H:i:s',
+        'status' => 'string',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
-    public function brandType()
+    // ============================================================================
+    // RELATIONSHIPS
+    // ============================================================================
+
+    /**
+     * Get the brand type that owns the brand.
+     *
+     * @return BelongsTo
+     */
+    public function brandType(): BelongsTo
     {
         return $this->belongsTo(BrandType::class);
     }
 
-    public function industry()
+    /**
+     * Get the industry that owns the brand.
+     *
+     * @return BelongsTo
+     */
+    public function industry(): BelongsTo
     {
         return $this->belongsTo(Industry::class);
     }
 
-    public function country()
+    /**
+     * Get the country that owns the brand.
+     *
+     * @return BelongsTo
+     */
+    public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);
     }
 
-    public function state()
+    /**
+     * Get the state that owns the brand.
+     *
+     * @return BelongsTo
+     */
+    public function state(): BelongsTo
     {
         return $this->belongsTo(State::class);
     }
 
-    public function city()
+    /**
+     * Get the city that owns the brand.
+     *
+     * @return BelongsTo
+     */
+    public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
     }
 
-    public function region()
+    /**
+     * Get the zone that owns the brand.
+     *
+     * @return BelongsTo
+     */
+    public function zone(): BelongsTo
     {
-        return $this->belongsTo(Region::class); // 'Zone'
+        return $this->belongsTo(Zone::class);
     }
 
-    public function subregions()
-    {
-        return $this->belongsTo(SubRegion::class, 'subregions_id');
-    }
-
-    public function agency()
+    /**
+     * Get the agency that owns the brand.
+     *
+     * @return BelongsTo
+     */
+    public function agency(): BelongsTo
     {
         return $this->belongsTo(Agency::class);
     }
 
-    public function contactPerson()
-    {
-        return $this->belongsTo(User::class, 'contact_person_id');
-    }
-
-    public function creator()
+    /**
+     * Get the user who created the brand.
+     *
+     * @return BelongsTo
+     */
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }

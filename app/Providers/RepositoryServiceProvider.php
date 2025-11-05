@@ -22,6 +22,7 @@ use App\Contracts\Repositories\LeadSubSourceRepositoryInterface;
 use App\Contracts\Repositories\AgencyGroupRepositoryInterface;
 
 use App\Contracts\Repositories\AgencyTypeRepositoryInterface;
+use App\Repositories\AgencyTypeRepository;
 
 use App\Repositories\EloquentAgencyRepository;
 use App\Contracts\Repositories\AgencyRepositoryInterface;
@@ -35,8 +36,6 @@ use App\Contracts\Repositories\BrandRepositoryInterface;
 
 use App\Repositories\RegionRepository;
 use App\Contracts\Repositories\RegionRepositoryInterface;
-
-use App\Repositories\EloquentAgencyTypeRepository;
 
 use App\Repositories\EloquentAgencyGroupRepository;
 
@@ -96,10 +95,10 @@ class RepositoryServiceProvider extends ServiceProvider
             EloquentAgencyRepository::class
         );
 
-        // $this->app->bind(
-        //     AgencyTypeRepositoryInterface::class, 
-        //     EloquentAgencyTypeRepository::class
-        // );
+        $this->app->bind(
+            AgencyTypeRepositoryInterface::class, 
+            AgencyTypeRepository::class
+        );
 
         // $this->app->bind(
         //     AgencyGroupRepositoryInterface::class,

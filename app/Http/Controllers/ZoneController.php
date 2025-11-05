@@ -3,24 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Zone;
-use App\Services\ZoneService;       // Aapka logic service
-use App\Services\ResponseService;  // Aapka response service
-use App\Http\Resources\ZoneResource; // Aapka resource file
+use App\Services\ZoneService;       
+use App\Services\ResponseService;  
+use App\Http\Resources\ZoneResource; 
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\ValidationException; // Validation errors ke liye
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ZoneController extends Controller
 {
     protected $zoneService;
     protected $responseService; // Response service
-
-    // Dono services ko constructor mein inject karein
     public function __construct(ZoneService $zoneService, ResponseService $responseService)
     {
         $this->zoneService = $zoneService;
-        $this->responseService = $responseService; // Inject karein
+        $this->responseService = $responseService;
     }
 
     /**
@@ -29,15 +27,22 @@ class ZoneController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+            $this->validate($request, [
+            'per_page' => 'nullable|integer|min:1',
+            'search'   => 'nullable|string|max:100' // <-- Search validation
+        ]);
             $perPage = (int) $request->query('per_page', 10);
             if ($perPage <= 0) { $perPage = 10; }
-            $zones = $this->zoneService->getAllZones($perPage);
+            $searchTerm = $request->query('search', null);
+            $zones = $this->zoneService->getAllZones($perPage, $searchTerm);
             $data = ZoneResource::collection($zones);
             
             // Service ka 'paginated' method istemaal karein
             return $this->responseService->paginated($data, 'Zones retrieved successfully.');
         
-        } catch (Throwable $e) {
+        } catch (ValidationException $e) { // <-- Validation errors ke liye
+            return $this->responseService->validationError($e->errors());
+        }   catch (Throwable $e) {
             // Error ko response service ke handler ko bhej dein
             return $this->responseService->handleException($e);
         }
