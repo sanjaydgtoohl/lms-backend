@@ -51,8 +51,11 @@ use App\Contracts\Repositories\CityRepositoryInterface;
 use App\Repositories\ZoneRepository;
 use App\Contracts\Repositories\ZoneRepositoryInterface;
 
-use App\Repositories\RefreshTokenRepository;
-use App\Contracts\Repositories\RefreshTokenRepositoryInterface;
+// use App\Repositories\RefreshTokenRepository;
+// use App\Contracts\Repositories\RefreshTokenRepositoryInterface;
+
+use App\Repositories\RoleRepository;
+use App\Contracts\Repositories\RoleRepositoryInterface;
 
 // Duplicate imports removed
 
@@ -139,11 +142,18 @@ class RepositoryServiceProvider extends ServiceProvider
             ZoneRepositoryInterface::class,
             ZoneRepository::class
         );
+        
+        // $this->app->bind(
+        //     RefreshTokenRepositoryInterface::class,
+        //     RefreshTokenRepository::class
+        // );
 
         $this->app->bind(
-            RefreshTokenRepositoryInterface::class,
-            RefreshTokenRepository::class
+            RoleRepositoryInterface::class,
+            RoleRepository::class
         );
+
+
 
     }
     /**
