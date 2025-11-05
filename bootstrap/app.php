@@ -71,6 +71,9 @@ $app->configure('auth');
 $app->configure('jwt');
 $app->configure('database');
 
+// Enable config loading
+$app->configure('laratrust');
+
 /*
 |--------------------------------------------------------------------------
 | Register Middleware
@@ -111,6 +114,10 @@ $app->register(App\Providers\RepositoryServiceProvider::class);
 // Enable route:list command
 $app->register(\Flipbox\LumenGenerator\LumenGeneratorServiceProvider::class);
 
+// Register providers
+$app->register(Laratrust\LaratrustServiceProvider::class);
+
+class_alias(Laratrust\LaratrustFacade::class, 'Laratrust');
 
 /*
 |--------------------------------------------------------------------------

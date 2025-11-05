@@ -18,7 +18,8 @@ class DatabaseSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
         $this->call([
-            RolePermissionSeeder::class,
+            UserSeeder::class,
+            LaratrustDummySeeder::class,
             LeadSourceSeeder::class,
             AgencyTypeSeeder::class,
             BrandTypeSeeder::class,
