@@ -79,7 +79,7 @@ class UserService
         }
 
         // Set default values
-        $data['status'] = $data['status'] ?? 'active';
+        $data['status'] = $data['status'] ?? '1';
         // $data['role'] = $data['role'] ?? 'user';
 
         return $this->userRepository->create($data);
@@ -134,10 +134,11 @@ class UserService
         $user = $this->userRepository->findByEmail($credentials['email']);
 
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
-            return null;
+            return null;  
         }
 
         if (!$user->isActive()) {
+            
             return null;
         }
 
@@ -215,7 +216,7 @@ class UserService
             'password' => 'sometimes|required|string|min:8',
             'phone' => 'nullable|string|max:20',
             // 'role' => 'sometimes|in:admin,user,moderator',
-            'status' => 'sometimes|in:active,inactive,suspended',
+            'status' => 'sometimes|in:1,2,3',
         ];
 
         // Add unique email rule if creating new user or updating email
