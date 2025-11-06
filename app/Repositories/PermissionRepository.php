@@ -2,15 +2,16 @@
 
 namespace App\Repositories;
 
-use App\Contracts\Repositories\RoleRepositoryInterface;
+use App\Contracts\Repositories\PermissionRepositoryInterface;
+use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-class RoleRepository implements RoleRepositoryInterface
+class PermissionRepository implements PermissionRepositoryInterface
 {
-    protected Role $model;
+    protected Permission $model;
 
-    public function __construct(Role $model)
+    public function __construct(Permission $model)
     {
         $this->model = $model;
     }
@@ -18,55 +19,54 @@ class RoleRepository implements RoleRepositoryInterface
     public function all(int $perPage = 15): LengthAwarePaginator
     {
         return $this->model->latest()->paginate($perPage);
-    }   
+    }
 
-    public function find(int $id): ?Role
+    public function find(int $id): ?Permission
     {
         return $this->model->find($id);
     }
 
-    public function findByUuid(string $uuid): ?Role
+    public function findByUuid(string $uuid): ?Permission
     {
         return $this->model->where('uuid', $uuid)->first();
     }
 
-    public function findBySlug(string $slug): ?Role
+    public function findBySlug(string $slug): ?Permission
     {
         return $this->model->where('slug', $slug)->first();
     }
 
-    public function create(array $data): Role
+    public function create(array $data): Permission
     {
         return $this->model->create($data);
     }
 
     public function update(int $id, array $data): bool
     {
-        $role = $this->model->find($id);
+        $permission = $this->model->find($id);
 
-        if (! $role) {
+        if (! $permission) {
             return false;
         }
 
-        return (bool) $role->update($data);
+        return (bool) $permission->update($data);
     }
 
     public function delete(int $id): bool
     {
-        $role = $this->model->find($id);
+        $permission = $this->model->find($id);
 
-        if (! $role) {
+        if (! $permission) {
             return false;
         }
 
-        return (bool) $role->delete();
+        return (bool) $permission->delete();
     }
 
     public function search(array $criteria, int $perPage = 15): LengthAwarePaginator
     {
         $query = $this->model->newQuery();
 
-        // Global q parameter for quick search
         if (! empty($criteria['q'])) {
             $q = $criteria['q'];
             $query->where(function ($sub) use ($q) {
@@ -89,42 +89,29 @@ class RoleRepository implements RoleRepositoryInterface
             $query->where('slug', $criteria['slug']);
         }
 
-    // Order results ascending by name by default
-    return $query->orderBy('id', 'asc')->paginate($perPage);
+        return $query->orderBy('id', 'asc')->paginate($perPage);
     }
 
-    public function findWithRelations(int $id, array $relations = []): ?Role
+    public function findWithRelations(int $id, array $relations = []): ?Permission
     {
         return $this->model->with($relations)->find($id);
     }
 
-    public function syncPermissions(int $roleId, array $permissionIds): bool
+    public function getActive(int $perPage = 15): LengthAwarePaginator
     {
-        $role = $this->model->find($roleId);
-
-        if (! $role) {
-            return false;
-        }
-
-        try {
-            // Laratrust provides syncPermissions on the Role model
-            $role->syncPermissions($permissionIds);
-            return true;
-        } catch (\Throwable $e) {
-            // Optionally log the exception here
-            return false;
-        }
+        return $this->model->where('status', Permission::STATUS_ACTIVE)->paginate($perPage);
     }
 
-    public function attachPermission(int $roleId, int $permissionId): bool
+    public function attachToRole(int $permissionId, int $roleId): bool
     {
-        $role = $this->model->find($roleId);
+        $role = Role::find($roleId);
 
         if (! $role) {
             return false;
         }
 
         try {
+            // Role::givePermission accepts id or Permission instance
             $role->givePermission($permissionId);
             return true;
         } catch (\Throwable $e) {
@@ -132,9 +119,9 @@ class RoleRepository implements RoleRepositoryInterface
         }
     }
 
-    public function detachPermission(int $roleId, int $permissionId): bool
+    public function detachFromRole(int $permissionId, int $roleId): bool
     {
-        $role = $this->model->find($roleId);
+        $role = Role::find($roleId);
 
         if (! $role) {
             return false;

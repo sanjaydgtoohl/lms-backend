@@ -3,41 +3,75 @@
 namespace App\Contracts\Repositories;
 
 use App\Models\Role;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface RoleRepositoryInterface
 {
-    // Get all roles.
-    public function all(): Collection;
+	/**
+	 * Get all roles with pagination
+	 *
+	 * @param int $perPage
+	 * @return LengthAwarePaginator<Role>
+	 */
+	public function all(int $perPage = 15): LengthAwarePaginator;
+	
+	/**
+	 * Find a role by ID
+	 */
+	public function find(int $id): ?Role;
 
-    // Get paginated roles.
-    public function allPaginated(int $perPage = 15): LengthAwarePaginator;
+	/**
+	 * Find a role by UUID
+	 */
+	public function findByUuid(string $uuid): ?Role;
 
-    // Find a role by its primary key (ID).
-    public function findById(int $id): ?Role;
+	/**
+	 * Find a role by slug
+	 */
+	public function findBySlug(string $slug): ?Role;
 
-    // Find a role by its slug.
-    public function findBySlug(string $slug): ?Role;
+	/**
+	 * Create a new role
+	 */
+	public function create(array $data): Role;
 
-    // Find a role by its UUID.
-    public function findByUuid(string $uuid): ?Role;
+	/**
+	 * Update a role by ID
+	 */
+	public function update(int $id, array $data): bool;
 
-    // Create a new role.
-    public function create(array $data): Role;
+	/**
+	 * Delete a role by ID
+	 */
+	public function delete(int $id): bool;
 
-    // Update an existing role.
-    public function update(int $id, array $data): Role;
+	/**
+	 * Search roles by criteria with pagination
+	 */
+	public function search(array $criteria, int $perPage = 15): LengthAwarePaginator;
 
-    // Soft delete a role by its ID.
-    public function delete(int $id): bool;
+	/**
+	 * Find a role by ID with relationships
+	 */
+	public function findWithRelations(int $id, array $relations = []): ?Role;
 
-    // Restore a soft-deleted role by its ID.
-    public function restore(int $id): bool;
+	/**
+	 * Sync permissions for a role (replace existing)
+	 *
+	 * @param int $roleId
+	 * @param array $permissionIds
+	 * @return bool
+	 */
+	public function syncPermissions(int $roleId, array $permissionIds): bool;
 
-    // Permanently delete a role by its ID.
-    public function forceDelete(int $id): bool;
+	/**
+	 * Attach a permission to a role
+	 */
+	public function attachPermission(int $roleId, int $permissionId): bool;
 
-    // Attach permissions to a role.
-    public function syncPermissions(int $roleId, array $permissionIds): void;
+	/**
+	 * Detach a permission from a role
+	 */
+	public function detachPermission(int $roleId, int $permissionId): bool;
 }
+

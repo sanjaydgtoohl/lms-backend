@@ -16,6 +16,7 @@ use App\Http\Controllers\CountryController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\BrandTypeController;
 use App\Http\Controllers\RegionController;
+use App\Http\Controllers\ZoneController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\BrandAgencyRelationshipController;
@@ -215,6 +216,31 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('{id:[0-9]+}', 'ZoneController@update');
         $router->patch('{id:[0-9]+}', 'ZoneController@update');
         $router->delete('{id:[0-9]+}', 'ZoneController@destroy');
+    });
+
+    // Roles routes
+    $router->group(['prefix' => 'roles'], function () use ($router) {
+        $router->get('/', 'RoleController@index');
+        $router->post('/', 'RoleController@store');
+        $router->get('{id:[0-9]+}', 'RoleController@show');
+        $router->put('{id:[0-9]+}', 'RoleController@update');
+        $router->patch('{id:[0-9]+}', 'RoleController@update');
+        $router->delete('{id:[0-9]+}', 'RoleController@destroy');
+
+        // Permissions management for a role
+        $router->post('{id:[0-9]+}/permissions', 'RoleController@syncPermissions');
+        $router->post('{id:[0-9]+}/permissions/attach', 'RoleController@attachPermission');
+        $router->post('{id:[0-9]+}/permissions/detach', 'RoleController@detachPermission');
+    });
+
+    // Permissions routes
+    $router->group(['prefix' => 'permissions'], function () use ($router) {
+        $router->get('/', 'PermissionController@index');
+        $router->post('/', 'PermissionController@store');
+        $router->get('{id:[0-9]+}', 'PermissionController@show');
+        $router->put('{id:[0-9]+}', 'PermissionController@update');
+        $router->patch('{id:[0-9]+}', 'PermissionController@update');
+        $router->delete('{id:[0-9]+}', 'PermissionController@destroy');
     });
 });
 

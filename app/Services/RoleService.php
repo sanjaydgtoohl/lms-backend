@@ -4,95 +4,136 @@ namespace App\Services;
 
 use App\Contracts\Repositories\RoleRepositoryInterface;
 use App\Models\Role;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Arr;
-
 class RoleService
 {
-    protected $roleRepository;
+	protected RoleRepositoryInterface $roleRepository;
+	protected ResponseService $responseService;
 
-    public function __construct(RoleRepositoryInterface $roleRepository)
-    {
-        $this->roleRepository = $roleRepository;
-    }
+	public function __construct(RoleRepositoryInterface $roleRepository, ResponseService $responseService)
+	{
+		$this->roleRepository = $roleRepository;
+		$this->responseService = $responseService;
+	}
 
-    // Get all roles with pagination.
-    public function getRolesPaginated(int $perPage = 15): LengthAwarePaginator
-    {
-        return $this->roleRepository->allPaginated($perPage);
-    }
+	/**
+	 * Get paginated roles
+	 */
+	public function list(array $criteria = [], int $perPage = 15): LengthAwarePaginator
+	{
+		return $this->roleRepository->search($criteria, $perPage);
+	}
 
-    // Get all roles.
-    public function getAllRoles(): Collection
-    {
-        return $this->roleRepository->all();
-    }
+	/**
+	 * Find role by id
+	 */
+	public function find(int $id): ?Role
+	{
+		return $this->roleRepository->find($id);
+	}
 
-    // Find a single role by its ID.
-    public function getRoleById(int $id): ?Role
-    {
-        return $this->roleRepository->findById($id);
-    }
+	/**
+	 * Find role by uuid
+	 */
+	public function findByUuid(string $uuid): ?Role
+	{
+		return $this->roleRepository->findByUuid($uuid);
+	}
 
-    // Find a single role by its slug.
-    public function getRoleBySlug(string $slug): ?Role
-    {
-        return $this->roleRepository->findBySlug($slug);
-    }
+	/**
+	 * Find role by slug
+	 */
+	public function findBySlug(string $slug): ?Role
+	{
+		return $this->roleRepository->findBySlug($slug);
+	}
 
-    /**
-     * Create a new role and sync permissions.
-     *
-     * @param array $data
-     * @return Role
-     */
-    public function createNewRole(array $data): Role
-    {
-        // Separate permissions from the main role data
-        $permissionIds = Arr::pull($data, 'permissions', []);
-        
-        // Create the role
-        $role = $this->roleRepository->create($data);
+	/**
+	 * Create a new role and optionally sync permissions
+	 *
+	 * @throws ValidationException
+	 */
+	public function create(array $data, array $permissions = []): Role
+	{
+		$this->validateRoleData($data);
 
-        // Sync permissions if any were provided
-        if (!empty($permissionIds)) {
-            $this->roleRepository->syncPermissions($role->id, $permissionIds);
-        }
+		$role = $this->roleRepository->create($data);
 
-        return $role;
-    }
+		if (! empty($permissions)) {
+			$this->roleRepository->syncPermissions($role->id, $permissions);
+		}
 
-    /**
-     * Update an existing role and sync permissions.
-     *
-     * @param int $id
-     * @param array $data
-     * @return Role
-     */
-    public function updateRole(int $id, array $data): Role
-    {
-        // Separate permissions from the main role data
-        $permissionIds = Arr::pull($data, 'permissions', []);
+		return $role;
+	}
 
-        // Update the role
-        $role = $this->roleRepository->update($id, $data);
+	/**
+	 * Update a role
+	 *
+	 * @throws ValidationException
+	 */
+	public function update(int $id, array $data): bool
+	{
+		$this->validateRoleData($data, $id);
 
-        // Sync permissions. If an empty array is passed, it will remove all permissions.
-        $this->roleRepository->syncPermissions($role->id, $permissionIds);
+		return $this->roleRepository->update($id, $data);
+	}
 
-        return $role;
-    }
+	/**
+	 * Delete a role
+	 */
+	public function delete(int $id): bool
+	{
+		return $this->roleRepository->delete($id);
+	}
 
-    // Soft delete a role.
-    public function deleteRole(int $id): bool
-    {
-        return $this->roleRepository->delete($id);
-    }
+	/**
+	 * Sync permissions for a role
+	 */
+	public function syncPermissions(int $roleId, array $permissionIds): bool
+	{
+		return $this->roleRepository->syncPermissions($roleId, $permissionIds);
+	}
 
-    // Restore a soft-deleted role.
-    public function restoreRole(int $id): bool
-    {
-        return $this->roleRepository->restore($id);
-    }
+	/**
+	 * Attach a permission to a role
+	 */
+	public function attachPermission(int $roleId, int $permissionId): bool
+	{
+		return $this->roleRepository->attachPermission($roleId, $permissionId);
+	}
+
+	/**
+	 * Detach a permission from a role
+	 */
+	public function detachPermission(int $roleId, int $permissionId): bool
+	{
+		return $this->roleRepository->detachPermission($roleId, $permissionId);
+	}
+
+	/**
+	 * Validate role data
+	 *
+	 * @param array $data
+	 * @param int|null $ignoreId
+	 * @throws ValidationException
+	 */
+	protected function validateRoleData(array $data, ?int $ignoreId = null): void
+	{
+		$rules = [
+			'name' => 'required|string|max:255|unique:roles,name' . ($ignoreId ? ",{$ignoreId}" : ''),
+			'slug' => 'required|string|max:255|unique:roles,slug' . ($ignoreId ? ",{$ignoreId}" : ''),
+			'display_name' => 'nullable|string|max:255',
+			'description' => 'nullable|string|max:1000',
+			'status' => 'nullable|in:1,2,15',
+		];
+
+		$validator = Validator::make($data, $rules);
+
+		if ($validator->fails()) {
+			throw new ValidationException($validator);
+		}
+	}
 }
+

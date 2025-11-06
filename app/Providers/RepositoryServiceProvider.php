@@ -57,6 +57,8 @@ use App\Contracts\Repositories\ZoneRepositoryInterface;
 use App\Repositories\RoleRepository;
 use App\Contracts\Repositories\RoleRepositoryInterface;
 
+use App\Repositories\PermissionRepository;
+use App\Contracts\Repositories\PermissionRepositoryInterface;
 // Duplicate imports removed
 
 class RepositoryServiceProvider extends ServiceProvider
@@ -153,8 +155,10 @@ class RepositoryServiceProvider extends ServiceProvider
             RoleRepository::class
         );
 
-
-
+        $this->app->bind(
+            PermissionRepositoryInterface::class,
+            PermissionRepository::class
+        );
     }
     /**
      * Bootstrap any application services.

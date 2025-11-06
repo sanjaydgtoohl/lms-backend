@@ -2,277 +2,129 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\Role;
+use App\Contracts\Repositories\PermissionRepositoryInterface;
 use App\Models\Permission;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class PermissionService
 {
-    /**
-     * The response service instance
-     *
-     * @var ResponseService
-     */
-    protected $responseService;
+    protected PermissionRepositoryInterface $permissionRepository;
+    protected ResponseService $responseService;
 
-    /**
-     * Constructor
-     *
-     * @param ResponseService $responseService
-     */
-    public function __construct(ResponseService $responseService)
+    public function __construct(PermissionRepositoryInterface $permissionRepository, ResponseService $responseService)
     {
+        $this->permissionRepository = $permissionRepository;
         $this->responseService = $responseService;
     }
 
     /**
-     * Check if user has permission
-     *
-     * @param User $user
-     * @param string $permission
-     * @return bool
+     * List permissions with optional criteria
      */
-    public function userHasPermission(User $user, string $permission): bool
+    public function list(array $criteria = [], int $perPage = 15): LengthAwarePaginator
     {
-        return $user->hasPermission($permission);
+        return $this->permissionRepository->search($criteria, $perPage);
     }
 
     /**
-     * Check if user has role
-     *
-     * @param User $user
-     * @param string $role
-     * @return bool
+     * Find permission by id
      */
-    public function userHasRole(User $user, string $role): bool
+    public function find(int $id): ?Permission
     {
-        return $user->hasRole($role);
+        return $this->permissionRepository->find($id);
     }
 
     /**
-     * Check if user has any of the given permissions
-     *
-     * @param User $user
-     * @param array $permissions
-     * @return bool
+     * Find permission by uuid
      */
-    public function userHasAnyPermission(User $user, array $permissions): bool
+    public function findByUuid(string $uuid): ?Permission
     {
-        return $user->hasAnyPermission($permissions);
+        return $this->permissionRepository->findByUuid($uuid);
     }
 
     /**
-     * Check if user has all of the given permissions
-     *
-     * @param User $user
-     * @param array $permissions
-     * @return bool
+     * Find permission by slug
      */
-    public function userHasAllPermissions(User $user, array $permissions): bool
+    public function findBySlug(string $slug): ?Permission
     {
-        return $user->hasAllPermissions($permissions);
+        return $this->permissionRepository->findBySlug($slug);
     }
 
     /**
-     * Assign role to user
+     * Create a new permission
      *
-     * @param User $user
-     * @param Role $role
-     * @return bool
-     */
-    public function assignRoleToUser(User $user, Role $role): bool
-    {
-        try {
-            $user->assignRole($role);
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Remove role from user
-     *
-     * @param User $user
-     * @param Role $role
-     * @return bool
-     */
-    public function removeRoleFromUser(User $user, Role $role): bool
-    {
-        try {
-            $user->removeRole($role);
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Give permission to user
-     *
-     * @param User $user
-     * @param Permission $permission
-     * @return bool
-     */
-    public function givePermissionToUser(User $user, Permission $permission): bool
-    {
-        try {
-            $user->givePermission($permission);
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Remove permission from user
-     *
-     * @param User $user
-     * @param Permission $permission
-     * @return bool
-     */
-    public function removePermissionFromUser(User $user, Permission $permission): bool
-    {
-        try {
-            $user->removePermission($permission);
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Give permission to role
-     *
-     * @param Role $role
-     * @param Permission $permission
-     * @return bool
-     */
-    public function givePermissionToRole(Role $role, Permission $permission): bool
-    {
-        try {
-            $role->givePermission($permission);
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Remove permission from role
-     *
-     * @param Role $role
-     * @param Permission $permission
-     * @return bool
-     */
-    public function removePermissionFromRole(Role $role, Permission $permission): bool
-    {
-        try {
-            $role->removePermission($permission);
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Create role with permissions
-     *
-     * @param array $roleData
-     * @param array $permissions
-     * @return Role
      * @throws ValidationException
      */
-    public function createRoleWithPermissions(array $roleData, array $permissions = []): Role
+    public function create(array $data): Permission
     {
-        $this->validateRoleData($roleData);
+        $this->validatePermissionData($data);
 
-        $role = Role::create($roleData);
-
-        if (!empty($permissions)) {
-            $role->syncPermissions($permissions);
-        }
-
-        return $role;
+        return $this->permissionRepository->create($data);
     }
 
     /**
-     * Create permission
+     * Update a permission
      *
-     * @param array $permissionData
-     * @return Permission
      * @throws ValidationException
      */
-    public function createPermission(array $permissionData): Permission
+    public function update(int $id, array $data): bool
     {
-        $this->validatePermissionData($permissionData);
+        $this->validatePermissionData($data, $id);
 
-        return Permission::create($permissionData);
+        return $this->permissionRepository->update($id, $data);
     }
 
     /**
-     * Get user permissions (including role permissions)
-     *
-     * @param User $user
-     * @return \Illuminate\Database\Eloquent\Collection
+     * Delete a permission
      */
-    public function getUserPermissions(User $user)
+    public function delete(int $id): bool
     {
-        return $user->getAllPermissions();
+        return $this->permissionRepository->delete($id);
     }
 
     /**
-     * Get user roles
-     *
-     * @param User $user
-     * @return \Illuminate\Database\Eloquent\Collection
+     * Get only active permissions
      */
-    public function getUserRoles(User $user)
+    public function getActive(int $perPage = 15): LengthAwarePaginator
     {
-        return $user->roles;
+        return $this->permissionRepository->getActive($perPage);
     }
 
     /**
-     * Validate role data
-     *
-     * @param array $data
-     * @return void
-     * @throws ValidationException
+     * Attach permission to role
      */
-    protected function validateRoleData(array $data): void
+    public function attachToRole(int $permissionId, int $roleId): bool
     {
-        $validator = Validator::make($data, [
-            'name' => 'required|string|max:255|unique:roles,name',
-            'slug' => 'required|string|max:255|unique:roles,slug',
-            'description' => 'nullable|string|max:500',
-            'is_active' => 'boolean',
-            'level' => 'required|integer|min:1',
-        ]);
+        return $this->permissionRepository->attachToRole($permissionId, $roleId);
+    }
 
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
-        }
+    /**
+     * Detach permission from role
+     */
+    public function detachFromRole(int $permissionId, int $roleId): bool
+    {
+        return $this->permissionRepository->detachFromRole($permissionId, $roleId);
     }
 
     /**
      * Validate permission data
      *
      * @param array $data
-     * @return void
+     * @param int|null $ignoreId
      * @throws ValidationException
      */
-    protected function validatePermissionData(array $data): void
+    protected function validatePermissionData(array $data, ?int $ignoreId = null): void
     {
-        $validator = Validator::make($data, [
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:permissions,slug',
-            'description' => 'nullable|string|max:500',
-            'resource' => 'required|string|max:100',
-            'action' => 'required|string|max:100',
-            'is_active' => 'boolean',
-        ]);
+        $rules = [
+            'name' => 'required|string|max:255|unique:permissions,name' . ($ignoreId ? ",{$ignoreId}" : ''),
+            'slug' => 'nullable|string|max:255|unique:permissions,slug' . ($ignoreId ? ",{$ignoreId}" : ''),
+            'display_name' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'status' => 'nullable|in:1,2,15',
+        ];
+
+        $validator = Validator::make($data, $rules);
 
         if ($validator->fails()) {
             throw new ValidationException($validator);
