@@ -127,18 +127,15 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         try {
-            // --- LOGGING LOGIC ADD KAREIN (Logout se pehle) ---
             /** @var \App\Models\User|null $user */
-            $user = Auth::user(); // User ko logout karne se pehle lein
+            $user = Auth::user();
 
             if ($user) {
-                // User ka sabse latest active log dhundein
                 $log = $user->loginLogs()
                            ->whereNull('logout_time')
                            ->latest('login_time')
                            ->first();
 
-                // Agar mila hai, toh uska logout time update karein
                 if ($log) {
                     $log->update(['logout_time' => \Carbon\Carbon::now()]);
                 }
