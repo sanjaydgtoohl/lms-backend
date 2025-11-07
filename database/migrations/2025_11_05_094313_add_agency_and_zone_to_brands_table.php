@@ -18,17 +18,10 @@ return new class extends Migration
 
             // --- Addition of New Columns ---
             
-            // Add agency_id (Assuming it references an 'agencies' table, nullable, and uses a standard big integer for foreign keys)
-            $table->foreignId('agency_id')
-                  ->nullable()
-                  ->after('city_id') // Placing it logically after location data
-                  ->constrained('agencies')
-                  ->nullOnDelete();
-
             // Add zone_id (Assuming it references a 'zones' table, nullable)
             $table->foreignId('zone_id')
                   ->nullable()
-                  ->after('agency_id') // Placing it after agency_id
+                  ->after('city_id') // Updated to be after city_id
                   ->constrained('zones')
                   ->nullOnDelete();
         });
@@ -41,7 +34,6 @@ return new class extends Migration
     {
         Schema::table('brands', function (Blueprint $table) {
             // --- Reversing the Additions (Dropping new columns) ---
-            $table->dropConstrainedForeignId('agency_id');
             $table->dropConstrainedForeignId('zone_id');
 
             // --- Reversing the Removals (Adding original columns back) ---
