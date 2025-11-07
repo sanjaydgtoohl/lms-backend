@@ -2,146 +2,99 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Laratrust\Models\Role as RoleModel;
+use Illuminate\Support\Str;
 
-class Role extends BaseModel
+class Role extends RoleModel
 {
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'roles';
+    use SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $fillable = [
         'name',
-        'slug',
+        'display_name',
         'description',
-        'is_active',
-        'level',
+        'slug',    // <-- Added
+        'uuid',   // <-- Added
+        'status', // <-- Added
     ];
 
     /**
-     * The attributes that should be cast.
+     * Status constants that map to the DB enum in the migration.
+     */
+    public const STATUS_ACTIVE = '1';
+    public const STATUS_DEACTIVATED = '2';
+    public const STATUS_SOFT_DELETED = '15';
+
+    /**
+     * The attributes that should be cast to native types.
      *
-     * @var array<string, string>
+     * @var array
      */
     protected $casts = [
-        'is_active' => 'boolean',
-        'level' => 'integer',
+        'uuid' => 'string',
+        'slug' => 'string',
+        'status' => 'string',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     /**
-     * Get users with this role
+     * The "booted" method of the model.
+     *
+     * This method is automatically called by Eloquent.
      */
-    public function users(): BelongsToMany
+    protected static function boot()
     {
-        return $this->belongsToMany(User::class, 'user_roles')
-            ->withPivot(['assigned_at', 'assigned_by'])
-            ->withTimestamps();
+        parent::boot();
+
+        // This automatically generates a UUID and a Slug
+        // every time a new role is being created.
+        static::creating(function ($role) {
+            
+            // Generate UUID if it wasn't set
+            if (empty($role->uuid)) {
+                $role->uuid = (string) Str::uuid();
+            }
+
+            // Generate Slug from display_name or name if it wasn't set
+            if (empty($role->slug)) {
+                $role->slug = Str::slug($role->display_name ?? $role->name);
+            }
+        });
     }
 
     /**
-     * Get permissions for this role
+     * Get the route key for the model.
+     *
+     * @return string
      */
-    public function permissions(): BelongsToMany
+    public function getRouteKeyName()
     {
-        return $this->belongsToMany(Permission::class, 'role_permissions')
-            ->withTimestamps();
+        // This tells Laravel to use the 'slug' column for route model binding
+        // Example: /roles/admin-role instead of /roles/1
+        return 'slug';
     }
 
     /**
-     * Check if role has permission
-     */
-    public function hasPermission(string $permission): bool
-    {
-        return $this->permissions()->where('slug', $permission)->exists();
-    }
-
-    /**
-     * Check if role has any of the given permissions
-     */
-    public function hasAnyPermission(array $permissions): bool
-    {
-        return $this->permissions()->whereIn('slug', $permissions)->exists();
-    }
-
-    /**
-     * Check if role has all of the given permissions
-     */
-    public function hasAllPermissions(array $permissions): bool
-    {
-        $rolePermissionCount = $this->permissions()->whereIn('slug', $permissions)->count();
-        return $rolePermissionCount === count($permissions);
-    }
-
-    /**
-     * Give permission to role
-     */
-    public function givePermission(Permission $permission): void
-    {
-        $this->permissions()->syncWithoutDetaching([$permission->id]);
-    }
-
-    /**
-     * Remove permission from role
-     */
-    public function removePermission(Permission $permission): void
-    {
-        $this->permissions()->detach($permission->id);
-    }
-
-    /**
-     * Sync permissions for role
-     */
-    public function syncPermissions(array $permissions): void
-    {
-        $this->permissions()->sync($permissions);
-    }
-
-    /**
-     * Scope for active roles
+     * Scope a query to only include active roles.
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', self::STATUS_ACTIVE);
     }
 
     /**
-     * Scope for roles by level
+     * Return true if this role is active.
      */
-    public function scopeByLevel($query, int $level)
+    public function isActive(): bool
     {
-        return $query->where('level', $level);
-    }
-
-    /**
-     * Scope for roles above level
-     */
-    public function scopeAboveLevel($query, int $level)
-    {
-        return $query->where('level', '>', $level);
-    }
-
-    /**
-     * Check if role is higher than another role
-     */
-    public function isHigherThan(Role $role): bool
-    {
-        return $this->level > $role->level;
-    }
-
-    /**
-     * Check if role is lower than another role
-     */
-    public function isLowerThan(Role $role): bool
-    {
-        return $this->level < $role->level;
+        return (string) $this->status === self::STATUS_ACTIVE;
     }
 }

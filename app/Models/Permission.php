@@ -2,103 +2,91 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Laratrust\Models\Permission as PermissionModel;
+use Illuminate\Support\Str;
 
-class Permission extends BaseModel
+class Permission extends PermissionModel
 {
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'permissions';
-
+    use SoftDeletes;
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $fillable = [
         'name',
-        'slug',
+        'display_name',
         'description',
-        'resource',
-        'action',
-        'is_active',
+        'slug',    // <-- Added
+        'uuid',   // <-- Added
+        'status', // <-- Added
     ];
-
     /**
-     * The attributes that should be cast.
+     * Status constants that map to the DB enum in the migration.
+     */
+    public const STATUS_ACTIVE = '1';
+    public const STATUS_DEACTIVATED = '2';
+    public const STATUS_SOFT_DELETED = '15';
+    /**
+     * The attributes that should be cast to native types.
      *
-     * @var array<string, string>
+     * @var array
      */
     protected $casts = [
-        'is_active' => 'boolean',
+        'uuid' => 'string',
+        'slug' => 'string',
+        'status' => 'string',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     /**
-     * Get roles that have this permission
+     * Boot the model and attach event listeners to generate UUID and slug.
      */
-    public function roles(): BelongsToMany
+    protected static function boot()
     {
-        return $this->belongsToMany(Role::class, 'role_permissions')
-            ->withTimestamps();
+        parent::boot();
+
+        // Ensure uuid and slug are set when creating
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                // Use Laravel's Str::uuid() to generate a UUID
+                $model->uuid = (string) Str::uuid();
+            }
+
+            if (empty($model->slug) && ! empty($model->name)) {
+                $model->slug = Str::slug($model->name);
+            }
+        });
+
+        // Keep slug in sync with name on save
+        static::saving(function ($model) {
+            if (! empty($model->name)) {
+                $model->slug = Str::slug($model->name);
+            }
+        });
     }
 
     /**
-     * Get users that have this permission through roles
+     * Use uuid for route model binding instead of the id.
+     *
+     * @return string
      */
-    public function users(): BelongsToMany
+    public function getRouteKeyName()
     {
-        return $this->belongsToMany(User::class, 'user_permissions')
-            ->withTimestamps();
+        return 'uuid';
     }
 
     /**
-     * Scope for active permissions
+     * Scope a query to only active permissions.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
-    }
-
-    /**
-     * Scope for permissions by resource
-     */
-    public function scopeByResource($query, string $resource)
-    {
-        return $query->where('resource', $resource);
-    }
-
-    /**
-     * Scope for permissions by action
-     */
-    public function scopeByAction($query, string $action)
-    {
-        return $query->where('action', $action);
-    }
-
-    /**
-     * Scope for permissions by resource and action
-     */
-    public function scopeByResourceAndAction($query, string $resource, string $action)
-    {
-        return $query->where('resource', $resource)->where('action', $action);
-    }
-
-    /**
-     * Check if permission matches resource and action
-     */
-    public function matches(string $resource, string $action): bool
-    {
-        return $this->resource === $resource && $this->action === $action;
-    }
-
-    /**
-     * Check if permission matches slug
-     */
-    public function matchesSlug(string $slug): bool
-    {
-        return $this->slug === $slug;
+        return $query->where('status', self::STATUS_ACTIVE);
     }
 }

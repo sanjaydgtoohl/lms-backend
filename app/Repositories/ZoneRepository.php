@@ -5,7 +5,7 @@ namespace App\Repositories;
 use App\Contracts\Repositories\ZoneRepositoryInterface;
 use App\Models\Zone;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;   
 
 class ZoneRepository implements ZoneRepositoryInterface
 {
@@ -25,9 +25,20 @@ class ZoneRepository implements ZoneRepositoryInterface
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    public function allPaginated(int $perPage = 10): LengthAwarePaginator
+    public function allPaginated(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator 
     {
-        return $this->model->latest()->paginate($perPage)->appends(request()->query());
+        // 1. Query builder shuru karein
+        $query = $this->model->query(); 
+
+        // 2. Search logic add karein
+        if ($searchTerm) {
+            // Yahaan 'name' column mein search kar rahe hain.
+            // Aap ise apne database column ke naam se badal sakte hain.
+            $query->where('name', 'LIKE', "%{$searchTerm}%");
+        }
+
+        // 3. Puraana logic (latest) aur paginate karein
+        return $query->latest()->paginate($perPage)->appends(request()->query());
     }
 
     /**

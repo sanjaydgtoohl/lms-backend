@@ -23,14 +23,16 @@ class LaratrustDummySeeder extends Seeder
             ['name' => 'manager', 'display_name' => 'Manager', 'description' => 'Manage users and own data'],
             ['name' => 'user', 'display_name' => 'User', 'description' => 'Basic access to own data'],
         ];
-
         $roleIdByName = [];
         foreach ($roles as $role) {
             DB::table('roles')->updateOrInsert(
                 ['name' => $role['name']],
                 [
+                    'uuid' => DB::raw("COALESCE(uuid, '" . Str::uuid() . "')"),
+                    'slug' => Str::slug($role['name']), // <-- ADDED: To match your database table
                     'display_name' => $role['display_name'],
                     'description' => $role['description'],
+                    'status' => '1', // <-- ADDED: '1' for active
                     'updated_at' => $now,
                     'created_at' => DB::raw("COALESCE(created_at, '$now')"),
                 ]

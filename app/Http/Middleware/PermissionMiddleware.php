@@ -37,13 +37,13 @@ class PermissionMiddleware
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return $this->responseService->unauthorized('Authentication required');
         }
 
-        // Check if user has specific permission
-        if (!$user->hasPermission($permission)) {
-            return $this->responseService->forbidden("You don't have permission to perform this action");
+        // Check if user has the specific permission
+        if (! $user->hasPermission($permission)) {
+            return $this->responseService->forbidden("You don't have the required permission to perform this action");
         }
 
         return $next($request);

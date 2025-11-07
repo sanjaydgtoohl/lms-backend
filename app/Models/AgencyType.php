@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AgencyType extends Model
@@ -15,11 +16,42 @@ class AgencyType extends Model
      *
      * @var string
      */
-    protected $table = 'agency_type'; // <-- IMPORTANT
+    protected $table = 'agency_type';
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'name',
         'slug',
         'status',
     ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'status' => 'string',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
+    ];
+
+    // ============================================================================
+    // RELATIONSHIPS
+    // ============================================================================
+
+    /**
+     * Get the agencies for the agency type.
+     *
+     * @return HasMany
+     */
+    public function agencies(): HasMany
+    {
+        return $this->hasMany(Agency::class);
+    }
 }

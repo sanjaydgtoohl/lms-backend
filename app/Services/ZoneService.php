@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\Zone;
 use App\Contracts\Repositories\ZoneRepositoryInterface; // Model ki jagah Interface import karein
 use Illuminate\Support\Str;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Exception;
+use Illuminate\Database\QueryException;
 
 class ZoneService
 {
@@ -15,11 +18,24 @@ class ZoneService
     {
         $this->zoneRepository = $zoneRepository;
     }
-
-    public function getAllZones(int $perPage = 10)
+    /**
+     * @param int $perPage
+     * @param string|null $searchTerm
+     * @return LengthAwarePaginator
+     * @throws Exception
+     */
+    public function getAllZones(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator 
     {
-        // Logic ko repository se call karein
-        return $this->zoneRepository->allPaginated($perPage);
+        try {
+            // Logic ko repository se call karein, $searchTerm bhi pass karein
+            return $this->zoneRepository->allPaginated($perPage, $searchTerm);
+        } catch (QueryException $e) {
+            // Database error ke liye exception throw karein
+            throw new Exception('Database error while fetching zones: ' . $e->getMessage());
+        } catch (Exception $e) {
+            // Any other error
+            throw new Exception('Unexpected error while fetching zones: ' . $e->getMessage());
+        }
     }
 
     public function getActiveZonesList()

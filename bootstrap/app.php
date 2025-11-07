@@ -48,6 +48,15 @@ $app->singleton(
     App\Console\Kernel::class
 );
 
+// Add this to your bootstrap/app.php
+
+$app->singleton(
+    Illuminate\Contracts\Routing\ResponseFactory::class,
+    function ($app) {
+        return new Laravel\Lumen\Http\ResponseFactory;
+    }
+);
+
 /**
  * 🔹 Bind your repository interface to implementation
  */
