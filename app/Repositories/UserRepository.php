@@ -24,7 +24,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function all(int $perPage = 15): LengthAwarePaginator
     {
         $modelClass = $this->modelClass;
-        return $modelClass::paginate($perPage);
+        return $modelClass::with(['roles', 'permissions'])->paginate($perPage);
     }
 
     /**
@@ -81,10 +81,17 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function search(array $criteria, int $perPage = 15): LengthAwarePaginator
     {
         $modelClass = $this->modelClass;
-        $query = $modelClass::query();
+        $query = $modelClass::with(['roles', 'permissions']);
 
         foreach ($criteria as $field => $value) {
-            $query->where($field, $value);
+            if ($field === 'role') {
+                // Handle role search through relationships
+                $query->whereHas('roles', function ($q) use ($value) {
+                    $q->where('name', $value);
+                });
+            } else {
+                $query->where($field, $value);
+            }
         }
 
         return $query->paginate($perPage);
@@ -131,5 +138,22 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         $user->save();
 
         return $user;
+    }
+
+    /**
+     * Get user statistics
+     */
+    public function getStatistics(): array
+    {
+        $modelClass = $this->modelClass;
+        
+        return [
+            'total' => $modelClass::count(),
+            'active' => $modelClass::where('status', 'active')->count(),
+            'inactive' => $modelClass::where('status', 'inactive')->count(),
+            'suspended' => $modelClass::where('status', 'suspended')->count(),
+            'verified' => $modelClass::whereNotNull('email_verified_at')->count(),
+            'unverified' => $modelClass::whereNull('email_verified_at')->count(),
+        ];
     }
 }

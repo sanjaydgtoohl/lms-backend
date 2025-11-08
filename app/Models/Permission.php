@@ -20,20 +20,8 @@ class Permission extends BaseModel
      */
     protected $fillable = [
         'name',
-        'slug',
+        'display_name',
         'description',
-        'resource',
-        'action',
-        'is_active',
-    ];
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'is_active' => 'boolean',
     ];
 
     /**
@@ -41,64 +29,18 @@ class Permission extends BaseModel
      */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'role_permissions')
+        return $this->belongsToMany(Role::class, 'permission_role', 'permission_id', 'role_id')
             ->withTimestamps();
     }
 
     /**
-     * Get users that have this permission through roles
+     * Get users that have this permission
      */
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'user_permissions')
+        return $this->belongsToMany(User::class, 'permission_user', 'permission_id', 'user_id')
+            ->withPivot('user_type')
             ->withTimestamps();
     }
 
-    /**
-     * Scope for active permissions
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    /**
-     * Scope for permissions by resource
-     */
-    public function scopeByResource($query, string $resource)
-    {
-        return $query->where('resource', $resource);
-    }
-
-    /**
-     * Scope for permissions by action
-     */
-    public function scopeByAction($query, string $action)
-    {
-        return $query->where('action', $action);
-    }
-
-    /**
-     * Scope for permissions by resource and action
-     */
-    public function scopeByResourceAndAction($query, string $resource, string $action)
-    {
-        return $query->where('resource', $resource)->where('action', $action);
-    }
-
-    /**
-     * Check if permission matches resource and action
-     */
-    public function matches(string $resource, string $action): bool
-    {
-        return $this->resource === $resource && $this->action === $action;
-    }
-
-    /**
-     * Check if permission matches slug
-     */
-    public function matchesSlug(string $slug): bool
-    {
-        return $this->slug === $slug;
-    }
 }

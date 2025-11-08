@@ -20,7 +20,26 @@ class UserResource extends BaseResource
             'phone' => $this->phone,
             'avatar' => $this->avatar,
             'avatar_url' => $this->avatar_url,
-            'role' => $this->role,
+            'roles' => $this->whenLoaded('roles', function () {
+                return $this->roles->map(function ($role) {
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'display_name' => $role->display_name,
+                        'description' => $role->description,
+                    ];
+                });
+            }),
+            'permissions' => $this->whenLoaded('permissions', function () {
+                return $this->permissions->map(function ($permission) {
+                    return [
+                        'id' => $permission->id,
+                        'name' => $permission->name,
+                        'display_name' => $permission->display_name,
+                        'description' => $permission->description,
+                    ];
+                });
+            }),
             'status' => $this->status,
             'email_verified_at' => $this->email_verified_at?->toISOString(),
             'last_login_at' => $this->last_login_at?->toISOString(),

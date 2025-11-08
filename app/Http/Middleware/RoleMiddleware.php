@@ -4,9 +4,27 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use App\Services\ResponseService;
 
 class RoleMiddleware
 {
+    /**
+     * The response service instance
+     *
+     * @var ResponseService
+     */
+    protected $responseService;
+
+    /**
+     * Constructor
+     *
+     * @param ResponseService $responseService
+     */
+    public function __construct(ResponseService $responseService)
+    {
+        $this->responseService = $responseService;
+    }
+
     /**
      * Handle an incoming request.
      *
@@ -17,22 +35,14 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string $role)
     {
-        $user = $request->user();
+        $user = $request->user ?? $request->user();
 
         if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated',
-                'error' => 'UNAUTHENTICATED'
-            ], 401);
+            return $this->responseService->unauthorized('Unauthenticated');
         }
 
-        if ($user->role !== $role) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Insufficient permissions',
-                'error' => 'INSUFFICIENT_PERMISSIONS'
-            ], 403);
+        if (!$user->hasRole($role)) {
+            return $this->responseService->forbidden('Insufficient permissions. Required role: ' . $role);
         }
 
         return $next($request);

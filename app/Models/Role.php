@@ -21,20 +21,8 @@ class Role extends BaseModel
      */
     protected $fillable = [
         'name',
-        'slug',
+        'display_name',
         'description',
-        'is_active',
-        'level',
-    ];
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'is_active' => 'boolean',
-        'level' => 'integer',
     ];
 
     /**
@@ -42,8 +30,8 @@ class Role extends BaseModel
      */
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'user_roles')
-            ->withPivot(['assigned_at', 'assigned_by'])
+        return $this->belongsToMany(User::class, 'role_user', 'role_id', 'user_id')
+            ->withPivot('user_type')
             ->withTimestamps();
     }
 
@@ -52,7 +40,7 @@ class Role extends BaseModel
      */
     public function permissions(): BelongsToMany
     {
-        return $this->belongsToMany(Permission::class, 'role_permissions')
+        return $this->belongsToMany(Permission::class, 'permission_role', 'role_id', 'permission_id')
             ->withTimestamps();
     }
 
@@ -61,7 +49,7 @@ class Role extends BaseModel
      */
     public function hasPermission(string $permission): bool
     {
-        return $this->permissions()->where('slug', $permission)->exists();
+        return $this->permissions()->where('name', $permission)->exists();
     }
 
     /**
@@ -69,7 +57,7 @@ class Role extends BaseModel
      */
     public function hasAnyPermission(array $permissions): bool
     {
-        return $this->permissions()->whereIn('slug', $permissions)->exists();
+        return $this->permissions()->whereIn('name', $permissions)->exists();
     }
 
     /**
@@ -77,7 +65,7 @@ class Role extends BaseModel
      */
     public function hasAllPermissions(array $permissions): bool
     {
-        $rolePermissionCount = $this->permissions()->whereIn('slug', $permissions)->count();
+        $rolePermissionCount = $this->permissions()->whereIn('name', $permissions)->count();
         return $rolePermissionCount === count($permissions);
     }
 
@@ -105,43 +93,4 @@ class Role extends BaseModel
         $this->permissions()->sync($permissions);
     }
 
-    /**
-     * Scope for active roles
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    /**
-     * Scope for roles by level
-     */
-    public function scopeByLevel($query, int $level)
-    {
-        return $query->where('level', $level);
-    }
-
-    /**
-     * Scope for roles above level
-     */
-    public function scopeAboveLevel($query, int $level)
-    {
-        return $query->where('level', '>', $level);
-    }
-
-    /**
-     * Check if role is higher than another role
-     */
-    public function isHigherThan(Role $role): bool
-    {
-        return $this->level > $role->level;
-    }
-
-    /**
-     * Check if role is lower than another role
-     */
-    public function isLowerThan(Role $role): bool
-    {
-        return $this->level < $role->level;
-    }
 }

@@ -41,7 +41,6 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
         'refresh_token',
         'phone',
         'avatar',
-        'role',
         'status',
         'email_verified_at',
         'last_login_at',
@@ -98,8 +97,9 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function getJWTCustomClaims()
     {
+        $roles = $this->roles()->pluck('name')->toArray();
         return [
-            'role' => $this->role,
+            'roles' => $roles,
             'status' => $this->status,
         ];
     }
@@ -125,7 +125,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->hasRole('admin');
     }
 
     /**
@@ -152,7 +152,9 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function scopeAdmins($query)
     {
-        return $query->where('role', 'admin');
+        return $query->whereHas('roles', function ($q) {
+            $q->where('name', 'admin');
+        });
     }
 
     /**
@@ -168,8 +170,8 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'user_roles')
-            ->withPivot(['assigned_at', 'assigned_by'])
+        return $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id')
+            ->withPivot('user_type')
             ->withTimestamps();
     }
 
@@ -178,8 +180,8 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function permissions(): BelongsToMany
     {
-        return $this->belongsToMany(Permission::class, 'user_permissions')
-            ->withPivot(['granted_at', 'granted_by'])
+        return $this->belongsToMany(Permission::class, 'permission_user', 'user_id', 'permission_id')
+            ->withPivot('user_type')
             ->withTimestamps();
     }
 
@@ -204,7 +206,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function hasRole(string $role): bool
     {
-        return $this->roles()->where('slug', $role)->exists();
+        return $this->roles()->where('name', $role)->exists();
     }
 
     /**
@@ -212,7 +214,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function hasAnyRole(array $roles): bool
     {
-        return $this->roles()->whereIn('slug', $roles)->exists();
+        return $this->roles()->whereIn('name', $roles)->exists();
     }
 
     /**
@@ -220,7 +222,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function hasAllRoles(array $roles): bool
     {
-        $userRoleCount = $this->roles()->whereIn('slug', $roles)->count();
+        $userRoleCount = $this->roles()->whereIn('name', $roles)->count();
         return $userRoleCount === count($roles);
     }
 
@@ -230,13 +232,13 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     public function hasPermission(string $permission): bool
     {
         // Check direct permissions
-        if ($this->permissions()->where('slug', $permission)->exists()) {
+        if ($this->permissions()->where('name', $permission)->exists()) {
             return true;
         }
 
         // Check role permissions
         return $this->roles()->whereHas('permissions', function ($query) use ($permission) {
-            $query->where('slug', $permission);
+            $query->where('name', $permission);
         })->exists();
     }
 
@@ -246,13 +248,13 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     public function hasAnyPermission(array $permissions): bool
     {
         // Check direct permissions
-        if ($this->permissions()->whereIn('slug', $permissions)->exists()) {
+        if ($this->permissions()->whereIn('name', $permissions)->exists()) {
             return true;
         }
 
         // Check role permissions
         return $this->roles()->whereHas('permissions', function ($query) use ($permissions) {
-            $query->whereIn('slug', $permissions);
+            $query->whereIn('name', $permissions);
         })->exists();
     }
 
@@ -261,7 +263,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function hasAllPermissions(array $permissions): bool
     {
-        $userPermissionCount = $this->permissions()->whereIn('slug', $permissions)->count();
+        $userPermissionCount = $this->permissions()->whereIn('name', $permissions)->count();
         
         if ($userPermissionCount === count($permissions)) {
             return true;
@@ -269,7 +271,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
 
         // Check role permissions
         $rolePermissionCount = $this->roles()->whereHas('permissions', function ($query) use ($permissions) {
-            $query->whereIn('slug', $permissions);
+            $query->whereIn('name', $permissions);
         })->count();
 
         return ($userPermissionCount + $rolePermissionCount) >= count($permissions);
@@ -280,10 +282,9 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function assignRole(Role $role): void
     {
-            $this->roles()->syncWithoutDetaching([
+        $this->roles()->syncWithoutDetaching([
             $role->id => [
-                'assigned_at' => \Carbon\Carbon::now(),
-                'assigned_by' => auth()->id(),
+                'user_type' => static::class,
             ]
         ]);
     }
@@ -303,8 +304,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     {
         $this->permissions()->syncWithoutDetaching([
             $permission->id => [
-                'granted_at' => \Carbon\Carbon::now(),
-                'granted_by' => auth()->id(),
+                'user_type' => static::class,
             ]
         ]);
     }

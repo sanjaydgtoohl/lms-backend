@@ -35,7 +35,7 @@ class PermissionMiddleware
      */
     public function handle(Request $request, Closure $next, string $permission)
     {
-        $user = $request->user();
+        $user = $request->user ?? $request->user();
 
         if (!$user) {
             return $this->responseService->unauthorized('Authentication required');
@@ -43,7 +43,7 @@ class PermissionMiddleware
 
         // Check if user has specific permission
         if (!$user->hasPermission($permission)) {
-            return $this->responseService->forbidden("You don't have permission to perform this action");
+            return $this->responseService->forbidden("You don't have permission to perform this action. Required permission: " . $permission);
         }
 
         return $next($request);
