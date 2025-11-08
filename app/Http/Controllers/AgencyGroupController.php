@@ -3,132 +3,147 @@
 namespace App\Http\Controllers;
 
 use App\Models\AgencyGroup;
+use App\Services\ResponseService;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
-use Illuminate\Database\QueryException;
-use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Facades\Validator; // <-- Essential for Lumen validation
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AgencyGroupController extends Controller
 {
-    public function index()
+    use ValidatesRequests;
+
+    /**
+     * The response service instance
+     *
+     * @var ResponseService
+     */
+    protected $responseService;
+
+    /**
+     * Constructor
+     *
+     * @param ResponseService $responseService
+     */
+    public function __construct(ResponseService $responseService)
     {
-        $groups = AgencyGroup::where('status', '1')->get(['id', 'name', 'slug', 'status']);
-        return response()->json($groups, Response::HTTP_OK);
+        $this->responseService = $responseService;
     }
 
-    public function store(Request $request)
+    /**
+     * Get all agency groups
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function index(Request $request): JsonResponse
     {
-        // 1. Use Validator::make() for Lumen validation
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:agency_groups,name',
-            'status' => 'nullable|in:1,2,15',
-        ]);
-
-        // 2. Handle validation failure
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation Failed',
-                'errors' => $validator->errors()
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        // Use the validated data
-        $validatedData = $validator->validated();
-
         try {
+            $groups = AgencyGroup::where('status', '1')->get(['id', 'name', 'slug', 'status']);
+            return $this->responseService->success($groups, 'Agency groups retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Create a new agency group
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            $rules = [
+                'name' => 'required|string|max:255|unique:agency_groups,name',
+                'status' => 'nullable|in:1,2,15',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
             $validatedData['slug'] = Str::slug($validatedData['name']);
             $validatedData['status'] = $validatedData['status'] ?? '1';
 
             $agencyGroup = AgencyGroup::create($validatedData);
 
-            return response()->json([
-                'message' => 'Agency Group created successfully.',
-                'group' => $agencyGroup
-            ], Response::HTTP_CREATED);
-
-        } catch (QueryException $e) {
-            // Catches database specific errors (e.g., if columns were missing)
-            return response()->json([
-                'message' => 'Database Error: Could not create Agency Group.',
-                'error_code' => $e->getCode()
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        } catch (\Exception $e) {
-             // Catches unexpected errors
-            return response()->json([
-                'message' => 'An unexpected error occurred.',
-                'error' => $e->getMessage()
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return $this->responseService->created($agencyGroup, 'Agency group created successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function show($id)
+    /**
+     * Get a specific agency group
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function show(int $id): JsonResponse
     {
         try {
             $group = AgencyGroup::findOrFail($id);
-            return response()->json($group, Response::HTTP_OK);
-            
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['message' => 'Agency Group not found.'], Response::HTTP_NOT_FOUND);
+            return $this->responseService->success($group, 'Agency group retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Update an agency group
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function update(Request $request, int $id): JsonResponse
     {
         try {
             $group = AgencyGroup::findOrFail($id);
 
-            // 1. Use Validator::make() for Lumen validation
-            $validator = Validator::make($request->all(), [
+            $rules = [
                 'name' => 'sometimes|required|string|max:255|unique:agency_groups,name,' . $id,
                 'status' => 'nullable|in:1,2,15',
-            ]);
+            ];
 
-            // 2. Handle validation failure
-            if ($validator->fails()) {
-                return response()->json(['message' => 'Validation Failed', 'errors' => $validator->errors()], Response::HTTP_UNPROCESSABLE_ENTITY);
-            }
-
-            $validatedData = $validator->validated();
+            $validatedData = $this->validate($request, $rules);
 
             if (isset($validatedData['name'])) {
                 $validatedData['slug'] = Str::slug($validatedData['name']);
             }
             
-            // Check if any data was actually sent for update
             if (empty($validatedData)) {
-                 return response()->json(['message' => 'No data provided for update.'], Response::HTTP_BAD_REQUEST);
+                return $this->responseService->error('No data provided for update', null, 400, 'NO_DATA');
             }
 
             $group->update($validatedData);
 
-            return response()->json([
-                'message' => 'Agency Group updated successfully.',
-                'group' => $group
-            ], Response::HTTP_OK);
-
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['message' => 'Agency Group not found.'], Response::HTTP_NOT_FOUND);
-        } catch (\Exception $e) {
-             return response()->json([
-                'message' => 'An unexpected error occurred during update.',
-                'error' => $e->getMessage()
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return $this->responseService->updated($group, 'Agency group updated successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function destroy($id)
+    /**
+     * Delete an agency group
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function destroy(int $id): JsonResponse
     {
         try {
             $group = AgencyGroup::findOrFail($id);
             $group->delete(); // Soft Delete
 
-            return response()->json([
-                'message' => 'Agency Group deleted successfully (soft deleted).'
-            ], Response::HTTP_NO_CONTENT);
-
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['message' => 'Agency Group not found.'], Response::HTTP_NOT_FOUND);
+            return $this->responseService->deleted('Agency group deleted successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 }

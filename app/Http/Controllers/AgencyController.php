@@ -3,144 +3,158 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agency;
+use App\Services\ResponseService;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
-use Illuminate\Database\QueryException;
-use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Facades\Validator; // <-- IMPORTANT: Use the Validator facade for Lumen
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AgencyController extends Controller
 {
-    public function index()
-    {
-        $agencies = Agency::with(['agencyGroup', 'agencyType', 'brand'])
-                            ->where('status', '1')
-                            ->get();
+    use ValidatesRequests;
 
-        return response()->json($agencies, Response::HTTP_OK);
+    /**
+     * The response service instance
+     *
+     * @var ResponseService
+     */
+    protected $responseService;
+
+    /**
+     * Constructor
+     *
+     * @param ResponseService $responseService
+     */
+    public function __construct(ResponseService $responseService)
+    {
+        $this->responseService = $responseService;
     }
 
-    public function store(Request $request)
+    /**
+     * Get all agencies
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function index(Request $request): JsonResponse
     {
-        // 1. Define Validation Rules
-        $rules = [
-            'name' => 'required|string|max:255|unique:agency,name',
-            'agency_group_id' => 'nullable|exists:agency_groups,id', 
-            'agency_type_id' => 'required|exists:agency_type,id', 
-            'brand_id' => 'nullable|exists:brands,id', 
-            'status' => 'nullable|in:1,2,15',
-        ];
-
-        // 2. Create and Check the Validator
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation Failed',
-                'errors' => $validator->errors()
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        $validatedData = $validator->validated();
-
         try {
+            $agencies = Agency::with(['agencyGroup', 'agencyType', 'brand'])
+                                ->where('status', '1')
+                                ->get();
+
+            return $this->responseService->success($agencies, 'Agencies retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Create a new agency
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            $rules = [
+                'name' => 'required|string|max:255|unique:agency,name',
+                'agency_group_id' => 'nullable|integer|exists:agency_groups,id', 
+                'agency_type_id' => 'required|integer|exists:agency_type,id', 
+                'brand_id' => 'nullable|integer|exists:brands,id', 
+                'status' => 'nullable|in:1,2,15',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
             $validatedData['slug'] = Str::slug($validatedData['name']);
             $validatedData['status'] = $validatedData['status'] ?? '1';
 
             $agency = Agency::create($validatedData);
             $agency->load(['agencyGroup', 'agencyType', 'brand']); 
 
-            return response()->json([
-                'message' => 'Agency created successfully.',
-                'agency' => $agency
-            ], Response::HTTP_CREATED);
-
-        } catch (QueryException $e) {
-            return response()->json([
-                'message' => 'Database Error: Could not create Agency due to a data constraint.',
-                'error_code' => $e->getCode()
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred.',
-                'error' => $e->getMessage()
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return $this->responseService->created($agency, 'Agency created successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function show($id)
+    /**
+     * Get a specific agency
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function show(int $id): JsonResponse
     {
         try {
             $agency = Agency::with(['agencyGroup', 'agencyType', 'brand'])->findOrFail($id);
-            return response()->json($agency, Response::HTTP_OK);
-            
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['message' => 'Agency not found.'], Response::HTTP_NOT_FOUND);
+            return $this->responseService->success($agency, 'Agency retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Update an agency
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function update(Request $request, int $id): JsonResponse
     {
         try {
             $agency = Agency::findOrFail($id);
             
-            // 1. Define Validation Rules for update
             $rules = [
                 'name' => 'sometimes|required|string|max:255|unique:agency,name,' . $id,
-                'agency_group_id' => 'nullable|exists:agency_groups,id', 
-                'agency_type_id' => 'sometimes|required|exists:agency_type,id', 
-                'brand_id' => 'nullable|exists:brands,id', 
+                'agency_group_id' => 'nullable|integer|exists:agency_groups,id', 
+                'agency_type_id' => 'sometimes|required|integer|exists:agency_type,id', 
+                'brand_id' => 'nullable|integer|exists:brands,id', 
                 'status' => 'nullable|in:1,2,15',
             ];
 
-            // 2. Create and Check the Validator
-            $validator = Validator::make($request->all(), $rules);
-
-            if ($validator->fails()) {
-                return response()->json(['message' => 'Validation Failed', 'errors' => $validator->errors()], Response::HTTP_UNPROCESSABLE_ENTITY);
-            }
-
-            $validatedData = $validator->validated();
+            $validatedData = $this->validate($request, $rules);
             
             if (isset($validatedData['name'])) {
                 $validatedData['slug'] = Str::slug($validatedData['name']);
             }
             
             if (empty($validatedData)) {
-                 return response()->json(['message' => 'No data provided for update.'], Response::HTTP_BAD_REQUEST);
+                return $this->responseService->error('No data provided for update', null, 400, 'NO_DATA');
             }
 
             $agency->update($validatedData);
             $agency->load(['agencyGroup', 'agencyType', 'brand']);
 
-            return response()->json([
-                'message' => 'Agency updated successfully.',
-                'agency' => $agency
-            ], Response::HTTP_OK);
-
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['message' => 'Agency not found.'], Response::HTTP_NOT_FOUND);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred while updating the agency.',
-                'error' => $e->getMessage()
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return $this->responseService->updated($agency, 'Agency updated successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function destroy($id)
+    /**
+     * Delete an agency
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function destroy(int $id): JsonResponse
     {
         try {
             $agency = Agency::findOrFail($id);
             $agency->delete(); // Soft Delete
 
-            return response()->json([
-                'message' => 'Agency deleted successfully (soft deleted).'
-            ], Response::HTTP_NO_CONTENT);
-
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['message' => 'Agency not found.'], Response::HTTP_NOT_FOUND);
+            return $this->responseService->deleted('Agency deleted successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 }

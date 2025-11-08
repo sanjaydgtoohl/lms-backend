@@ -5,13 +5,19 @@ namespace App\Http\Controllers;
 use App\Services\DepartmentService;
 use App\Services\ResponseService;
 use App\Http\Resources\DepartmentResource;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Database\QueryException;
 use DomainException;
 use Exception;
+use Throwable;
 
 class DepartmentController extends Controller
 {
+    use ValidatesRequests;
+
     protected $departmentService;
     protected $responseService;
 
@@ -56,46 +62,31 @@ class DepartmentController extends Controller
     /**
      * Create a new department
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         try {
-            $this->validate($request, [
+            $rules = [
                 'name' => 'required|string|max:255|unique:departments,name',
                 'description' => 'nullable|string',
                 'status' => 'nullable|in:1,2,15',
-            ]);
+            ];
+
+            $validatedData = $this->validate($request, $rules);
 
             // Always create new department (unique name ensures no duplicates)
-            $department = $this->departmentService->createNewDepartment($request->all());
+            $department = $this->departmentService->createNewDepartment($validatedData);
 
             return $this->responseService->created(
                 new DepartmentResource($department),
                 'New department created successfully.'
             );
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            // Custom message for duplicate name
-            if ($e->validator->errors()->has('name')) {
-                return $this->responseService->error(
-                    'Department with this name already exists. Please use a different name.',
-                    null,
-                    422,
-                    'DUPLICATE_DEPARTMENT'
-                );
-            }
-            return $this->responseService->error(
-                $e->getMessage(),
-                null,
-                422,
-                'VALIDATION_ERROR'
-            );
-
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (DomainException $e) {
             return $this->responseService->error($e->getMessage(), null, 400, 'DOMAIN_ERROR');
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 500, 'DB_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->serverError('Unexpected error while creating department.', $e->getMessage());
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -119,23 +110,25 @@ class DepartmentController extends Controller
     /**
      * Update an existing department
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $id): JsonResponse
     {
         try {
-            $this->validate($request, [
+            $rules = [
                 'name' => 'sometimes|required|string|max:255|unique:departments,name,' . $id,
                 'description' => 'nullable|string',
                 'status' => 'sometimes|required|in:1,2,15',
-            ]);
+            ];
 
-            $department = $this->departmentService->updateDepartment($id, $request->all());
+            $validatedData = $this->validate($request, $rules);
+
+            $department = $this->departmentService->updateDepartment($id, $validatedData);
             return $this->responseService->updated(new DepartmentResource($department), 'Department updated successfully.');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (DomainException $e) {
             return $this->responseService->notFound($e->getMessage());
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 500, 'DB_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->serverError('Unexpected error while updating department.', $e->getMessage());
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
