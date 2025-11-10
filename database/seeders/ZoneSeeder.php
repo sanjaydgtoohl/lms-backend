@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Zone; // Zone model ko import karein
+use App\Models\Zone; // Import Zone model
 use Illuminate\Support\Str;
 
 class ZoneSeeder extends Seeder
@@ -24,15 +24,15 @@ class ZoneSeeder extends Seeder
         ];
 
         foreach ($zones as $zoneName) {
-            // updateOrCreate() check karega ki zone pehle se hai ya nahi
-            // Agar nahi hai, toh create karega
+            // updateOrCreate() will check if zone already exists
+            // If it doesn't exist, it will create a new one
             Zone::updateOrCreate(
                 [
-                    'slug' => Str::slug($zoneName) // 'slug' ke basis par check karega
+                    'slug' => Str::slug($zoneName) // Check existence based on slug
                 ],
                 [
                     'name' => $zoneName,
-                    'status' => '1', // Default '1' = active (aapki migration ke hisaab se)
+                    'status' => '1', // Default '1' = active (as per migration)
                 ]
             );
         }

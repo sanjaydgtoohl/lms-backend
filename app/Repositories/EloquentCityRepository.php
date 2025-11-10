@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Contracts\Repositories\CityRepositoryInterface;
-use App\Models\City; // Aapka diya gaya model
+use App\Models\City; // City model implementation
 
 class EloquentCityRepository implements CityRepositoryInterface 
 {
@@ -16,13 +16,13 @@ class EloquentCityRepository implements CityRepositoryInterface
 
     public function getAll()
     {
-        // Sabhi cities ko unke country aur state ke saath load karein
+        // Load all cities with their country and state relationships
         return $this->model->with(['country', 'state'])->latest()->get();
     }
 
     public function getPaginated(int $perPage = 10)
     {
-        // Country aur state ke saath load karein
+        // Load with country and state relationships
         return $this->model->with(['country', 'state'])->latest()->paginate($perPage);
     }
 
@@ -44,13 +44,13 @@ class EloquentCityRepository implements CityRepositoryInterface
 
     public function findById(int $id)
     {
-        // Country aur state ke saath load karein
+        // Load with country and state relationships
         return $this->model->with(['country', 'state'])->findOrFail($id);
     }
 
     public function create(array $data)
     {
-        // Model mein 'name', 'country_id', 'state_id' fillable hain
+        // Model has 'name', 'country_id', 'state_id' as fillable fields
         return $this->model->create($data);
     }
 
@@ -64,7 +64,7 @@ class EloquentCityRepository implements CityRepositoryInterface
     public function delete(int $id)
     {
         $city = $this->model->findOrFail($id);
-        // Model mein SoftDeletes nahi hai, isliye yeh HARD delete hoga
+        // Model doesn't use SoftDeletes, so this will be a HARD delete
         return $city->delete(); 
     }
 }

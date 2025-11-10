@@ -263,6 +263,17 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->patch('{id:[0-9]+}', 'StatusGroupController@update');
         $router->delete('{id:[0-9]+}', 'StatusGroupController@destroy');
     });
+
+    // Miss Campaign routes
+    $router->group(['prefix' => 'miss-campaigns'], function () use ($router) {
+        $router->get('/', 'MissCampaignController@index');
+        $router->post('/', 'MissCampaignController@store');
+        $router->get('/list', 'MissCampaignController@list');
+        $router->get('/{id:[0-9]+}', 'MissCampaignController@show');      
+        $router->put('/{id:[0-9]+}', 'MissCampaignController@update');     
+        $router->patch('/{id:[0-9]+}', 'MissCampaignController@update'); 
+        $router->delete('/{id:[0-9]+}', 'MissCampaignController@destroy');
+    });
 });
 
 // -------------------------------------------------------

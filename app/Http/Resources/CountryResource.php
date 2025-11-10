@@ -3,7 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-// StateResource ko import karein taaki relationship mein use kar sakein
+// Import StateResource for relationship handling
 use App\Http\Resources\StateResource;
 
 class CountryResource extends JsonResource
@@ -16,7 +16,7 @@ class CountryResource extends JsonResource
      */
     public function toArray($request)
     {
-        // Yeh structure aapke JSON response mein jayega
+        // Define the structure for JSON response
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -24,7 +24,7 @@ class CountryResource extends JsonResource
             'updated_at' => $this->updated_at,
             
             // Relationships
-            // 'states' ko tabhi load karega jab controller se 'with('states')' bheja gaya ho
+            // States will only be loaded when eager loaded using with('states') in the controller
             //'states' => StateResource::collection($this->whenLoaded('states')),
         ];
     }

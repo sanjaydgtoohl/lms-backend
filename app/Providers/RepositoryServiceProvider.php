@@ -64,6 +64,9 @@ use App\Contracts\Repositories\PermissionRepositoryInterface;
 use App\Repositories\EloquentStatusGroupRepository;
 use App\Contracts\Repositories\StatusGroupRepositoryInterface;
 
+use App\Contracts\Repositories\MissCampaignRepositoryInterface;
+use App\Repositories\MissCampaignRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -166,6 +169,12 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             StatusGroupRepositoryInterface::class,
             EloquentStatusGroupRepository::class
+        );
+
+        // MissCampaign repository binding
+        $this->app->bind(
+            MissCampaignRepositoryInterface::class,
+            MissCampaignRepository::class
         );
     }
     /**

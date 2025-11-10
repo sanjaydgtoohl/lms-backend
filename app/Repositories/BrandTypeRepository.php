@@ -25,18 +25,18 @@ class BrandTypeRepository implements BrandTypeRepositoryInterface
      */
     public function getAllActive(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
-        // Query builder shuru karein
+        // Initialize query builder
         $query = $this->model
             ->where('status', '1')
             ->whereNull('deleted_at');
 
-        // NAYA: Search logic add karein
+        // NEW: Add search functionality
         if ($searchTerm) {
-            // Maan lijiye aap 'name' column mein search kar rahe hain
+            // Search in the 'name' column
             $query->where('name', 'LIKE', "%{$searchTerm}%");
         }
 
-        // UPDATE: ->get() ki jagah ->paginate() ka istemal karein
+        // UPDATE: Use ->paginate() instead of ->get() for pagination
         return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 

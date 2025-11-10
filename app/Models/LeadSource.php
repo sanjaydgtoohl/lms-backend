@@ -10,7 +10,10 @@ class LeadSource extends Model
     use SoftDeletes;
 
     /**
-     * Table ka naam migration se match karein
+     * The table associated with the model.
+     * Matches the table name defined in migration.
+     *
+     * @var string
      */
     protected $table = 'lead_source';
     

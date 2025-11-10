@@ -25,23 +25,24 @@ class Lead extends Model
     protected $fillable = [
         'brand_id',
         'agency_id',
-        'user_id', // Yahan 'user_id' hai (migration ke hisaab se)
+        'user_id', // Foreign key defined in migration
         'status',
         'comment',
     ];
 
     /**
-     * Ek Lead ke multiple contacts ho sakte hain.
+     * Get all contacts associated with the lead.
+     * A lead can have multiple contacts.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    
     public function contacts()
     {
-        // Yeh batata hai ki 'Lead' model 'LeadContact' model se
-        // 'lead_id' column ke zariye juda hua hai.
+        // Relationship defined using lead_id as foreign key in LeadContact model
         return $this->hasMany(LeadContact::class, 'lead_id');
     }
 
-    // --- Optional: Baaki relationships ---
+    // --- Optional: Additional relationships ---
 
     public function user()
     {
@@ -50,13 +51,13 @@ class Lead extends Model
 
     public function brand()
     {
-        // Maan rahe hain ki 'Brand' model hai
+        // Define relationship with Brand model
         return $this->belongsTo(Brand::class, 'brand_id');
     }
 
     public function agency()
     {
-        // Maan rahe hain ki 'Agency' model hai
+        // Define relationship with Agency model
         return $this->belongsTo(Agency::class, 'agency_id');
     }
 }

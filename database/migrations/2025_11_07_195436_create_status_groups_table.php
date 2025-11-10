@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('status_groups', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('slug');
             $table->json('status_id'); 
             $table->enum('status', ['1', '2', '15'])
                 ->default('1')

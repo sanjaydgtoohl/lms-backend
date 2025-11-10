@@ -25,7 +25,7 @@ class CountryController extends Controller
     }
 
     /**
-     * Paginated list laayein (e.g., /api/v1/countries)
+     * Get paginated list of countries (e.g., /api/v1/countries)
      */
     public function index(): JsonResponse
     {
@@ -42,8 +42,8 @@ class CountryController extends Controller
     }
 
     /**
-     * Saari countries ki list laayein (e.g., /api/v1/countries/all)
-     * Yeh dropdowns ke liye achha hai.
+     * Get list of all countries (e.g., /api/v1/countries/all)
+     * Useful for populating dropdowns.
      */
     public function getAll(): JsonResponse
     {
@@ -75,7 +75,7 @@ class CountryController extends Controller
     }
 
     /**
-     * Ek specific country dikhayein
+     * Display a specific country
      */
     public function show(int $id): JsonResponse
     {
@@ -88,7 +88,7 @@ class CountryController extends Controller
     }
 
     /**
-     * Country update karein
+     * Update the specified country
      */
     public function update(Request $request, int $id): JsonResponse
     {
@@ -109,7 +109,7 @@ class CountryController extends Controller
     }
 
     /**
-     * Country delete karein (HARD delete)
+     * Delete the specified country (HARD delete)
      */
     public function destroy(int $id): JsonResponse
     {

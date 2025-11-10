@@ -23,7 +23,7 @@ class LeadContact extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'lead_id', // Zaroori hai relationship ke liye
+        'lead_id', // Required for relationship with Lead model
         'full_name',
         'profile_url',
         'email',
@@ -38,15 +38,17 @@ class LeadContact extends Model
         'city_id',
         'zone_id',
         'postal_code',
-        'status', // Aapki migration mein naya add hua
+        'status', // Added in new migration
     ];
 
     /**
-     * Har contact ek lead se juda hota hai.
+     * Get the lead that owns the contact.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function lead()
     {
-        // Yeh 'lead_id' foreign key se 'Lead' model se judea hai
+        // Define relationship using lead_id as foreign key
         return $this->belongsTo(Lead::class, 'lead_id');
     }
 }
