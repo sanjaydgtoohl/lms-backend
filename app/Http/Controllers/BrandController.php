@@ -221,4 +221,20 @@ class BrandController extends Controller
             return $this->responseService->handleException($e);
         }
     }
+
+    public function list()
+    {
+        try {
+            // 2. Hum service se naya method call karenge
+            $brandsList = $this->brandService->getBrandList();
+
+            // 3. ResponseService se data ko success response me bhejenge
+            return $this->responseService->success(
+                $brandsList,
+                'Brand list retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
 }

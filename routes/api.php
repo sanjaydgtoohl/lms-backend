@@ -20,6 +20,7 @@ use App\Http\Controllers\ZoneController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\BrandAgencyRelationshipController;
+use App\Http\Controllers\LeadController;
 
 use Carbon\Carbon;
 
@@ -153,6 +154,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     $router->group(['prefix' => 'brands'], function () use ($router) {
         $router->get('/', 'BrandController@index');
         $router->post('/', 'BrandController@store');
+        $router->get('/list', 'BrandController@list');
         $router->get('/{id:[0-9]+}', 'BrandController@show');      
         $router->put('/{id:[0-9]+}', 'BrandController@update');     
         $router->patch('/{id:[0-9]+}', 'BrandController@update'); 
@@ -241,6 +243,25 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('{id:[0-9]+}', 'PermissionController@update');
         $router->patch('{id:[0-9]+}', 'PermissionController@update');
         $router->delete('{id:[0-9]+}', 'PermissionController@destroy');
+    });
+
+    // Leads routes
+    $router->group(['prefix' => 'leads'], function () use ($router) {
+        $router->get('/', 'LeadController@index');
+        $router->post('/', 'LeadController@store');
+        $router->get('{id:[0-9]+}', 'LeadController@show');
+        $router->put('{id:[0-9]+}', 'LeadController@update');
+        $router->patch('{id:[0-9]+}', 'LeadController@update');
+        $router->delete('{id:[0-9]+}', 'LeadController@destroy');
+    });
+
+    $router->group(['prefix' => 'status-groups'], function () use ($router) {
+        $router->get('/', 'StatusGroupController@index');
+        $router->post('/', 'StatusGroupController@store');
+        $router->get('{id:[0-9]+}', 'StatusGroupController@show');
+        $router->put('{id:[0-9]+}', 'StatusGroupController@update');
+        $router->patch('{id:[0-9]+}', 'StatusGroupController@update');
+        $router->delete('{id:[0-9]+}', 'StatusGroupController@destroy');
     });
 });
 

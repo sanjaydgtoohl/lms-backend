@@ -213,9 +213,10 @@ class AuthService
     public function resetPassword(string $token, string $password): bool
     {
         // This would typically validate the reset token
+        // Password confirmation is validated in the controller
         // For now, we'll just validate the password format
         $validator = Validator::make(['password' => $password], [
-            'password' => 'required|string|min:8|confirmed'
+            'password' => 'required|string|min:8'
         ]);
 
         if ($validator->fails()) {

@@ -61,6 +61,9 @@ use App\Repositories\PermissionRepository;
 use App\Contracts\Repositories\PermissionRepositoryInterface;
 // Duplicate imports removed
 
+use App\Repositories\EloquentStatusGroupRepository;
+use App\Contracts\Repositories\StatusGroupRepositoryInterface;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -158,6 +161,11 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             PermissionRepositoryInterface::class,
             PermissionRepository::class
+        );
+
+        $this->app->bind(
+            StatusGroupRepositoryInterface::class,
+            EloquentStatusGroupRepository::class
         );
     }
     /**

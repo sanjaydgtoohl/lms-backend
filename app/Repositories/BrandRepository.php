@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Contracts\Repositories\BrandRepositoryInterface;
 use App\Models\Brand;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class BrandRepository implements BrandRepositoryInterface
 {
@@ -67,6 +68,20 @@ class BrandRepository implements BrandRepositoryInterface
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->appends(request()->query());
+    }
+
+    /**
+     * Get a simple list of brands (ID and Name).
+     *
+     * @return Collection|null
+     */
+    public function getBrandList(): ?Collection
+    {
+        return $this->model
+            ->select('id', 'name')        // Select only id and name
+            ->where('status', '1')        // Match 'active' status from getAllBrands
+            ->orderBy('name', 'asc')      // Order alphabetically by name
+            ->get();
     }
 
     /**

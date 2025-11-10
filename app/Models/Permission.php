@@ -2,91 +2,45 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Laratrust\Models\Permission as PermissionModel;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Permission extends PermissionModel
+class Permission extends BaseModel
 {
-    use SoftDeletes;
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'permissions';
+
     /**
      * The attributes that are mass assignable.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
         'display_name',
         'description',
-        'slug',    // <-- Added
-        'uuid',   // <-- Added
-        'status', // <-- Added
-    ];
-    /**
-     * Status constants that map to the DB enum in the migration.
-     */
-    public const STATUS_ACTIVE = '1';
-    public const STATUS_DEACTIVATED = '2';
-    public const STATUS_SOFT_DELETED = '15';
-    /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
-     */
-    protected $casts = [
-        'uuid' => 'string',
-        'slug' => 'string',
-        'status' => 'string',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
     ];
 
     /**
-     * Boot the model and attach event listeners to generate UUID and slug.
+     * Get roles that have this permission
      */
-    protected static function boot()
+    public function roles(): BelongsToMany
     {
-        parent::boot();
-
-        // Ensure uuid and slug are set when creating
-        static::creating(function ($model) {
-            if (empty($model->uuid)) {
-                // Use Laravel's Str::uuid() to generate a UUID
-                $model->uuid = (string) Str::uuid();
-            }
-
-            if (empty($model->slug) && ! empty($model->name)) {
-                $model->slug = Str::slug($model->name);
-            }
-        });
-
-        // Keep slug in sync with name on save
-        static::saving(function ($model) {
-            if (! empty($model->name)) {
-                $model->slug = Str::slug($model->name);
-            }
-        });
+        return $this->belongsToMany(Role::class, 'permission_role', 'permission_id', 'role_id')
+            ->withTimestamps();
     }
 
     /**
-     * Use uuid for route model binding instead of the id.
-     *
-     * @return string
+     * Get users that have this permission
      */
-    public function getRouteKeyName()
+    public function users(): BelongsToMany
     {
-        return 'uuid';
+        return $this->belongsToMany(User::class, 'permission_user', 'permission_id', 'user_id')
+            ->withPivot('user_type')
+            ->withTimestamps();
     }
 
-    /**
-     * Scope a query to only active permissions.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('status', self::STATUS_ACTIVE);
-    }
 }

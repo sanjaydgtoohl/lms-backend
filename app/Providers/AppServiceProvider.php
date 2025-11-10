@@ -34,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(ResponseService::class)
             );
         });
+        
     }
     public function boot()
     {

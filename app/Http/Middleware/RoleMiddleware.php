@@ -35,15 +35,14 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string $role)
     {
-        $user = $request->user();
+        $user = $request->user ?? $request->user();
 
-        if (! $user) {
-            return $this->responseService->unauthorized('Authentication required');
+        if (!$user) {
+            return $this->responseService->unauthorized('Unauthenticated');
         }
 
-        // Check if user has specific role
-        if (! $user->hasRole($role)) {
-            return $this->responseService->forbidden("You don't have the required role to perform this action");
+        if (!$user->hasRole($role)) {
+            return $this->responseService->forbidden('Insufficient permissions. Required role: ' . $role);
         }
 
         return $next($request);

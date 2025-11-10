@@ -2,99 +2,95 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Laratrust\Models\Role as RoleModel;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Role extends RoleModel
+class Role extends BaseModel
 {
-    use SoftDeletes;
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'roles';
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
         'display_name',
         'description',
-        'slug',    // <-- Added
-        'uuid',   // <-- Added
-        'status', // <-- Added
     ];
 
     /**
-     * Status constants that map to the DB enum in the migration.
+     * Get users with this role
      */
-    public const STATUS_ACTIVE = '1';
-    public const STATUS_DEACTIVATED = '2';
-    public const STATUS_SOFT_DELETED = '15';
-
-    /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
-     */
-    protected $casts = [
-        'uuid' => 'string',
-        'slug' => 'string',
-        'status' => 'string',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
-    ];
-
-    /**
-     * The "booted" method of the model.
-     *
-     * This method is automatically called by Eloquent.
-     */
-    protected static function boot()
+    public function users(): BelongsToMany
     {
-        parent::boot();
-
-        // This automatically generates a UUID and a Slug
-        // every time a new role is being created.
-        static::creating(function ($role) {
-            
-            // Generate UUID if it wasn't set
-            if (empty($role->uuid)) {
-                $role->uuid = (string) Str::uuid();
-            }
-
-            // Generate Slug from display_name or name if it wasn't set
-            if (empty($role->slug)) {
-                $role->slug = Str::slug($role->display_name ?? $role->name);
-            }
-        });
+        return $this->belongsToMany(User::class, 'role_user', 'role_id', 'user_id')
+            ->withPivot('user_type')
+            ->withTimestamps();
     }
 
     /**
-     * Get the route key for the model.
-     *
-     * @return string
+     * Get permissions for this role
      */
-    public function getRouteKeyName()
+    public function permissions(): BelongsToMany
     {
-        // This tells Laravel to use the 'slug' column for route model binding
-        // Example: /roles/admin-role instead of /roles/1
-        return 'slug';
+        return $this->belongsToMany(Permission::class, 'permission_role', 'role_id', 'permission_id')
+            ->withTimestamps();
     }
 
     /**
-     * Scope a query to only include active roles.
+     * Check if role has permission
      */
-    public function scopeActive($query)
+    public function hasPermission(string $permission): bool
     {
-        return $query->where('status', self::STATUS_ACTIVE);
+        return $this->permissions()->where('name', $permission)->exists();
     }
 
     /**
-     * Return true if this role is active.
+     * Check if role has any of the given permissions
      */
-    public function isActive(): bool
+    public function hasAnyPermission(array $permissions): bool
     {
-        return (string) $this->status === self::STATUS_ACTIVE;
+        return $this->permissions()->whereIn('name', $permissions)->exists();
     }
+
+    /**
+     * Check if role has all of the given permissions
+     */
+    public function hasAllPermissions(array $permissions): bool
+    {
+        $rolePermissionCount = $this->permissions()->whereIn('name', $permissions)->count();
+        return $rolePermissionCount === count($permissions);
+    }
+
+    /**
+     * Give permission to role
+     */
+    public function givePermission(Permission $permission): void
+    {
+        $this->permissions()->syncWithoutDetaching([$permission->id]);
+    }
+
+    /**
+     * Remove permission from role
+     */
+    public function removePermission(Permission $permission): void
+    {
+        $this->permissions()->detach($permission->id);
+    }
+
+    /**
+     * Sync permissions for role
+     */
+    public function syncPermissions(array $permissions): void
+    {
+        $this->permissions()->sync($permissions);
+    }
+
 }
