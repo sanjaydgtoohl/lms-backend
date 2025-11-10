@@ -8,12 +8,15 @@ use App\Http\Controllers\Controller;
 use App\Services\AuthService;
 use App\Services\ResponseService;
 use App\Http\Resources\AuthResource;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    use ValidatesRequests;
+
     /**
      * The auth service instance
      *
@@ -128,7 +131,7 @@ class AuthController extends Controller
     {
         try {
             /** @var \App\Models\User|null $user */
-            $user = Auth::user();
+            $user = $request->user ?? Auth::user();
 
             if ($user) {
                 $log = $user->loginLogs()
@@ -140,7 +143,6 @@ class AuthController extends Controller
                     $log->update(['logout_time' => \Carbon\Carbon::now()]);
                 }
             }
-            // --- LOGGING LOGIC END ---
 
             $success = $this->authService->logout();
             
@@ -204,7 +206,7 @@ class AuthController extends Controller
     public function forgotPassword(Request $request): JsonResponse
     {
         try {
-            $request->validate([
+            $this->validate($request, [
                 'email' => 'required|email'
             ]);
 
@@ -231,7 +233,7 @@ class AuthController extends Controller
     public function resetPassword(Request $request): JsonResponse
     {
         try {
-            $request->validate([
+            $this->validate($request, [
                 'token' => 'required|string',
                 'password' => 'required|string|min:8|confirmed'
             ]);

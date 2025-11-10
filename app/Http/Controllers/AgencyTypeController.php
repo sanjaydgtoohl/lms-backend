@@ -5,13 +5,17 @@ namespace App\Http\Controllers;
 use App\Http\Resources\AgencyTypeResource;
 use App\Services\AgencyTypeService;
 use App\Services\ResponseService;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Throwable;
+use Illuminate\Validation\ValidationException;
 
 class AgencyTypeController extends Controller
 {
+    use ValidatesRequests;
+
     /**
      * @var ResponseService
      */
@@ -44,9 +48,9 @@ class AgencyTypeController extends Controller
      * GET /agency-types
      *
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         try {
             $this->validate($request, [
@@ -63,7 +67,7 @@ class AgencyTypeController extends Controller
                 AgencyTypeResource::collection($agencyTypes),
                 'Agency types retrieved successfully'
             );
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->responseService->validationError(
                 $e->errors(),
                 'Validation failed'
@@ -79,12 +83,12 @@ class AgencyTypeController extends Controller
      * GET /agency-types/{id}
      *
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function show($id)
+    public function show(int $id): JsonResponse
     {
         try {
-            $agencyType = $this->agencyTypeService->getAgencyType((int) $id);
+            $agencyType = $this->agencyTypeService->getAgencyType($id);
 
             if (!$agencyType) {
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
@@ -109,24 +113,17 @@ class AgencyTypeController extends Controller
      * POST /agency-types
      *
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
+            $rules = [
                 'name' => 'required|string|max:255|unique:agency_type,name',
                 'status' => 'nullable|in:1,2,15',
-            ]);
+            ];
 
-            if ($validator->fails()) {
-                return $this->responseService->validationError(
-                    $validator->errors()->toArray(),
-                    'Validation failed'
-                );
-            }
-
-            $validatedData = $validator->validated();
+            $validatedData = $this->validate($request, $rules);
 
             // Add system-generated fields
             $validatedData['slug'] = Str::slug($request->name);
@@ -138,6 +135,8 @@ class AgencyTypeController extends Controller
                 new AgencyTypeResource($agencyType),
                 'Agency type created successfully'
             );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -150,36 +149,31 @@ class AgencyTypeController extends Controller
      *
      * @param Request $request
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
+            $rules = [
                 'name' => 'sometimes|required|string|max:255|unique:agency_type,name,' . $id,
                 'status' => 'sometimes|required|in:1,2,15',
-            ]);
+            ];
 
-            if ($validator->fails()) {
-                return $this->responseService->validationError(
-                    $validator->errors()->toArray(),
-                    'Validation failed'
-                );
-            }
-
-            $validatedData = $validator->validated();
+            $validatedData = $this->validate($request, $rules);
 
             // Update slug if name changed
             if ($request->has('name')) {
                 $validatedData['slug'] = Str::slug($request->name);
             }
 
-            $agencyType = $this->agencyTypeService->updateAgencyType((int) $id, $validatedData);
+            $agencyType = $this->agencyTypeService->updateAgencyType($id, $validatedData);
 
             return $this->responseService->updated(
                 new AgencyTypeResource($agencyType),
                 'Agency type updated successfully'
             );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -191,12 +185,12 @@ class AgencyTypeController extends Controller
      * DELETE /agency-types/{id}
      *
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function destroy($id)
+    public function destroy(int $id): JsonResponse
     {
         try {
-            $this->agencyTypeService->deleteAgencyType((int) $id);
+            $this->agencyTypeService->deleteAgencyType($id);
 
             return $this->responseService->deleted('Agency type deleted successfully');
         } catch (Throwable $e) {

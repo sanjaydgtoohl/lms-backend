@@ -6,15 +6,17 @@ use App\Contracts\Repositories\PermissionRepositoryInterface;
 use App\Services\PermissionService;
 use App\Services\ResponseService;
 use App\Http\Resources\PermissionResource;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Throwable;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 
 class PermissionController extends Controller
 {
+    use ValidatesRequests;
+
     protected PermissionService $permissionService;
     protected ResponseService $responseService;
 
@@ -28,7 +30,7 @@ class PermissionController extends Controller
     {
         try {
             $perPage = (int) $request->get('per_page', 10);
-            $criteria = $request->only(['q', 'name', 'slug', 'status']);
+            $criteria = $request->only(['q', 'name']);
 
             $permissions = $this->permissionService->list($criteria, $perPage);
 
@@ -54,27 +56,20 @@ class PermissionController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $rules = [
-            'name' => 'required|string|max:255|unique:permissions,name',
-            'display_name' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'nullable|in:1,2,15',
-        ];
-
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $data = $validator->validated();
+            $rules = [
+                'name' => 'required|string|max:255|unique:permissions,name',
+                'display_name' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+            ];
 
-            $data['slug'] = Str::slug($data['name']);
+            $validatedData = $this->validate($request, $rules);
 
-            $permission = $this->permissionService->create($data);
+            $permission = $this->permissionService->create($validatedData);
 
             return $this->responseService->created(new PermissionResource($permission), 'Permission created successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -97,33 +92,22 @@ class PermissionController extends Controller
 
     public function update(Request $request, $id): JsonResponse
     {
-        $rules = [
-            'name' => [
-                'sometimes',
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('permissions', 'name')->ignore($id),
-            ],
-            'display_name' => 'sometimes|nullable|string|max:255',
-            'description' => 'sometimes|nullable|string|max:1000',
-            'status' => 'sometimes|nullable|in:1,2,15',
-        ];
-
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $data = $validator->validated();
+            $rules = [
+                'name' => [
+                    'sometimes',
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('permissions', 'name')->ignore($id),
+                ],
+                'display_name' => 'sometimes|nullable|string|max:255',
+                'description' => 'sometimes|nullable|string|max:1000',
+            ];
 
-            if (isset($data['name'])) {
-                $data['slug'] = Str::slug($data['name']);
-            }
+            $validatedData = $this->validate($request, $rules);
 
-            $updated = $this->permissionService->update($id, $data);
+            $updated = $this->permissionService->update($id, $validatedData);
 
             if (! $updated) {
                 return $this->responseService->notFound('Permission not found');
@@ -131,6 +115,8 @@ class PermissionController extends Controller
 
             $permission = $this->permissionService->find($id);
             return $this->responseService->updated(new PermissionResource($permission), 'Permission updated successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

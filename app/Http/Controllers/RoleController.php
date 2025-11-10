@@ -5,15 +5,17 @@ namespace App\Http\Controllers;
 use App\Services\RoleService;
 use App\Services\ResponseService;
 use App\Http\Resources\RoleResource;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Throwable;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
 {
+    use ValidatesRequests;
+
     protected RoleService $roleService;
     protected ResponseService $responseService;
 
@@ -27,7 +29,7 @@ class RoleController extends Controller
     {
         try {
             $perPage = (int) $request->get('per_page', 10);
-            $criteria = $request->only(['q', 'name', 'slug', 'status']);
+            $criteria = $request->only(['q', 'name']);
 
             $roles = $this->roleService->list($criteria, $perPage);
             // Handle both paginator and collection results
@@ -54,31 +56,25 @@ class RoleController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $rules = [
-            'name' => 'required|string|max:255|unique:roles,name',
-            'display_name' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'nullable|in:1,2,15',
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'integer|exists:permissions,id',
-        ];
-
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $data = $validator->validated();
+            $rules = [
+                'name' => 'required|string|max:255|unique:roles,name',
+                'display_name' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'permissions' => 'nullable|array',
+                'permissions.*' => 'integer|exists:permissions,id',
+            ];
 
-            $data['slug'] = Str::slug($data['name']);
+            $validatedData = $this->validate($request, $rules);
 
-            $permissions = $data['permissions'] ?? [];
+            $permissions = $validatedData['permissions'] ?? [];
+            unset($validatedData['permissions']);
             
-            $role = $this->roleService->create($data, $permissions);
+            $role = $this->roleService->create($validatedData, $permissions);
             
             return $this->responseService->created(new RoleResource($role), 'Role created successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -101,41 +97,30 @@ class RoleController extends Controller
 
     public function update(Request $request, $id): JsonResponse
     {
-        // Define the rules (copied from UpdateRoleRequest and improved)
-        $rules = [
-            'name' => [
-                'sometimes', // 'sometimes' allows updating other fields without sending the name
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('roles', 'name')->ignore($id) // Correctly checks for unique name
-            ],
-            'display_name' => 'sometimes|nullable|string|max:255',
-            'description' => 'sometimes|nullable|string|max:1000', // Matches your file
-            'status' => 'sometimes|nullable|in:1,2,15',
-            'permissions' => 'sometimes|nullable|array',
-            'permissions.*' => 'integer|exists:permissions,id',
-        ];
-
-        // Create the validator
-        $validator = Validator::make($request->all(), $rules);
-
-        // Check if validation fails
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            // Get the validated data
-            $data = $validator->validated();
+            $rules = [
+                'name' => [
+                    'sometimes',
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('roles', 'name')->ignore($id)
+                ],
+                'display_name' => 'sometimes|nullable|string|max:255',
+                'description' => 'sometimes|nullable|string|max:1000',
+                'permissions' => 'sometimes|nullable|array',
+                'permissions.*' => 'integer|exists:permissions,id',
+            ];
 
-            // Automatically update slug ONLY if the name was sent
-            if (isset($data['name'])) {
-                $data['slug'] = Str::slug($data['name']);
+            $validatedData = $this->validate($request, $rules);
+
+            $permissions = $validatedData['permissions'] ?? null;
+            if (isset($validatedData['permissions'])) {
+                unset($validatedData['permissions']);
             }
 
             // Update the role
-            $updated = $this->roleService->update($id, $data);
+            $updated = $this->roleService->update($id, $validatedData, $permissions);
 
             if (! $updated) {
                 return $this->responseService->notFound('Role not found');
@@ -143,6 +128,8 @@ class RoleController extends Controller
 
             $role = $this->roleService->find($id);
             return $this->responseService->updated(new RoleResource($role), 'Role updated successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -168,17 +155,15 @@ class RoleController extends Controller
      */
     public function syncPermissions(Request $request, $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'permissions' => 'required|array',
-            'permissions.*' => 'integer|exists:permissions,id',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $ok = $this->roleService->syncPermissions($id, $request->get('permissions'));
+            $rules = [
+                'permissions' => 'required|array',
+                'permissions.*' => 'integer|exists:permissions,id',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $ok = $this->roleService->syncPermissions($id, $validatedData['permissions']);
 
             if (! $ok) {
                 return $this->responseService->notFound('Role not found');
@@ -186,6 +171,8 @@ class RoleController extends Controller
 
             $role = $this->roleService->find($id);
             return $this->responseService->success(new RoleResource($role), 'Permissions synced successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -193,16 +180,14 @@ class RoleController extends Controller
 
     public function attachPermission(Request $request, $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'permission_id' => 'required|integer|exists:permissions,id',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $ok = $this->roleService->attachPermission($id, $request->get('permission_id'));
+            $rules = [
+                'permission_id' => 'required|integer|exists:permissions,id',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $ok = $this->roleService->attachPermission($id, $validatedData['permission_id']);
 
             if (! $ok) {
                 return $this->responseService->notFound('Role not found');
@@ -210,6 +195,8 @@ class RoleController extends Controller
 
             $role = $this->roleService->find($id);
             return $this->responseService->success(new RoleResource($role), 'Permission attached successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -217,16 +204,14 @@ class RoleController extends Controller
 
     public function detachPermission(Request $request, $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'permission_id' => 'required|integer|exists:permissions,id',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $ok = $this->roleService->detachPermission($id, $request->get('permission_id'));
+            $rules = [
+                'permission_id' => 'required|integer|exists:permissions,id',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $ok = $this->roleService->detachPermission($id, $validatedData['permission_id']);
 
             if (! $ok) {
                 return $this->responseService->notFound('Role not found');
@@ -234,6 +219,8 @@ class RoleController extends Controller
 
             $role = $this->roleService->find($id);
             return $this->responseService->success(new RoleResource($role), 'Permission detached successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

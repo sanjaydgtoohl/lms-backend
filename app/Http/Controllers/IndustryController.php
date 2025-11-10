@@ -5,15 +5,17 @@ namespace App\Http\Controllers;
 use App\Services\IndustryService;
 use App\Services\ResponseService;
 use App\Http\Resources\IndustryResource;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
-use Exception;
-use DomainException;
-use Illuminate\Database\QueryException;
+use Throwable;
+use Illuminate\Validation\ValidationException;
 
 class IndustryController extends Controller
 {
+    use ValidatesRequests;
+
     protected $industryService;
     protected $responseService;
 
@@ -23,7 +25,7 @@ class IndustryController extends Controller
         $this->responseService = $responseService;
     }
 
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         try {
             $perPage = $request->get('per_page', 10);
@@ -34,16 +36,12 @@ class IndustryController extends Controller
                 IndustryResource::collection($industries),
                 'Industries fetched successfully.'
             );
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 500, 'DB_ERROR');
-        } catch (DomainException $e) {
-            return $this->responseService->error($e->getMessage(), null, 400, 'DOMAIN_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->serverError('An unexpected error occurred while fetching industries.', $e->getMessage());
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         try {
             $data = $request->all();
@@ -52,44 +50,38 @@ class IndustryController extends Controller
                 $data['name'] = $data['industry_name'];
             }
 
-            $validator = Validator::make($data, [
+            $rules = [
                 'name' => 'required|string|max:255',
                 'slug' => 'sometimes|string|max:255',
                 'status' => 'sometimes|in:1,2,15',
-            ]);
+            ];
 
-            if ($validator->fails()) {
-                return $this->responseService->validationError($validator->errors()->toArray());
+            $validatedData = $this->validate($request, $rules);
+
+            if (empty($validatedData['slug']) && !empty($validatedData['name'])) {
+                $validatedData['slug'] = Str::slug($validatedData['name']);
             }
 
-            if (empty($data['slug']) && !empty($data['name'])) {
-                $data['slug'] = Str::slug($data['name']);
-            }
-
-            $industry = $this->industryService->createNewIndustry($data);
+            $industry = $this->industryService->createNewIndustry($validatedData);
             return $this->responseService->created(new IndustryResource($industry), 'Industry created successfully.');
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 409, 'DB_ERROR');
-        } catch (DomainException $e) {
-            return $this->responseService->error($e->getMessage(), null, 409, 'DOMAIN_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->serverError('An unexpected error occurred while creating industry.', $e->getMessage());
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors());
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function show($id)
+    public function show(int $id): JsonResponse
     {
         try {
             $industry = $this->industryService->getIndustry($id);
             return $this->responseService->success(new IndustryResource($industry), 'Industry fetched successfully.');
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 500, 'DB_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->notFound('Industry not found');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): JsonResponse
     {
         try {
             $data = $request->all();
@@ -98,40 +90,34 @@ class IndustryController extends Controller
                 $data['name'] = $data['industry_name'];
             }
 
-            $validator = Validator::make($data, [
+            $rules = [
                 'name' => 'required|string|max:255',
                 'slug' => 'sometimes|string|max:255',
                 'status' => 'sometimes|in:1,2,15',
-            ]);
+            ];
 
-            if ($validator->fails()) {
-                return $this->responseService->validationError($validator->errors()->toArray());
+            $validatedData = $this->validate($request, $rules);
+
+            if (empty($validatedData['slug']) && !empty($validatedData['name'])) {
+                $validatedData['slug'] = Str::slug($validatedData['name']);
             }
 
-            if (empty($data['slug']) && !empty($data['name'])) {
-                $data['slug'] = Str::slug($data['name']);
-            }
-
-            $industry = $this->industryService->updateIndustry($id, $data);
+            $industry = $this->industryService->updateIndustry($id, $validatedData);
             return $this->responseService->updated(new IndustryResource($industry), 'Industry updated successfully.');
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 409, 'DB_ERROR');
-        } catch (DomainException $e) {
-            return $this->responseService->error($e->getMessage(), null, 409, 'DOMAIN_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->notFound('Industry not found');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors());
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function destroy($id)
+    public function destroy(int $id): JsonResponse
     {
         try {
             $this->industryService->deleteIndustry($id);
             return $this->responseService->deleted('Industry deleted successfully.');
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 500, 'DB_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->notFound('Industry not found');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 }

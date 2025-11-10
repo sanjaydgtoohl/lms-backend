@@ -5,14 +5,18 @@ namespace App\Http\Controllers;
 use App\Http\Resources\BrandResource;
 use App\Services\BrandService;
 use App\Services\ResponseService;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Throwable;
+use Illuminate\Validation\ValidationException;
 
 class BrandController extends Controller
 {
+    use ValidatesRequests;
+
     /**
      * @var ResponseService
      */
@@ -41,9 +45,9 @@ class BrandController extends Controller
      * GET /brands
      *
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         try {
             $this->validate($request, [
@@ -60,7 +64,7 @@ class BrandController extends Controller
                 BrandResource::collection($brands),
                 'Brands retrieved successfully'
             );
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->responseService->validationError(
                 $e->errors(),
                 'Validation failed'
@@ -76,12 +80,12 @@ class BrandController extends Controller
      * GET /brands/{id}
      *
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function show($id)
+    public function show(int $id): JsonResponse
     {
         try {
-            $brand = $this->brandService->getBrand((int) $id);
+            $brand = $this->brandService->getBrand($id);
 
             if (!$brand) {
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
@@ -102,12 +106,12 @@ class BrandController extends Controller
      * POST /brands
      *
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
+            $rules = [
                 'name' => 'required|string|max:255',
                 'brand_type_id' => 'required|integer|exists:brand_types,id',
                 'industry_id' => 'required|integer|exists:industries,id',
@@ -118,16 +122,9 @@ class BrandController extends Controller
                 'city_id' => 'nullable|integer|exists:cities,id',
                 'zone_id' => 'nullable|integer|exists:zones,id',
                 'agency_id' => 'nullable|integer|exists:agencies,id',
-            ]);
+            ];
 
-            if ($validator->fails()) {
-                return $this->responseService->validationError(
-                    $validator->errors()->toArray(),
-                    'Validation failed'
-                );
-            }
-
-            $validatedData = $validator->validated();
+            $validatedData = $this->validate($request, $rules);
 
             // Add system-generated fields
             $validatedData['slug'] = Str::slug($request->name) . '-' . uniqid();
@@ -140,6 +137,8 @@ class BrandController extends Controller
                 new BrandResource($brand),
                 'Brand created successfully'
             );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -152,12 +151,12 @@ class BrandController extends Controller
      *
      * @param Request $request
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
+            $rules = [
                 'name' => 'sometimes|required|string|max:255',
                 'brand_type_id' => 'sometimes|required|integer|exists:brand_types,id',
                 'industry_id' => 'sometimes|required|integer|exists:industries,id',
@@ -169,26 +168,19 @@ class BrandController extends Controller
                 'zone_id' => 'sometimes|nullable|integer|exists:zones,id',
                 'agency_id' => 'sometimes|nullable|integer|exists:agencies,id',
                 'status' => 'sometimes|required|in:1,2,15',
-            ]);
+            ];
 
-            if ($validator->fails()) {
-                return $this->responseService->validationError(
-                    $validator->errors()->toArray(),
-                    'Validation failed'
-                );
-            }
-
-            $validatedData = $validator->validated();
+            $validatedData = $this->validate($request, $rules);
 
             // Update slug if name changed
             if ($request->has('name')) {
                 $validatedData['slug'] = Str::slug($request->name) . '-' . $id;
             }
 
-            $this->brandService->updateBrand((int) $id, $validatedData);
+            $this->brandService->updateBrand($id, $validatedData);
 
             // Fetch updated brand with relationships
-            $brand = $this->brandService->getBrand((int) $id);
+            $brand = $this->brandService->getBrand($id);
 
             if (!$brand) {
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
@@ -198,6 +190,8 @@ class BrandController extends Controller
                 new BrandResource($brand),
                 'Brand updated successfully'
             );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -209,12 +203,12 @@ class BrandController extends Controller
      * DELETE /brands/{id}
      *
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function destroy($id)
+    public function destroy(int $id): JsonResponse
     {
         try {
-            $this->brandService->deleteBrand((int) $id);
+            $this->brandService->deleteBrand($id);
 
             return $this->responseService->deleted('Brand deleted successfully');
         } catch (Throwable $e) {
@@ -222,13 +216,16 @@ class BrandController extends Controller
         }
     }
 
-    public function list()
+    /**
+     * Get list of brands (for dropdowns)
+     *
+     * @return JsonResponse
+     */
+    public function list(): JsonResponse
     {
         try {
-            // 2. Hum service se naya method call karenge
             $brandsList = $this->brandService->getBrandList();
 
-            // 3. ResponseService se data ko success response me bhejenge
             return $this->responseService->success(
                 $brandsList,
                 'Brand list retrieved successfully'

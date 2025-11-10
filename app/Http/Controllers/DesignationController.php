@@ -4,17 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Services\DesignationService;
 use App\Services\ResponseService;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Validator;
-use Exception;
-use DomainException;
-use Illuminate\Database\QueryException;
+use App\Traits\ValidatesRequests;
 use App\Http\Resources\DesignationResource;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Throwable;
+use Illuminate\Validation\ValidationException;
 
 class DesignationController extends Controller
 {
-    
+    use ValidatesRequests;
+
     protected $designationService;
     protected $responseService;
     
@@ -24,117 +24,80 @@ class DesignationController extends Controller
         $this->responseService = $responseService;
     }
 
-    public function index(Request $request) // <-- Request object added
+    public function index(Request $request): JsonResponse
     {
         try {
-            // 1. Get per_page parameter from request, default to 10
             $perPage = $request->get('per_page', 10);
             $searchTerm = $request->get('search', null);
 
-            // 2. Pass perPage to the Service layer
-            $designations = $this->designationService->getAllDesignations((int) $perPage,$searchTerm);
+            $designations = $this->designationService->getAllDesignations((int) $perPage, $searchTerm);
             
-            // Check if any records exist
             if ($designations->isEmpty() && !($designations instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $designations->total() > 0)) {
                 return $this->responseService->success([], 'No designations found.');
             }
 
-            // Paginated data return
             return $this->responseService->paginated(
                 DesignationResource::collection($designations),
                 'Designations fetched successfully.'
             );
-        } 
-        catch (QueryException $e) {
-            // Handles database-related issues
-            return $this->responseService->error(
-                'Database error: ' . $e->getMessage(),
-                null,
-                500,
-                'DB_ERROR'
-            );
-        } 
-        catch (DomainException $e) {
-            // Handles domain or business logic issues
-            return $this->responseService->error(
-                $e->getMessage(),
-                null,
-                400,
-                'DOMAIN_ERROR'
-            );
-        } 
-        catch (Exception $e) {
-            // Generic fallback for unexpected issues
-            return $this->responseService->serverError(
-                'An unexpected error occurred while fetching designations.',
-                $e->getMessage()
-            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray());
-        }
-
         try {
-            $designation = $this->designationService->createNewDesignation($request->all());
+            $rules = [
+                'title' => 'required|string|max:255',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $designation = $this->designationService->createNewDesignation($validatedData);
             return $this->responseService->created(new DesignationResource($designation), 'Designation created successfully');
-        } catch (DomainException $e) {
-            return $this->responseService->error($e->getMessage(), null, 409, 'SLUG_CONFLICT');
-        } catch (QueryException $e) {
-            // handle DB errors (unique constraint etc.)
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 409, 'DB_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->serverError('An unexpected error occurred', $e->getMessage());
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors());
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function show($id)
+    public function show(int $id): JsonResponse
     {
         try {
             $designation = $this->designationService->getDesignation($id);
             return $this->responseService->success(new DesignationResource($designation), 'Designation fetched successfully');
-        } catch (Exception $e) {
-            return $this->responseService->notFound('Designation not found');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray());
-        }
-
         try {
-            $designation = $this->designationService->updateDesignation($id, $request->all());
+            $rules = [
+                'title' => 'required|string|max:255',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $designation = $this->designationService->updateDesignation($id, $validatedData);
             return $this->responseService->updated(new DesignationResource($designation), 'Designation updated successfully');
-        } catch (DomainException $e) {
-            return $this->responseService->error($e->getMessage(), null, 409, 'SLUG_CONFLICT');
-        } catch (QueryException $e) {
-            return $this->responseService->error('Database error: ' . $e->getMessage(), null, 409, 'DB_ERROR');
-        } catch (Exception $e) {
-            return $this->responseService->notFound('Designation not found');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors());
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
-    // destroy()
-    public function destroy($id)
+    public function destroy(int $id): JsonResponse
     {
         try {
             $this->designationService->deleteDesignation($id);
             return $this->responseService->deleted('Designation deleted successfully.');
-        } catch (Exception $e) {
-            return $this->responseService->notFound('Designation not found');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 }

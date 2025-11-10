@@ -26,9 +26,9 @@ interface RoleRepositoryInterface
 	public function findByUuid(string $uuid): ?Role;
 
 	/**
-	 * Find a role by slug
+	 * Find a role by name
 	 */
-	public function findBySlug(string $slug): ?Role;
+	public function findByName(string $name): ?Role;
 
 	/**
 	 * Create a new role

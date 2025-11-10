@@ -30,9 +30,9 @@ class RoleRepository implements RoleRepositoryInterface
         return $this->model->where('uuid', $uuid)->first();
     }
 
-    public function findBySlug(string $slug): ?Role
+    public function findByName(string $name): ?Role
     {
-        return $this->model->where('slug', $slug)->first();
+        return $this->model->where('name', $name)->first();
     }
 
     public function create(array $data): Role
@@ -72,25 +72,16 @@ class RoleRepository implements RoleRepositoryInterface
             $query->where(function ($sub) use ($q) {
                 $sub->where('name', 'like', "%{$q}%")
                     ->orWhere('display_name', 'like', "%{$q}%")
-                    ->orWhere('description', 'like', "%{$q}%")
-                    ->orWhere('slug', 'like', "%{$q}%");
+                    ->orWhere('description', 'like', "%{$q}%");
             });
-        }
-
-        if (isset($criteria['status'])) {
-            $query->where('status', $criteria['status']);
         }
 
         if (! empty($criteria['name'])) {
             $query->where('name', 'like', "%{$criteria['name']}%");
         }
 
-        if (! empty($criteria['slug'])) {
-            $query->where('slug', $criteria['slug']);
-        }
-
-    // Order results ascending by name by default
-    return $query->orderBy('id', 'asc')->paginate($perPage);
+        // Order results ascending by name by default
+        return $query->orderBy('name', 'asc')->paginate($perPage);
     }
 
     public function findWithRelations(int $id, array $relations = []): ?Role
@@ -125,7 +116,11 @@ class RoleRepository implements RoleRepositoryInterface
         }
 
         try {
-            $role->givePermission($permissionId);
+            $permission = \App\Models\Permission::find($permissionId);
+            if (!$permission) {
+                return false;
+            }
+            $role->givePermission($permission);
             return true;
         } catch (\Throwable $e) {
             return false;
@@ -141,7 +136,11 @@ class RoleRepository implements RoleRepositoryInterface
         }
 
         try {
-            $role->removePermission($permissionId);
+            $permission = \App\Models\Permission::find($permissionId);
+            if (!$permission) {
+                return false;
+            }
+            $role->removePermission($permission);
             return true;
         } catch (\Throwable $e) {
             return false;
