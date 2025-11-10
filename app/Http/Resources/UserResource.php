@@ -46,7 +46,9 @@ class UserResource extends BaseResource
             'full_name' => $this->full_name,
             'is_active' => $this->isActive(),
             'is_admin' => $this->isAdmin(),
-            'profile' => new ProfileResource($this->whenLoaded('profile')),
+            'profile' => $this->whenLoaded('profile', function () {
+                return new ProfileResource($this->profile);
+            }),
         ]);
     }
 }

@@ -37,7 +37,7 @@ class PermissionMiddleware
     {
         $user = $request->user ?? $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return $this->responseService->unauthorized('Authentication required');
         }
 

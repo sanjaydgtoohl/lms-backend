@@ -1,0 +1,150 @@
+<?php
+
+namespace App\Repositories;
+
+use App\Contracts\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+
+class RoleRepository implements RoleRepositoryInterface
+{
+    protected Role $model;
+
+    public function __construct(Role $model)
+    {
+        $this->model = $model;
+    }
+
+    public function all(int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->model->latest()->paginate($perPage);
+    }   
+
+    public function find(int $id): ?Role
+    {
+        return $this->model->find($id);
+    }
+
+    public function findByUuid(string $uuid): ?Role
+    {
+        return $this->model->where('uuid', $uuid)->first();
+    }
+
+    public function findBySlug(string $slug): ?Role
+    {
+        return $this->model->where('slug', $slug)->first();
+    }
+
+    public function create(array $data): Role
+    {
+        return $this->model->create($data);
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        $role = $this->model->find($id);
+
+        if (! $role) {
+            return false;
+        }
+
+        return (bool) $role->update($data);
+    }
+
+    public function delete(int $id): bool
+    {
+        $role = $this->model->find($id);
+
+        if (! $role) {
+            return false;
+        }
+
+        return (bool) $role->delete();
+    }
+
+    public function search(array $criteria, int $perPage = 15): LengthAwarePaginator
+    {
+        $query = $this->model->newQuery();
+
+        // Global q parameter for quick search
+        if (! empty($criteria['q'])) {
+            $q = $criteria['q'];
+            $query->where(function ($sub) use ($q) {
+                $sub->where('name', 'like', "%{$q}%")
+                    ->orWhere('display_name', 'like', "%{$q}%")
+                    ->orWhere('description', 'like', "%{$q}%")
+                    ->orWhere('slug', 'like', "%{$q}%");
+            });
+        }
+
+        if (isset($criteria['status'])) {
+            $query->where('status', $criteria['status']);
+        }
+
+        if (! empty($criteria['name'])) {
+            $query->where('name', 'like', "%{$criteria['name']}%");
+        }
+
+        if (! empty($criteria['slug'])) {
+            $query->where('slug', $criteria['slug']);
+        }
+
+    // Order results ascending by name by default
+    return $query->orderBy('id', 'asc')->paginate($perPage);
+    }
+
+    public function findWithRelations(int $id, array $relations = []): ?Role
+    {
+        return $this->model->with($relations)->find($id);
+    }
+
+    public function syncPermissions(int $roleId, array $permissionIds): bool
+    {
+        $role = $this->model->find($roleId);
+
+        if (! $role) {
+            return false;
+        }
+
+        try {
+            // Laratrust provides syncPermissions on the Role model
+            $role->syncPermissions($permissionIds);
+            return true;
+        } catch (\Throwable $e) {
+            // Optionally log the exception here
+            return false;
+        }
+    }
+
+    public function attachPermission(int $roleId, int $permissionId): bool
+    {
+        $role = $this->model->find($roleId);
+
+        if (! $role) {
+            return false;
+        }
+
+        try {
+            $role->givePermission($permissionId);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    public function detachPermission(int $roleId, int $permissionId): bool
+    {
+        $role = $this->model->find($roleId);
+
+        if (! $role) {
+            return false;
+        }
+
+        try {
+            $role->removePermission($permissionId);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+}

@@ -117,7 +117,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        return $this->status === '1';
     }
 
     /**
@@ -144,7 +144,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('status', '1');
     }
 
     /**

@@ -2,30 +2,71 @@
 
 namespace App\Http\Resources;
 
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class BrandResource extends JsonResource
 {
+    /**
+     * Transform the resource into an array.
+     *
+     * @param Request $request
+     * @return array<string, mixed>
+     */
     public function toArray($request): array
     {
         return [
+            // Basic Information
             'id' => $this->id,
             'name' => $this->name,
-            'contact_person_id' => $this->contact_person_id,
+            'slug' => $this->slug,
+            'status' => $this->status,
+
+            // Relationships (IDs)
+            'brand_type_id' => $this->brand_type_id,
+            'industry_id' => $this->industry_id,
             'agency_id' => $this->agency_id,
-            'brand_type' => $this->brandType->name ?? null,
-            'industry' =>  $this->industry->name ?? null,
-            'country' => $this->country->name ?? null,
-            'state' => $this->state->name ?? null,
-            'city' => $this->city->name ?? null,
-            'region' => $this->region->name ?? null,
-            'subregion' => $this->subregions->name ?? null,
+            'zone_id' => $this->zone_id,
+            'country_id' => $this->country_id,
+            'state_id' => $this->state_id,
+            'city_id' => $this->city_id,
+
+            // Location Information
             'website' => $this->website,
             'postal_code' => $this->postal_code,
-            'status' => $this->status,
-            'created_at' => $this->created_at ? $this->created_at->format('d-m-Y H:i:s') : null,
+
+            // Relationships (Objects)
+            'brand_type' => $this->whenLoaded('brandType', function () {
+                return $this->brandType->name ?? null;
+            }),
+            'industry' => $this->whenLoaded('industry', function () {
+                return $this->industry->name ?? null;
+            }),
+            'agency' => $this->whenLoaded('agency', function () {
+                return [
+                    'id' => $this->agency->id,
+                    'name' => $this->agency->name,
+                ];
+            }),
+            'zone' => $this->whenLoaded('zone', function () {
+                return $this->zone->name ?? null;
+            }),
+            'country' => $this->whenLoaded('country', function () {
+                return $this->country->name ?? null;
+            }),
+            'state' => $this->whenLoaded('state', function () {
+                return $this->state->name ?? null;
+            }),
+            'city' => $this->whenLoaded('city', function () {
+                return $this->city->name ?? null;
+            }),
+            'creator' => $this->whenLoaded('creator', function () {
+                return [
+                    'id' => $this->creator->id,
+                    'name' => $this->creator->name ?? null,
+                ];
+            }),
+            'created_at' => $this->created_at,
         ];
     }
 }
-
-

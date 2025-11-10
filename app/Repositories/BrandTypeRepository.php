@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use App\Contracts\Repositories\BrandTypeRepositoryInterface;
 use App\Models\BrandType;
-use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class BrandTypeRepository implements BrandTypeRepositoryInterface
 {
@@ -23,12 +23,21 @@ class BrandTypeRepository implements BrandTypeRepositoryInterface
     /**
      * Get all active brand types.
      */
-    public function getAllActive(): Collection
+    public function getAllActive(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
-        return $this->model
+        // Query builder shuru karein
+        $query = $this->model
             ->where('status', '1')
-            ->whereNull('deleted_at')
-            ->get();
+            ->whereNull('deleted_at');
+
+        // NAYA: Search logic add karein
+        if ($searchTerm) {
+            // Maan lijiye aap 'name' column mein search kar rahe hain
+            $query->where('name', 'LIKE', "%{$searchTerm}%");
+        }
+
+        // UPDATE: ->get() ki jagah ->paginate() ka istemal karein
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     /**

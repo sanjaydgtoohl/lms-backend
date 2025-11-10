@@ -11,6 +11,7 @@ use App\Services\ResponseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class BrandTypeController extends Controller
@@ -30,19 +31,35 @@ class BrandTypeController extends Controller
     /**
      * Display a listing of the brand types.
      */
-    public function index()
+    public function index(Request $request) // <-- Request $request add karein
     {
         try {
-            $brandTypes = $this->brandTypeService->getAll();
+            // (Optional but recommended) Validate inputs
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1',
+                'search'   => 'nullable|string|max:100'
+            ]);
+
+            // 1. Pagination aur Search parameters lein
+            $perPage = $request->get('per_page', 10);
+            $searchTerm = $request->get('search', null);
+
+            // 2. Parameters ko service mein pass karein
+            $brandTypes = $this->brandTypeService->getAll((int) $perPage, $searchTerm);
             
-            // Format the collection using the Resource
-            return $this->responseService->success(
-                BrandTypeResource::collection($brandTypes), 
+            // 3. Resource ko paginator ke saath wrap karein (metadata preserve hota hai)
+            $resource = BrandTypeResource::collection($brandTypes);
+
+            // 4. ->success() ki jagah ->paginated() ka istemal karein
+            return $this->responseService->paginated(
+                $resource,
                 'Brand types retrieved successfully'
             );
 
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors());
         } catch (Throwable $e) {
-            return $this->responseService->handleException($e);
+            return $this->responseService->handleException($e); // Aapka original exception handler
         }
     }
 
@@ -54,7 +71,7 @@ class BrandTypeController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255|unique:brand_types,name,NULL,id,deleted_at,NULL',
-                'status' => 'required|in:1,2,15',
+                'status' => 'null|in:1,2,15',
             ]);
 
             $validatedData = $validator->validate();
@@ -110,7 +127,7 @@ class BrandTypeController extends Controller
                     'max:255',
                     Rule::unique('brand_types')->ignore($id)->whereNull('deleted_at'),
                 ],
-                'status' => 'sometimes|required|in:1,2,15',
+                'status' => 'sometimes|null|in:1,2,15',
             ]);
 
             $validatedData = $validator->validate();

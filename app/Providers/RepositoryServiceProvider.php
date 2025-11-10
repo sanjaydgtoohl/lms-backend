@@ -22,6 +22,7 @@ use App\Contracts\Repositories\LeadSubSourceRepositoryInterface;
 use App\Contracts\Repositories\AgencyGroupRepositoryInterface;
 
 use App\Contracts\Repositories\AgencyTypeRepositoryInterface;
+use App\Repositories\AgencyTypeRepository;
 
 use App\Repositories\EloquentAgencyRepository;
 use App\Contracts\Repositories\AgencyRepositoryInterface;
@@ -35,8 +36,6 @@ use App\Contracts\Repositories\BrandRepositoryInterface;
 
 use App\Repositories\RegionRepository;
 use App\Contracts\Repositories\RegionRepositoryInterface;
-
-use App\Repositories\EloquentAgencyTypeRepository;
 
 use App\Repositories\EloquentAgencyGroupRepository;
 
@@ -52,10 +51,18 @@ use App\Contracts\Repositories\CityRepositoryInterface;
 use App\Repositories\ZoneRepository;
 use App\Contracts\Repositories\ZoneRepositoryInterface;
 
-use App\Repositories\RefreshTokenRepository;
-use App\Contracts\Repositories\RefreshTokenRepositoryInterface;
+// use App\Repositories\RefreshTokenRepository;
+// use App\Contracts\Repositories\RefreshTokenRepositoryInterface;
 
+use App\Repositories\RoleRepository;
+use App\Contracts\Repositories\RoleRepositoryInterface;
+
+use App\Repositories\PermissionRepository;
+use App\Contracts\Repositories\PermissionRepositoryInterface;
 // Duplicate imports removed
+
+use App\Repositories\EloquentStatusGroupRepository;
+use App\Contracts\Repositories\StatusGroupRepositoryInterface;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -96,10 +103,10 @@ class RepositoryServiceProvider extends ServiceProvider
             EloquentAgencyRepository::class
         );
 
-        // $this->app->bind(
-        //     AgencyTypeRepositoryInterface::class, 
-        //     EloquentAgencyTypeRepository::class
-        // );
+        $this->app->bind(
+            AgencyTypeRepositoryInterface::class, 
+            AgencyTypeRepository::class
+        );
 
         // $this->app->bind(
         //     AgencyGroupRepositoryInterface::class,
@@ -140,12 +147,26 @@ class RepositoryServiceProvider extends ServiceProvider
             ZoneRepositoryInterface::class,
             ZoneRepository::class
         );
+        
+        // $this->app->bind(
+        //     RefreshTokenRepositoryInterface::class,
+        //     RefreshTokenRepository::class
+        // );
 
         $this->app->bind(
-            RefreshTokenRepositoryInterface::class,
-            RefreshTokenRepository::class
+            RoleRepositoryInterface::class,
+            RoleRepository::class
         );
 
+        $this->app->bind(
+            PermissionRepositoryInterface::class,
+            PermissionRepository::class
+        );
+
+        $this->app->bind(
+            StatusGroupRepositoryInterface::class,
+            EloquentStatusGroupRepository::class
+        );
     }
     /**
      * Bootstrap any application services.
