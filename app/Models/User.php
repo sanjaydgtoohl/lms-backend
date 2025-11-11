@@ -52,6 +52,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      * @var array<int, string>
      */
     protected $hidden = [
+        
         'password',
         'refresh_token',
         'remember_token',
@@ -197,7 +198,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      */
     public function loginLogs(): HasMany
     {
-        // Yahan login_time ke hisaab se sort kar rahe hain (latest pehle)
+        // Sort by login_time in descending order (latest first)
         return $this->hasMany(LoginLog::class)->latest('login_time');
     }
 

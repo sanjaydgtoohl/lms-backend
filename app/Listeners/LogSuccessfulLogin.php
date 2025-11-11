@@ -2,7 +2,7 @@
 
 namespace App\Listeners;
 
-// Humein in classes ki zaroorat padti
+// Required class imports for event handling and logging
 use Illuminate\Auth\Events\Login;
 use Illuminate\Http\Request;
 use App\Models\LoginLog;
@@ -37,10 +37,10 @@ class LogSuccessfulLogin
      */
     public function handle(Login $event)
     {
-        // Yahan $event->user se humein logged-in user mil jaata
+        // Get the authenticated user from the login event
         $user = $event->user;
 
-        // Bilkul wahi logic jo humne AuthController mein likha tha
+        // Create login log entry using the same logic as in AuthController
         LoginLog::create([
             'user_id' => $user->id,
             'login_time' => \Carbon\Carbon::now(),

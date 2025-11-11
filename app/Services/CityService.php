@@ -40,13 +40,13 @@ class CityService
 
     public function createCity(array $data)
     {
-        // Koi business logic nahi, seedha create
+        // Direct create without additional business logic
         return $this->cityRepo->create($data);
     }
 
     public function updateCity(int $id, array $data)
     {
-        // Koi business logic nahi, seedha update
+        // Direct update without additional business logic
         return $this->cityRepo->update($id, $data);
     }
 

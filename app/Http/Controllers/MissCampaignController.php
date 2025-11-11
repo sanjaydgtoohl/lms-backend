@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\BrandResource;
-use App\Services\BrandService;
+use App\Traits\MediaUpload; // top me add
+use App\Http\Resources\MissCampaignResource;
+use App\Services\MissCampaignService;
 use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ use Illuminate\Support\Str;
 use Throwable;
 use Illuminate\Validation\ValidationException;
 
-class BrandController extends Controller
+class MissCampaignController extends Controller
 {
     use ValidatesRequests;
 
@@ -23,26 +24,26 @@ class BrandController extends Controller
     protected ResponseService $responseService;
 
     /**
-     * @var BrandService
+     * @var MissCampaignService
      */
-    protected BrandService $brandService;
+    protected MissCampaignService $missCampaignService;
 
     /**
-     * Create a new BrandController instance.
+     * Create a new MissCampaignController instance.
      *
      * @param ResponseService $responseService
-     * @param BrandService $brandService
+     * @param MissCampaignService $missCampaignService
      */
-    public function __construct(ResponseService $responseService, BrandService $brandService)
+    public function __construct(ResponseService $responseService, MissCampaignService $missCampaignService)
     {
         $this->responseService = $responseService;
-        $this->brandService = $brandService;
+        $this->missCampaignService = $missCampaignService;
     }
 
     /**
-     * Display a listing of the brands.
+     * Display a listing of the miss campaigns.
      *
-     * GET /brands
+     * GET /miss-campaigns
      *
      * @param Request $request
      * @return JsonResponse
@@ -56,13 +57,13 @@ class BrandController extends Controller
             ]);
 
             $perPage = (int) $request->input('per_page', 15);
-            $searchTerm = $request->input('search', null);
+            $searchTerm = $request->input('search');
 
-            $brands = $this->brandService->getAllBrands($perPage, $searchTerm);
+            $campaigns = $this->missCampaignService->getAllMissCampaigns($perPage, $searchTerm);
 
             return $this->responseService->paginated(
-                BrandResource::collection($brands),
-                'Brands retrieved successfully'
+                MissCampaignResource::collection($campaigns),
+                'Miss campaigns retrieved successfully'
             );
         } catch (ValidationException $e) {
             return $this->responseService->validationError(
@@ -75,9 +76,9 @@ class BrandController extends Controller
     }
 
     /**
-     * Display the specified brand.
+     * Display the specified miss campaign.
      *
-     * GET /brands/{id}
+     * GET /miss-campaigns/{id}
      *
      * @param int $id
      * @return JsonResponse
@@ -85,15 +86,15 @@ class BrandController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $brand = $this->brandService->getBrand($id);
+            $campaign = $this->missCampaignService->getMissCampaign($id);
 
-            if (!$brand) {
+            if (!$campaign) {
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
             return $this->responseService->success(
-                new BrandResource($brand),
-                'Brand retrieved successfully'
+                new MissCampaignResource($campaign),
+                'Miss campaign retrieved successfully'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
@@ -101,9 +102,9 @@ class BrandController extends Controller
     }
 
     /**
-     * Store a newly created brand in storage.
+     * Store a newly created miss campaign in storage.
      *
-     * POST /brands
+     * POST /miss-campaigns
      *
      * @param Request $request
      * @return JsonResponse
@@ -113,41 +114,43 @@ class BrandController extends Controller
         try {
             $rules = [
                 'name' => 'required|string|max:255',
-                'brand_type_id' => 'required|integer|exists:brand_types,id',
-                'industry_id' => 'required|integer|exists:industries,id',
-                'country_id' => 'required|integer|exists:countries,id',
-                'website' => 'nullable|url|max:255',
-                'postal_code' => 'nullable|string|max:20',
-                'state_id' => 'nullable|integer|exists:states,id',
-                'city_id' => 'nullable|integer|exists:cities,id',
-                'zone_id' => 'nullable|integer|exists:zones,id',
-                'agency_id' => 'nullable|integer|exists:agencies,id',
+                'brand_id' => 'required|integer|exists:brands,id',
+                'lead_source_id' => 'required|integer|exists:lead_source,id',
+                'lead_sub_source_id' => 'nullable|integer|exists:lead_sub_source,id',
+                'image_path' => 'image|mimes:jpg,jpeg,png,svg|max:2048'
             ];
 
             $validatedData = $this->validate($request, $rules);
 
             // Add system-generated fields
             $validatedData['slug'] = Str::slug($request->name) . '-' . uniqid();
-            $validatedData['created_by'] = Auth::id();
-            $validatedData['status'] = '1';
+            $validatedData['status'] = '1'; // Default active status
 
-            $brand = $this->brandService->createBrand($validatedData);
+            // Handle image upload if present
+            if ($request->hasFile('image_path')) {
+                $validatedData['image_path'] = $this->missCampaignService->uploadImage($request->file('image_path'));
+            }
+
+            $campaign = $this->missCampaignService->createMissCampaign($validatedData);
 
             return $this->responseService->created(
-                new BrandResource($brand),
-                'Brand created successfully'
+                new MissCampaignResource($campaign),
+                'Miss campaign created successfully'
             );
         } catch (ValidationException $e) {
-            return $this->responseService->validationError($e->errors(), 'Validation failed');
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
 
     /**
-     * Update the specified brand in storage.
+     * Update the specified miss campaign in storage.
      *
-     * PUT /brands/{id}
+     * PUT /miss-campaigns/{id}
      *
      * @param Request $request
      * @param int $id
@@ -158,15 +161,10 @@ class BrandController extends Controller
         try {
             $rules = [
                 'name' => 'sometimes|required|string|max:255',
-                'brand_type_id' => 'sometimes|required|integer|exists:brand_types,id',
-                'industry_id' => 'sometimes|required|integer|exists:industries,id',
-                'country_id' => 'sometimes|required|integer|exists:countries,id',
-                'website' => 'sometimes|nullable|url|max:255',
-                'postal_code' => 'sometimes|nullable|string|max:20',
-                'state_id' => 'sometimes|nullable|integer|exists:states,id',
-                'city_id' => 'sometimes|nullable|integer|exists:cities,id',
-                'zone_id' => 'sometimes|nullable|integer|exists:zones,id',
-                'agency_id' => 'sometimes|nullable|integer|exists:agencies,id',
+                'brand_id' => 'sometimes|required|integer|exists:brands,id',
+                'lead_source_id' => 'sometimes|required|integer|exists:lead_source,id',
+                'lead_sub_source_id' => 'sometimes|nullable|integer|exists:lead_sub_source,id',
+                'image_path' => 'image|mimes:jpg,jpeg,png,svg|max:2048',
                 'status' => 'sometimes|required|in:1,2,15',
             ];
 
@@ -177,30 +175,33 @@ class BrandController extends Controller
                 $validatedData['slug'] = Str::slug($request->name) . '-' . $id;
             }
 
-            $this->brandService->updateBrand($id, $validatedData);
+            $this->missCampaignService->updateMissCampaign($id, $validatedData);
 
-            // Fetch updated brand with relationships
-            $brand = $this->brandService->getBrand($id);
+            // Fetch updated campaign with relationships
+            $campaign = $this->missCampaignService->getMissCampaign($id);
 
-            if (!$brand) {
+            if (!$campaign) {
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
             return $this->responseService->updated(
-                new BrandResource($brand),
-                'Brand updated successfully'
+                new MissCampaignResource($campaign),
+                'Miss campaign updated successfully'
             );
         } catch (ValidationException $e) {
-            return $this->responseService->validationError($e->errors(), 'Validation failed');
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
 
     /**
-     * Remove the specified brand from storage (Soft Delete).
+     * Remove the specified miss campaign from storage (Soft Delete).
      *
-     * DELETE /brands/{id}
+     * DELETE /miss-campaigns/{id}
      *
      * @param int $id
      * @return JsonResponse
@@ -208,29 +209,27 @@ class BrandController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
-            $this->brandService->deleteBrand($id);
+            $this->missCampaignService->deleteMissCampaign($id);
 
-            return $this->responseService->deleted('Brand deleted successfully');
+            return $this->responseService->deleted('Miss campaign deleted successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
 
     /**
-     * Get list of brands (for dropdowns)
+     * Get list of miss campaigns (for dropdowns)
      *
      * @return JsonResponse
      */
     public function list(): JsonResponse
     {
         try {
-            // 2. Call the service method to get the list
-            $brandsList = $this->brandService->getBrandList();
+            $campaignsList = $this->missCampaignService->getMissCampaignList();
 
-            // 3. Return success response with data using ResponseService
             return $this->responseService->success(
-                $brandsList,
-                'Brand list retrieved successfully'
+                $campaignsList,
+                'Miss campaign list retrieved successfully'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

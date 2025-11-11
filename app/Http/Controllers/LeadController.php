@@ -2,25 +2,29 @@
 
 namespace App\Http\Controllers;
 
-// ----- Zaroori Imports -----
+// ----- Required Imports -----
 use App\Models\Lead;
 use App\Models\LeadContact;
-use App\Services\ResponseService; // <-- Aapka Response Service
+use App\Services\ResponseService; // <-- Response Service for API responses
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator; // <-- YEH IMPORT ZAROORI HAI
-use Illuminate\Support\Facades\Auth; // <-- 'user_id' check ke liye zaroori
-use Throwable; // <-- Yeh Exception se behtar hai, sab kuch catch karta hai
+use Illuminate\Support\Facades\Validator; // <-- Required for request validation
+use Illuminate\Support\Facades\Auth; // <-- Required for user_id verification
+use Throwable; // <-- Better than Exception, catches everything
 
 class LeadController extends Controller
 {
     /**
-     * Response Service ko store karne ke liye property.
+     * The ResponseService instance.
+     *
+     * @var ResponseService
      */
     protected $responseService;
 
     /**
-     * Controller ko initialize karte waqt ResponseService ko inject karein.
+     * Create a new LeadController instance.
+     *
+     * @param ResponseService $responseService
      */
     public function __construct(ResponseService $responseService)
     {
@@ -28,7 +32,7 @@ class LeadController extends Controller
     }
 
     /**
-     * CREATE: Naya lead aur uske contacts store karein.
+     * CREATE: Store a new lead and its associated contacts.
      */
     public function store(Request $request)
     {
@@ -43,7 +47,7 @@ class LeadController extends Controller
             'contactPersons.*.full_name' => 'required|string|max:255',
             'contactPersons.*.email'     => 'nullable|email|max:255',
             'contactPersons.*.mobile_number' => 'required|string|max:20',
-            // --- Yahan baaki contact fields ke rules add karein ---
+            // --- Additional contact fields validation rules ---
             'contactPersons.*.profile_url' => 'nullable|string|max:255',
             'contactPersons.*.mobile_number_optional' => 'nullable|string|max:20',
             'contactPersons.*.type' => 'nullable|string|max:50',
@@ -57,15 +61,15 @@ class LeadController extends Controller
             'contactPersons.*.postal_code' => 'nullable|string|max:20',
         ];
 
-        // --- Step 2: Validator Banana ---
+        // --- Step 2: Create Validator Instance ---
         $validator = Validator::make($request->all(), $rules);
 
-        // --- Step 3: Check Karna ki Validation Fail hua ya nahi ---
+        // --- Step 3: Check for Validation Failures ---
         if ($validator->fails()) {
             return $this->responseService->validationError($validator->errors()->toArray());
         }
 
-        // --- Step 4: Validated Data Haasil Karna ---
+        // --- Step 4: Get Validated Data ---
         $validatedData = $validator->validated();
 
         // --- Step 5: Try-Catch Block (Database Logic) ---
@@ -78,7 +82,7 @@ class LeadController extends Controller
                 $newLead = Lead::create([
                     'brand_id'  => $validatedData['brand_id'] ?? null,
                     'agency_id' => $validatedData['agency_id'] ?? null,
-                   // 'user_id'   => $validatedData['assigned_user_id'], // Map form key to db column
+                   // 'user_id'   => $validatedData['assigned_user_id'],
                     'comment'   => $validatedData['comment'] ?? null,
                     'status'    => '1', 
                 ]);
@@ -108,17 +112,21 @@ class LeadController extends Controller
     }
 
     /**
-     * READ (List): Authenticated user ke saare leads list karein.
+     * Display a listing of leads for the authenticated user.
+     *
+     * GET /leads
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
     public function index()
     {
         try {
-            $userId = Auth::id(); // Logged-in user ki ID
+            $userId = Auth::id(); // Get current user's ID
             
             $leads = Lead::where('user_id', $userId)
-                         ->with('contacts') // Contacts ko saath mein load karein
-                         ->latest() // Naye leads pehle
-                         ->paginate(15); // Pagination
+                         ->with('contacts') // Eager load contacts
+                         ->latest()         // Order by latest first
+                         ->paginate(15);    // Paginate results
 
             return $this->responseService->paginated(
                 $leads,
@@ -131,14 +139,19 @@ class LeadController extends Controller
     }
 
     /**
-     * READ (Single): Ek specific lead dikhayein (user ownership check ke saath).
+     * Display the specified lead.
+     *
+     * GET /leads/{id}
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function show($id)
     {
         try {
             $userId = Auth::id();
 
-            // findOrFail - Agar lead nahi mila YA user_id match nahi hui, toh 404 error dega
+            // Find lead with ownership check (throws 404 if not found or not owned)
             $lead = Lead::where('user_id', $userId)
                         ->with('contacts')
                         ->findOrFail($id);
@@ -149,41 +162,47 @@ class LeadController extends Controller
             );
 
         } catch (Throwable $exception) {
-            // ModelNotFoundException (404) ko handleException() catch kar lega
+            // ModelNotFoundException (404) will be caught by handleException()
             return $this->responseService->handleException($exception);
         }
     }
 
     /**
-     * UPDATE: Ek existing lead aur uske contacts ko update karein.
+     * Update the specified lead and its contacts.
+     *
+     * PUT /leads/{id}
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
     {
-        // --- Step 1: Validation Rules (Update ke liye) ---
-        // 'sometimes' ka matlab hai ki field agar request mein hai, toh hi validate karo
+        // --- Step 1: Define validation rules ---
+        // 'sometimes' means the field will only be validated if it exists in the request
         $rules = [
             'assigned_user_id' => 'sometimes|required|exists:users,id',
             'brand_id'         => 'sometimes|nullable|exists:brands,id',
             'agency_id'        => 'sometimes|nullable|exists:agencies,id',
             'comment'          => 'sometimes|nullable|string',
             
-            // Agar contactPersons bhej rahe hain, toh unhe validate karo
+            // Validate contact persons if they are provided in the request
             'contactPersons'   => 'sometimes|array|min:1', 
             'contactPersons.*.full_name' => 'required_with:contactPersons|string|max:255',
             'contactPersons.*.email'     => 'nullable|email|max:255',
             'contactPersons.*.mobile_number' => 'required_with:contactPersons|string|max:20',
-            // ... baaki contact fields ke rules
+            // ... other contact fields validation rules
         ];
 
-        // --- Step 2: Validator Banana ---
+        // --- Step 2: Create validator instance ---
         $validator = Validator::make($request->all(), $rules);
 
-        // --- Step 3: Check Validation Fail ---
+        // --- Step 3: Check for validation failures ---
         if ($validator->fails()) {
             return $this->responseService->validationError($validator->errors()->toArray());
         }
 
-        // --- Step 4: Validated Data Haasil Karna ---
+        // --- Step 4: Get validated data ---
         $validatedData = $validator->validated();
 
         // --- Step 5: Try-Catch Block (Database Logic) ---
@@ -194,27 +213,27 @@ class LeadController extends Controller
                 
                 $userId = Auth::id();
                 
-                // --- Step 5a: Lead Dhoondein (Ownership check ke saath) ---
+                // --- Step 5a: Find lead with ownership check ---
                 $lead = Lead::where('user_id', $userId)->findOrFail($id);
 
-                // --- Step 5b: Lead Data Update Karein ---
-                // 'user_id' map karein agar 'assigned_user_id' aaya hai
+                // --- Step 5b: Update lead data ---
+                // Map 'assigned_user_id' to 'user_id' if provided
                 $leadDataToUpdate = $validatedData;
                 if (isset($leadDataToUpdate['assigned_user_id'])) {
                     $leadDataToUpdate['user_id'] = $leadDataToUpdate['assigned_user_id'];
                     unset($leadDataToUpdate['assigned_user_id']);
                 }
-                unset($leadDataToUpdate['contactPersons']); // Contacts alag se handle honge
+                unset($leadDataToUpdate['contactPersons']); // Contacts will be handled separately
 
                 $lead->update($leadDataToUpdate);
 
-                // --- Step 5c: Contacts Update Karein (Agar request mein aaye hain) ---
+                // --- Step 5c: Update contacts if provided in request ---
                 if (isset($validatedData['contactPersons'])) {
                     
-                    // 1. Puraane contacts ko soft delete karein
+                    // 1. Soft delete existing contacts
                     LeadContact::where('lead_id', $lead->id)->delete();
 
-                    // 2. Naye contacts create karein
+                    // 2. Create new contacts
                     foreach ($validatedData['contactPersons'] as $contact) {
                         $contact['lead_id'] = $lead->id;
                         $contact['status'] = '1'; 
@@ -224,7 +243,7 @@ class LeadController extends Controller
             });
 
             // --- Step 6: Success Response ---
-            $lead->load('contacts'); // Naye contacts ke saath data load karein
+            $lead->load('contacts'); // Load data with new contacts
 
             return $this->responseService->updated(
                 $lead,
@@ -232,13 +251,13 @@ class LeadController extends Controller
             );
 
         } catch (Throwable $exception) {
-            // ModelNotFoundException (404) ya DB error ko handle karega
+            // Will handle ModelNotFoundException (404) or DB errors
             return $this->responseService->handleException($exception);
         }
     }
 
     /**
-     * DELETE: Ek lead ko soft delete karein (user ownership check ke saath).
+     * DELETE: Soft delete a lead (with user ownership verification).
      */
     public function destroy($id)
     {
@@ -247,14 +266,14 @@ class LeadController extends Controller
                 
                 $userId = Auth::id();
                 
-                // --- Step 1: Lead Dhoondein (Ownership check ke saath) ---
+                // --- Step 1: Find Lead (with ownership check) ---
                 $lead = Lead::where('user_id', $userId)->findOrFail($id);
 
-                // --- Step 2: Pehle jude hue contacts ko soft-delete karein ---
-                // (Kyunki DB cascade 'onDelete' soft-deletes par trigger nahi hota)
-                $lead->contacts()->delete(); // Model SoftDeletes trait ka istemaal karega
+                // --- Step 2: Soft-delete associated contacts first ---
+                // (Because DB cascade 'onDelete' doesn't trigger on soft-deletes)
+                $lead->contacts()->delete(); // Will use Model's SoftDeletes trait
 
-                // --- Step 3: Ab main lead ko soft-delete karein ---
+                // --- Step 3: Soft-delete the main lead ---
                 $lead->delete();
             });
 
@@ -264,7 +283,7 @@ class LeadController extends Controller
             );
 
         } catch (Throwable $exception) {
-            // ModelNotFoundException (404) ko handle karega
+            // Will handle ModelNotFoundException (404)
             return $this->responseService->handleException($exception);
         }
     }

@@ -14,13 +14,13 @@ class ZoneResource extends JsonResource
      */
     public function toArray($request)
     {
-        // Yeh define karta hai ki aapka JSON kaisa dikhega
+        // Define the JSON structure for the response
         return [
             'id' => $this->id,
             'name' => $this->name,
             //'slug' => $this->slug,
             
-            // Status ko readable banane ke liye
+            // Convert status to a readable format
             'status' => $this->status, // Raw value (1, 2, 15)
             //'status_label' => $this->getStatusLabel(), // Readable text
             

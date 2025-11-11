@@ -10,6 +10,8 @@ return new class extends Migration
     {
         Schema::create('lead_contacts', function (Blueprint $table) {
             $table->id();
+            $table->uuid('uuid')->unique();
+            $table->string('slug');
 
             $table->unsignedBigInteger('lead_id');
             $table->foreign('lead_id')

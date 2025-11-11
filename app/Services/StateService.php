@@ -35,13 +35,13 @@ class StateService
 
     public function createState(array $data)
     {
-        // Koi business logic nahi, seedha create
+        // No business logic needed, direct create operation
         return $this->stateRepo->create($data);
     }
 
     public function updateState(int $id, array $data)
     {
-        // Koi business logic nahi, seedha update
+        // No business logic needed, direct update operation
         return $this->stateRepo->update($id, $data);
     }
 

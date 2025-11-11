@@ -3,7 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-// Country aur State Resources ko import karein
+// Import Country and State resources for relationship handling
 use App\Http\Resources\CountryResource;
 use App\Http\Resources\StateResource;
 

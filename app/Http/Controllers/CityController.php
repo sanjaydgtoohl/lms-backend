@@ -26,13 +26,13 @@ class CityController extends Controller
     }
 
     /**
-     * Paginated list laayein (e.g., /api/v1/cities)
+     * Get paginated list of cities (e.g., /api/v1/cities)
      */
     public function index(): JsonResponse
     {
         try {
             $cities = $this->cityService->getPaginatedCities();
-            // Resource collection ka istemal karein
+            // Use resource collection for response transformation
             $data = CityResource::collection($cities);
             return $this->responseService->paginated($data, 'Cities retrieved successfully');
         } catch (Throwable $e) {
@@ -41,7 +41,7 @@ class CityController extends Controller
     }
 
     /**
-     * Saare cities ki list laayein (e.g., /api/v1/cities/all)
+     * Get list of all cities (e.g., /api/v1/cities/all)
      */
     public function getAll(): JsonResponse
     {
@@ -55,7 +55,7 @@ class CityController extends Controller
     }
 
     /**
-     * Ek specific state ke saare cities laayein
+     * Get all cities for a specific state
      * (e.g., /api/v1/states/1/cities)
      */
     public function getCitiesByState($stateId): JsonResponse
@@ -70,7 +70,7 @@ class CityController extends Controller
     }
 
     /**
-     * Ek specific country ke saare cities laayein
+     * Get all cities for a specific country
      * (e.g., /api/v1/countries/1/cities)
      */
     public function getCitiesByCountry($countryId): JsonResponse
@@ -85,7 +85,7 @@ class CityController extends Controller
     }
 
     /**
-     * Nayi city store karein
+     * Store a new city in the database
      */
     public function store(Request $request): JsonResponse
     {
@@ -116,7 +116,7 @@ class CityController extends Controller
     }
 
     /**
-     * Ek specific city dikhayein
+     * Display a specific city
      */
     public function show(int $id): JsonResponse
     {
@@ -130,7 +130,7 @@ class CityController extends Controller
     }
 
     /**
-     * City update karein
+     * Update the specified city
      */
     public function update(Request $request, int $id): JsonResponse
     {

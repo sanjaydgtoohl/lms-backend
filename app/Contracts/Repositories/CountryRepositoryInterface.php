@@ -5,32 +5,32 @@ namespace App\Contracts\Repositories;
 interface CountryRepositoryInterface 
 {
     /**
-     * Saari countries layein (dropdowns ke liye)
+     * Get all countries (for dropdowns)
      */
     public function getAll();
 
     /**
-     * Paginated list layein (table view ke liye)
+     * Get paginated list (for table view)
      */
     public function getPaginated(int $perPage = 10);
 
     /**
-     * ID se ek country layein
+     * Find a country by ID
      */
     public function findById(int $id);
 
     /**
-     * Nayi country banayein
+     * Create a new country
      */
     public function create(array $data);
 
     /**
-     * Country update karein
+     * Update a country
      */
     public function update(int $id, array $data);
 
     /**
-     * Country delete karein (Yeh HARD delete hoga)
+     * Delete a country (This will be a HARD delete)
      */
     public function delete(int $id);
 }

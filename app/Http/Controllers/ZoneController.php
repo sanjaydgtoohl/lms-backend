@@ -37,13 +37,13 @@ class ZoneController extends Controller
             $zones = $this->zoneService->getAllZones($perPage, $searchTerm);
             $data = ZoneResource::collection($zones);
             
-            // Service ka 'paginated' method istemaal karein
+            // Use the 'paginated' method from the response service
             return $this->responseService->paginated($data, 'Zones retrieved successfully.');
         
-        } catch (ValidationException $e) { // <-- Validation errors ke liye
+        } catch (ValidationException $e) { // <-- Handle validation errors
             return $this->responseService->validationError($e->errors());
         }   catch (Throwable $e) {
-            // Error ko response service ke handler ko bhej dein
+            // Send error to response service handler
             return $this->responseService->handleException($e);
         }
     }
@@ -58,6 +58,7 @@ class ZoneController extends Controller
             $data = ZoneResource::collection($zones);
             return $this->responseService->success($data, 'Zones list retrieved successfully.');
         } catch (Throwable $e) {
+            
             return $this->responseService->handleException($e);
         }
     }
@@ -74,15 +75,15 @@ class ZoneController extends Controller
                 'status' => 'required|in:1,2,15',
             ]);
 
-            // 2. Logic ko Service ko pass karein
+            // 2. Pass logic to the service layer
             $zone = $this->zoneService->createZone($validatedData);
             $data = new ZoneResource($zone);
 
-            // 3. Service ka 'created' method istemaal karein
+            // 3. Use the 'created' method from the response service
             return $this->responseService->created($data, 'Zone created successfully.');
 
         } catch (Throwable $e) {
-            // ValidationException ho ya koi aur, handler sambhaal lega
+            // Handler will manage both ValidationException and other exceptions
             return $this->responseService->handleException($e);
         }
     }
@@ -92,8 +93,8 @@ class ZoneController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        // Route-model binding yahaan 'ModelNotFoundException' ko 
-        // pehle hi handle kar lega, jo 'handleException' mein covered hai.
+            // Route-model binding will handle 'ModelNotFoundException' here
+        // which is already covered in 'handleException'
         try {
             $zone = $this->zoneService->getZoneById($id);
             $data = new ZoneResource($zone);
@@ -117,15 +118,15 @@ class ZoneController extends Controller
                 'status' => 'required|in:1,2,15',
             ]);
 
-            // 2. Logic ko Service ko pass karein
+            // 2. Pass logic to service layer
             $this->zoneService->updateZone($zone, $validatedData);
-            $data = new ZoneResource($zone->fresh()); // fresh() se updated data load hoga
+            $data = new ZoneResource($zone->fresh()); // fresh() loads the updated data
 
-            // 3. Service ka 'updated' method istemaal karein
+            // 3. Use the 'updated' method from the response service
             return $this->responseService->updated($data, 'Zone updated successfully.');
 
         } catch (Throwable $e) {
-            // ValidationException ho ya koi aur, handler sambhaal lega
+            // Handler will manage both ValidationException and other exceptions
             return $this->responseService->handleException($e);
         }
     }
@@ -139,7 +140,7 @@ class ZoneController extends Controller
             $zone = $this->zoneService->getZoneById($id);
             $this->zoneService->deleteZone($zone);
             
-            // Service ka 'deleted' method istemaal karein
+            // Use the 'deleted' method from the response service
             return $this->responseService->deleted('Zone deleted successfully.');
 
         } catch (Throwable $e) {
