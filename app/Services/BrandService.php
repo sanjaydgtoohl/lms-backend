@@ -116,7 +116,6 @@ class BrandService
             if (empty($data['agency_id'])) {
                 $data['agency_id'] = $this->getOrCreateDirectAgency();
             }
-
             return $this->brandRepository->createBrand($data);
         } catch (DomainException $e) {
             throw $e;
@@ -194,7 +193,7 @@ class BrandService
                 'name' => 'Direct',
                 'slug' => 'direct',
                 'status' => '1',
-                'agency_type_id' => $defaultAgencyType->id,
+                'agency_type' => $defaultAgencyType->id,
             ]);
         } elseif ($directAgency->trashed()) {
             $directAgency->restore();

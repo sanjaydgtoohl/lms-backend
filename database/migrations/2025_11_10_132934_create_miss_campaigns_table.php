@@ -25,8 +25,8 @@ return new class extends Migration
 
             // Uncomment if you want FK constraints
             $table->foreign('brand_id')->references('id')->on('brands')->onDelete('cascade');
-            $table->foreign('lead_source_id')->references('id')->on('lead_sources')->onDelete('cascade');
-            $table->foreign('lead_sub_source_id')->references('id')->on('lead_sub_sources')->onDelete('set null');
+            $table->foreign('lead_source_id')->references('id')->on('lead_source')->onDelete('cascade');
+            $table->foreign('lead_sub_source_id')->references('id')->on('lead_sub_source')->onDelete('set null');
         });
     }
 

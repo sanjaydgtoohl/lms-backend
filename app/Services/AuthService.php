@@ -77,6 +77,7 @@ class AuthService
 
         // Generate token
         $token = $user->generateToken();
+    
         
         // Generate refresh token
         $refreshToken = Str::random(64);

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\AgencyResource;
 use App\Models\Agency;
+use App\Services\AgencyService;
 use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
@@ -16,20 +18,25 @@ class AgencyController extends Controller
     use ValidatesRequests;
 
     /**
-     * The response service instance
-     *
      * @var ResponseService
      */
-    protected $responseService;
+    protected ResponseService $responseService;
 
     /**
-     * Constructor
+     * @var AgencyService
+     */
+    protected AgencyService $agencyService;
+
+    /**
+     * Create a new BrandController instance.
      *
      * @param ResponseService $responseService
+     * @param AgencyService $agencyService
      */
-    public function __construct(ResponseService $responseService)
+    public function __construct(ResponseService $responseService, AgencyService $agencyService)
     {
         $this->responseService = $responseService;
+        $this->agencyService = $agencyService;
     }
 
     /**
@@ -61,21 +68,23 @@ class AgencyController extends Controller
     {
         try {
             $rules = [
-                'name' => 'required|string|max:255|unique:agency,name',
-                'agency_group_id' => 'nullable|integer|exists:agency_groups,id', 
-                'agency_type_id' => 'required|integer|exists:agency_type,id', 
-                'brand_id' => 'nullable|integer|exists:brands,id', 
-                'status' => 'nullable|in:1,2,15',
+                'name' => 'required|array',
+                'name.*' => 'string|max:255|distinct|unique:agency,name',
+                'type' => 'required|array', 
+                'type.*' => 'integer|exists:agency_type,id', 
+                'client'  => 'required|array',
+                'client.*.*' => 'integer|exists:brands,id'
             ];
 
             $validatedData = $this->validate($request, $rules);
-            $validatedData['slug'] = Str::slug($validatedData['name']);
-            $validatedData['status'] = $validatedData['status'] ?? '1';
+           
+           
+            $agency = $this->agencyService->create($validatedData);
 
-            $agency = Agency::create($validatedData);
-            $agency->load(['agencyGroup', 'agencyType', 'brand']); 
-
-            return $this->responseService->created($agency, 'Agency created successfully');
+            return $this->responseService->created(
+                new AgencyResource($agency),
+                'Agency created successfully'
+            );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {

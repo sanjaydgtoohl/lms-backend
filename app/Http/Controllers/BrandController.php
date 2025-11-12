@@ -112,7 +112,7 @@ class BrandController extends Controller
     {
         try {
             $rules = [
-                'name' => 'required|string|max:255',
+                'name' => 'required|unique:brands,name|string|max:255',
                 'brand_type_id' => 'required|integer|exists:brand_types,id',
                 'industry_id' => 'required|integer|exists:industries,id',
                 'country_id' => 'required|integer|exists:countries,id',
@@ -127,7 +127,7 @@ class BrandController extends Controller
             $validatedData = $this->validate($request, $rules);
 
             // Add system-generated fields
-            $validatedData['slug'] = Str::slug($request->name) . '-' . uniqid();
+            $validatedData['slug'] = Str::slug($request->name);
             $validatedData['created_by'] = Auth::id();
             $validatedData['status'] = '1';
 

@@ -6,6 +6,10 @@ use App\Contracts\Repositories\BrandRepositoryInterface;
 use App\Models\Brand;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use DomainException;
+use Exception;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
 
 class BrandRepository implements BrandRepositoryInterface
 {
@@ -123,7 +127,17 @@ class BrandRepository implements BrandRepositoryInterface
      */
     public function createBrand(array $data): Brand
     {
-        return $this->model->create($data);
+        try{
+            return $this->model->create($data);
+        }catch (DomainException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            Log::error('Database error creating brand', ['data' => $data, 'exception' => $e]);
+            throw new DomainException('Database error while creating brand.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error creating brand', ['data' => $data, 'exception' => $e]);
+            throw new DomainException('Unexpected error while creating brand.');
+        }
     }
 
     /**
