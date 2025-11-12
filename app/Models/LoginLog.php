@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-// Agar aap HasFactory use nahi kar rahe hain to use hata dein
+// Remove HasFactory if you're not using model factories
 // use Illuminate\Database\Eloquent\Factories\HasFactory; 
 
 class LoginLog extends Model
 {
-    use SoftDeletes; // HasFactory agar use nahi kar rahe toh hata dein
+    use SoftDeletes; // Remove HasFactory trait if not using model factories
 
     /**
      * The table associated with the model.

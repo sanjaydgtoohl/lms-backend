@@ -15,18 +15,16 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('slug');
+            $table->unsignedBigInteger('is_parent')->nullable();
+            $table->foreign('is_parent')->references('id')->on('agency')->onDelete('cascade');
+
+            $table->unsignedBigInteger('agency_type');
+            $table->foreign('agency_type')->references('id')->on('agency_type')->onDelete('cascade');
+            
             $table->enum('status', ['1', '2', '15'])
                 ->default('1')
                 ->comment('1 = active, 2 = deactivated, 15 = user soft delete');
 
-            $table->foreignId('agency_group_id')
-                  ->nullable()                   
-                  ->constrained('agency_groups') 
-                  ->onDelete('set null');
-
-            $table->unsignedInteger('agency_type_id');
-
-           
             $table->timestamps();
             $table->softDeletes();
         });

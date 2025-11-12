@@ -5,42 +5,42 @@ namespace App\Contracts\Repositories;
 interface CityRepositoryInterface 
 {
     /**
-     * Saare cities layein (dropdowns ke liye)
+     * Get all cities (for dropdowns)
      */
     public function getAll();
 
     /**
-     * Paginated list layein (table view ke liye)
+     * Get paginated list (for table view)
      */
     public function getPaginated(int $perPage = 10);
 
     /**
-     * Ek specific state ke saare cities layein
+     * Get all cities for a specific state
      */
     public function getByState(int $stateId);
 
     /**
-     * Ek specific country ke saare cities layein
+     * Get all cities for a specific country
      */
     public function getByCountry(int $countryId);
 
     /**
-     * ID se ek city layein
+     * Find a city by ID
      */
     public function findById(int $id);
 
     /**
-     * Nayi city banayein
+     * Create a new city
      */
     public function create(array $data);
 
     /**
-     * City update karein
+     * Update a city
      */
     public function update(int $id, array $data);
 
     /**
-     * City delete karein (Yeh HARD delete hoga)
+     * Delete a city (This will be a HARD delete)
      */
     public function delete(int $id);
 }

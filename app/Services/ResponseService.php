@@ -46,7 +46,7 @@ class ResponseService
             'success' => true,
             'message' => $message,
             'meta' => [
-                'timestamp' => Carbon::now()->toISOString(),
+                'timestamp' => Carbon::now()->setTimezone('Asia/Kolkata')->toDateTimeString(),
                 'status_code' => $statusCode,
             ]
         ];
@@ -73,7 +73,7 @@ class ResponseService
             'errors' => $errors,
             'error_code' => $errorCode,
             'meta' => [
-                'timestamp' => Carbon::now()->toISOString(),
+                'timestamp' => Carbon::now()->setTimezone('Asia/Kolkata')->toDateTimeString(),
                 'status_code' => $statusCode,
             ]
         ], $statusCode);
@@ -284,7 +284,7 @@ class ResponseService
             'success' => $success,
             'message' => $message,
             'meta' => [
-                'timestamp' => Carbon::now()->toISOString(),
+                'timestamp' => Carbon::now()->setTimezone('Asia/Kolkata')->toDateTimeString(),
                 'status_code' => $statusCode,
             ]
         ];

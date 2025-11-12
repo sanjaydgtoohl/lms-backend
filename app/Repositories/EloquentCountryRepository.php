@@ -16,25 +16,25 @@ class EloquentCountryRepository implements CountryRepositoryInterface
 
     public function getAll()
     {
-        // Status field nahi hai, isliye sabko get karein
+        // No status field exists, so get all records
         return $this->model->latest()->get();
     }
 
     public function getPaginated(int $perPage = 10)
     {
-        // States ke saath load karein
+        // Load with states relationship
         return $this->model->with('states')->latest()->paginate($perPage);
     }
 
     public function findById(int $id)
     {
-        // States ke saath load karein
+        // Load with states relationship
         return $this->model->with('states')->findOrFail($id);
     }
 
     public function create(array $data)
     {
-        // Model mein sirf 'name' fillable hai
+        // Only 'name' field is fillable in the model
         return $this->model->create($data);
     }
 
@@ -48,7 +48,7 @@ class EloquentCountryRepository implements CountryRepositoryInterface
     public function delete(int $id)
     {
         $country = $this->model->findOrFail($id);
-        // Model mein SoftDeletes nahi hai, isliye yeh HARD delete hoga
+        // This will be a HARD delete since model doesn't use SoftDeletes
         return $country->delete(); 
     }
 }

@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Services\CountryService;
 use App\Services\ResponseService;
 use App\Http\Resources\CountryResource;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Throwable;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class CountryController extends Controller
 {
+    use ValidatesRequests;
+
     protected $countryService;
     protected $responseService;
 
@@ -22,7 +25,7 @@ class CountryController extends Controller
     }
 
     /**
-     * Paginated list laayein (e.g., /api/v1/countries)
+     * Get paginated list of countries (e.g., /api/v1/countries)
      */
     public function index(): JsonResponse
     {
@@ -39,8 +42,8 @@ class CountryController extends Controller
     }
 
     /**
-     * Saari countries ki list laayein (e.g., /api/v1/countries/all)
-     * Yeh dropdowns ke liye achha hai.
+     * Get list of all countries (e.g., /api/v1/countries/all)
+     * Useful for populating dropdowns.
      */
     public function getAll(): JsonResponse
     {
@@ -55,26 +58,26 @@ class CountryController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:countries,name',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $country = $this->countryService->createCountry($validator->validated());
+            $rules = [
+                'name' => 'required|string|max:255|unique:countries,name',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $country = $this->countryService->createCountry($validatedData);
             return $this->responseService->created(new CountryResource($country), 'Country created successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
 
     /**
-     * Ek specific country dikhayein
+     * Display a specific country
      */
-    public function show($id): JsonResponse
+    public function show(int $id): JsonResponse
     {
         try {
             $country = $this->countryService->getCountryById($id);
@@ -85,31 +88,30 @@ class CountryController extends Controller
     }
 
     /**
-     * Country update karein
+     * Update the specified country
      */
-    public function update(Request $request, $id): JsonResponse
+    public function update(Request $request, int $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            // Status field nahi hai, isliye use validate nahi karein
-            'name' => 'required|string|max:255|unique:countries,name,' . $id,
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $country = $this->countryService->updateCountry($id, $validator->validated());
+            $rules = [
+                'name' => 'required|string|max:255|unique:countries,name,' . $id,
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $country = $this->countryService->updateCountry($id, $validatedData);
             return $this->responseService->updated(new CountryResource($country), 'Country updated successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
 
     /**
-     * Country delete karein (HARD delete)
+     * Delete the specified country (HARD delete)
      */
-    public function destroy($id): JsonResponse
+    public function destroy(int $id): JsonResponse
     {
         try {
             $this->countryService->deleteCountry($id);

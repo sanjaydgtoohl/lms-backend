@@ -24,7 +24,6 @@ use App\Contracts\Repositories\AgencyGroupRepositoryInterface;
 use App\Contracts\Repositories\AgencyTypeRepositoryInterface;
 use App\Repositories\AgencyTypeRepository;
 
-use App\Repositories\EloquentAgencyRepository;
 use App\Contracts\Repositories\AgencyRepositoryInterface;
 
 
@@ -61,6 +60,13 @@ use App\Repositories\PermissionRepository;
 use App\Contracts\Repositories\PermissionRepositoryInterface;
 // Duplicate imports removed
 
+use App\Repositories\EloquentStatusGroupRepository;
+use App\Contracts\Repositories\StatusGroupRepositoryInterface;
+
+use App\Contracts\Repositories\MissCampaignRepositoryInterface;
+use App\Repositories\AgencyRepository;
+use App\Repositories\MissCampaignRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -96,8 +102,8 @@ class RepositoryServiceProvider extends ServiceProvider
         );
 
         $this->app->bind(
-            AgencyRepositoryInterface::class, 
-            EloquentAgencyRepository::class
+            AgencyRepositoryInterface::class,
+            AgencyRepository::class
         );
 
         $this->app->bind(
@@ -158,6 +164,17 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             PermissionRepositoryInterface::class,
             PermissionRepository::class
+        );
+
+        $this->app->bind(
+            StatusGroupRepositoryInterface::class,
+            EloquentStatusGroupRepository::class
+        );
+
+        // MissCampaign repository binding
+        $this->app->bind(
+            MissCampaignRepositoryInterface::class,
+            MissCampaignRepository::class
         );
     }
     /**

@@ -20,7 +20,11 @@ class BrandTypeController extends Controller
     protected $brandTypeService;
 
     /**
-     * Inject the BrandTypeService and ResponseService.
+     * Create a new BrandTypeController instance.
+     * 
+     * @param BrandTypeService $brandTypeService Service for brand type operations
+     * @param ResponseService $responseService Service for standardized API responses
+     * @return void
      */
     public function __construct(BrandTypeService $brandTypeService, ResponseService $responseService)
     {
@@ -30,27 +34,32 @@ class BrandTypeController extends Controller
 
     /**
      * Display a listing of the brand types.
+     * 
+     * GET /brand-types
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function index(Request $request) // <-- Request $request add karein
+    public function index(Request $request)
     {
         try {
-            // (Optional but recommended) Validate inputs
+            // Validate request parameters
             $this->validate($request, [
                 'per_page' => 'nullable|integer|min:1',
                 'search'   => 'nullable|string|max:100'
             ]);
 
-            // 1. Pagination aur Search parameters lein
+            // 1. Get pagination and search parameters
             $perPage = $request->get('per_page', 10);
             $searchTerm = $request->get('search', null);
 
-            // 2. Parameters ko service mein pass karein
+            // 2. Pass parameters to service layer
             $brandTypes = $this->brandTypeService->getAll((int) $perPage, $searchTerm);
             
-            // 3. Resource ko paginator ke saath wrap karein (metadata preserve hota hai)
+            // 3. Wrap data with Resource (preserving pagination metadata)
             $resource = BrandTypeResource::collection($brandTypes);
 
-            // 4. ->success() ki jagah ->paginated() ka istemal karein
+            // 4. Return paginated response using proper method
             return $this->responseService->paginated(
                 $resource,
                 'Brand types retrieved successfully'
@@ -65,6 +74,11 @@ class BrandTypeController extends Controller
 
     /**
      * Store a newly created brand type in storage.
+     * 
+     * POST /brand-types
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
@@ -92,6 +106,11 @@ class BrandTypeController extends Controller
 
     /**
      * Display the specified brand type.
+     * 
+     * GET /brand-types/{id}
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function show($id)
     {
@@ -112,6 +131,12 @@ class BrandTypeController extends Controller
 
     /**
      * Update the specified brand type in storage.
+     * 
+     * PUT /brand-types/{id}
+     * 
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
     {
@@ -148,6 +173,11 @@ class BrandTypeController extends Controller
 
     /**
      * Remove the specified brand type from storage (Soft Delete).
+     * 
+     * DELETE /brand-types/{id}
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy($id)
     {

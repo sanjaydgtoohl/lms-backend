@@ -26,9 +26,9 @@ interface PermissionRepositoryInterface
 	public function findByUuid(string $uuid): ?Permission;
 
 	/**
-	 * Find a permission by slug
+	 * Find a permission by name
 	 */
-	public function findBySlug(string $slug): ?Permission;
+	public function findByName(string $name): ?Permission;
 
 	/**
 	 * Create a new permission
@@ -54,11 +54,6 @@ interface PermissionRepositoryInterface
 	 * Find a permission by ID with relationships
 	 */
 	public function findWithRelations(int $id, array $relations = []): ?Permission;
-
-	/**
-	 * Get only active permissions with pagination
-	 */
-	public function getActive(int $perPage = 15): LengthAwarePaginator;
 
 	/**
 	 * Attach a permission to a role

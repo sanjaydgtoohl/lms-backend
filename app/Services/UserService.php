@@ -48,7 +48,7 @@ class UserService
      */
     public function getUserById(int $id): ?User
     {
-        return $this->userRepository->findWithRelations($id, ['profile']);
+        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions']);
     }
 
     /**
@@ -245,7 +245,7 @@ class UserService
     protected function validatePassword(string $password): void
     {
         $validator = Validator::make(['password' => $password], [
-            'password' => 'required|string|min:8|confirmed'
+            'password' => 'required|string|min:8'
         ]);
 
         if ($validator->fails()) {

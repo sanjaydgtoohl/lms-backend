@@ -9,9 +9,27 @@ use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
 use App\Models\User;
+use App\Services\ResponseService;
 
 class JwtAuthMiddleware
 {
+    /**
+     * The response service instance
+     *
+     * @var ResponseService
+     */
+    protected $responseService;
+
+    /**
+     * Constructor
+     *
+     * @param ResponseService $responseService
+     */
+    public function __construct(ResponseService $responseService)
+    {
+        $this->responseService = $responseService;
+    }
+
     /**
      * Handle an incoming request.
      *
@@ -26,20 +44,12 @@ class JwtAuthMiddleware
             $user = JWTAuth::parseToken()->authenticate();
             
             if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User not found',
-                    'error' => 'USER_NOT_FOUND'
-                ], 401);
+                return $this->responseService->unauthorized('User not found');
             }
 
             // Check if user is active
             if (!$user->isActive()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User account is inactive',
-                    'error' => 'USER_INACTIVE'
-                ], 401);
+                return $this->responseService->unauthorized('User account is inactive');
             }
 
             // Add user to request
@@ -47,8 +57,8 @@ class JwtAuthMiddleware
 
         } catch (TokenExpiredException $e) {
             // For refresh endpoint, allow expired tokens to pass through
-            if ($request->route()->getName() === 'auth.refresh' || 
-                $request->is('api/v1/auth/refresh')) {
+            if ($request->route() && ($request->route()->getName() === 'auth.refresh' || 
+                $request->is('api/v1/auth/refresh'))) {
                 // Try to get user from expired token payload
                 try {
                     $payload = JWTAuth::parseToken()->getPayload();
@@ -64,25 +74,13 @@ class JwtAuthMiddleware
                 }
             }
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Token has expired',
-                'error' => 'TOKEN_EXPIRED'
-            ], 401);
+            return $this->responseService->unauthorized('Token has expired');
 
         } catch (TokenInvalidException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token is invalid',
-                'error' => 'TOKEN_INVALID'
-            ], 401);
+            return $this->responseService->unauthorized('Token is invalid');
 
         } catch (JWTException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token is required',
-                'error' => 'TOKEN_REQUIRED'
-            ], 401);
+            return $this->responseService->unauthorized('Token is required');
         }
 
         return $next($request);

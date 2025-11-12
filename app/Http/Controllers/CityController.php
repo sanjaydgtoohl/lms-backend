@@ -3,16 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Services\CityService;
-use App\Services\ResponseService; // Maan rahe hain ki yeh service maujood hai
-use App\Http\Resources\CityResource; // Naya Resource import karein
+use App\Services\ResponseService;
+use App\Http\Resources\CityResource;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Throwable;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 
 class CityController extends Controller
 {
+    use ValidatesRequests;
+
     protected $cityService;
     protected $responseService;
 
@@ -23,13 +26,13 @@ class CityController extends Controller
     }
 
     /**
-     * Paginated list laayein (e.g., /api/v1/cities)
+     * Get paginated list of cities (e.g., /api/v1/cities)
      */
     public function index(): JsonResponse
     {
         try {
             $cities = $this->cityService->getPaginatedCities();
-            // Resource collection ka istemal karein
+            // Use resource collection for response transformation
             $data = CityResource::collection($cities);
             return $this->responseService->paginated($data, 'Cities retrieved successfully');
         } catch (Throwable $e) {
@@ -38,7 +41,7 @@ class CityController extends Controller
     }
 
     /**
-     * Saare cities ki list laayein (e.g., /api/v1/cities/all)
+     * Get list of all cities (e.g., /api/v1/cities/all)
      */
     public function getAll(): JsonResponse
     {
@@ -52,7 +55,7 @@ class CityController extends Controller
     }
 
     /**
-     * Ek specific state ke saare cities laayein
+     * Get all cities for a specific state
      * (e.g., /api/v1/states/1/cities)
      */
     public function getCitiesByState($stateId): JsonResponse
@@ -67,7 +70,7 @@ class CityController extends Controller
     }
 
     /**
-     * Ek specific country ke saare cities laayein
+     * Get all cities for a specific country
      * (e.g., /api/v1/countries/1/cities)
      */
     public function getCitiesByCountry($countryId): JsonResponse
@@ -82,45 +85,44 @@ class CityController extends Controller
     }
 
     /**
-     * Nayi city store karein
+     * Store a new city in the database
      */
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'country_id' => 'required|integer|exists:countries,id',
-            'state_id' => 'required|integer|exists:states,id',
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                // Unique rule: Naam state_id ke context mein unique hona chahiye
-                Rule::unique('cities')->where(function ($query) use ($request) {
-                    return $query->where('state_id', $request->state_id);
-                }),
-            ],
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $city = $this->cityService->createCity($validator->validated());
-            $data = new CityResource($city->load(['country', 'state'])); // Relations load karein
+            $rules = [
+                'country_id' => 'required|integer|exists:countries,id',
+                'state_id' => 'required|integer|exists:states,id',
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('cities')->where(function ($query) use ($request) {
+                        return $query->where('state_id', $request->state_id);
+                    }),
+                ],
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $city = $this->cityService->createCity($validatedData);
+            $data = new CityResource($city->load(['country', 'state']));
             return $this->responseService->created($data, 'City created successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
 
     /**
-     * Ek specific city dikhayein
+     * Display a specific city
      */
-    public function show($id): JsonResponse
+    public function show(int $id): JsonResponse
     {
         try {
             $city = $this->cityService->getCityById($id);
-            $data = new CityResource($city); // Repository pehle hi relations load kar chuka hai
+            $data = new CityResource($city);
             return $this->responseService->success($data, 'City retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
@@ -128,37 +130,37 @@ class CityController extends Controller
     }
 
     /**
-     * City update karein
+     * Update the specified city
      */
-    public function update(Request $request, $id): JsonResponse
+    public function update(Request $request, int $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'country_id' => 'required|integer|exists:countries,id',
-            'state_id' => 'required|integer|exists:states,id',
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('cities')->where(function ($query) use ($request) {
-                    return $query->where('state_id', $request->state_id);
-                })->ignore($id), // Update ke waqt current ID ignore karein
-            ],
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $city = $this->cityService->updateCity($id, $validator->validated());
-            $data = new CityResource($city->load(['country', 'state'])); // Relations reload karein
+            $rules = [
+                'country_id' => 'required|integer|exists:countries,id',
+                'state_id' => 'required|integer|exists:states,id',
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('cities')->where(function ($query) use ($request) {
+                        return $query->where('state_id', $request->state_id);
+                    })->ignore($id),
+                ],
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $city = $this->cityService->updateCity($id, $validatedData);
+            $data = new CityResource($city->load(['country', 'state']));
             return $this->responseService->updated($data, 'City updated successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
 
-    public function destroy($id): JsonResponse
+    public function destroy(int $id): JsonResponse
     {
         try {
             $this->cityService->deleteCity($id);

@@ -12,9 +12,26 @@ use Exception;
 
 class LeadSubSourceController extends Controller
 {
+    /**
+     * The LeadSubSourceService instance.
+     *
+     * @var LeadSubSourceService
+     */
     protected $leadSubSourceService;
+
+    /**
+     * The ResponseService instance.
+     *
+     * @var ResponseService
+     */
     protected $responseService;
 
+    /**
+     * Create a new LeadSubSourceController instance.
+     *
+     * @param LeadSubSourceService $leadSubSourceService
+     * @param ResponseService $responseService
+     */
     public function __construct(
         LeadSubSourceService $leadSubSourceService, 
         ResponseService $responseService
@@ -24,28 +41,37 @@ class LeadSubSourceController extends Controller
     }
 
     /**
-     * Filter: /api/v1/lead-sub-sources?lead_source_id=1&per_page=5
+     * Display a listing of lead sub-sources with optional filtering.
+     * 
+     * GET /lead-sub-sources
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     * 
+     * @queryParam lead_source_id int ID of the parent lead source to filter by. Example: 1
+     * @queryParam per_page int Number of items per page. Example: 5
+     * @queryParam search string Search term to filter results. Example: "marketing"
      */
     public function index(Request $request)
     {
         try {
-            // Validate the lead_source_id AND search filters
+            // Validate the lead_source_id and search filters
             $this->validate($request, [
                 'lead_source_id' => 'nullable|integer|exists:lead_source,id',
-                'search'         => 'nullable|string|max:100' // Search ke liye validation add karein
+                'search'         => 'nullable|string|max:100' // Add validation for search parameter
             ]);
             
             // 1. Get pagination parameter
             $perPage = (int) $request->get('per_page', 10);
 
-            // 2. SAHI TAREEKA: Saare filters ko ek hi array mein daalein
+            // 2. Collect all filters in a single array for consistency
             $filters = [
                 'lead_source_id' => $request->input('lead_source_id'),
-                'search'         => $request->input('search', null) // 'search' ko bhi isi array mein daalein
+                'search'         => $request->input('search', null) // Include search parameter in filters
             ];
             
-            // 3. Service ko sirf $filters aur $perPage bheinjein
-            // Repository $filters['search'] ko khud check kar lega
+            // 3. Pass only filters and perPage to service
+            // Repository will handle the search filter internally
             $leadSubSources = $this->leadSubSourceService->getAllLeadSubSources($filters, $perPage);
 
             // Handle empty result set gracefully
@@ -64,6 +90,14 @@ class LeadSubSourceController extends Controller
         }
     }
 
+    /**
+     * Store a newly created lead sub-source.
+     * 
+     * POST /lead-sub-sources
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request)
     {
         try {
@@ -87,6 +121,14 @@ class LeadSubSourceController extends Controller
         }
     }
 
+    /**
+     * Display the specified lead sub-source.
+     * 
+     * GET /lead-sub-sources/{id}
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function show($id)
     {
         try {
@@ -103,6 +145,15 @@ class LeadSubSourceController extends Controller
         }
     }
 
+    /**
+     * Update the specified lead sub-source.
+     * 
+     * PUT /lead-sub-sources/{id}
+     * 
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function update(Request $request, $id)
     {
         try {
@@ -128,6 +179,14 @@ class LeadSubSourceController extends Controller
         }
     }
 
+    /**
+     * Remove the specified lead sub-source.
+     * 
+     * DELETE /lead-sub-sources/{id}
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function destroy($id)
     {
         try {

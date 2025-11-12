@@ -3,18 +3,38 @@
 namespace App\Http\Controllers;
 
 use App\Services\StateService;
-use App\Services\ResponseService; // Maan rahe hain ki yeh service maujood hai
+use App\Services\ResponseService;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Throwable;
-use Illuminate\Support\Facades\Validator;
-use App\Http\Resources\StateResource; // Naya Resource import karein
+use Illuminate\Validation\ValidationException;
+use App\Http\Resources\StateResource;
 
+/**
+ * Controller for managing states.
+ * 
+ * Handles CRUD operations for states and their relationships with countries.
+ */
 class StateController extends Controller
 {
+    use ValidatesRequests;
+
     protected $stateService;
+
+    /**
+     * The ResponseService instance.
+     *
+     * @var ResponseService
+     */
     protected $responseService;
 
+    /**
+     * Create a new StateController instance.
+     *
+     * @param StateService $stateService Service for state operations
+     * @param ResponseService $responseService Service for standardized API responses
+     */
     public function __construct(StateService $stateService, ResponseService $responseService)
     {
         $this->stateService = $stateService;
@@ -22,7 +42,7 @@ class StateController extends Controller
     }
 
     /**
-     * Paginated list laayein (e.g., /api/v1/states)
+     * Get paginated list of states (e.g., /api/v1/states)
      */
     public function index(): JsonResponse
     {
@@ -39,7 +59,11 @@ class StateController extends Controller
     }
 
     /**
-     * Saare states ki list laayein (e.g., /api/v1/states/all)
+     * Get a list of all states.
+     * 
+     * GET /states/all
+     * 
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getAll(): JsonResponse
     {
@@ -52,14 +76,18 @@ class StateController extends Controller
     }
 
     /**
-     * Ek specific country ke saare states laayein
-     * (e.g., /api/v1/countries/1/states)
+     * Get all states for a specific country.
+     * 
+     * GET /countries/{countryId}/states
+     * 
+     * @param int $countryId
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getStatesByCountry($countryId): JsonResponse
     {
         try {
             $states = $this->stateService->getStatesByCountry($countryId);
-            // Resource collection ka istemal karein
+            // Transform data using Resource collection
             $data = StateResource::collection($states);
             return $this->responseService->success($data, 'States for country retrieved');
         } catch (Throwable $e) {
@@ -68,37 +96,46 @@ class StateController extends Controller
     }
 
     /**
-     * Naya state store karein
+     * Store a newly created state.
+     * 
+     * POST /states
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'country_id' => 'required|integer|exists:countries,id', // Validate karein ki country maujood hai
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $state = $this->stateService->createState($validator->validated());
-            // Naye resource ka istemal karein
+            $rules = [
+                'name' => 'required|string|max:255',
+                'country_id' => 'required|integer|exists:countries,id',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $state = $this->stateService->createState($validatedData);
             $data = new StateResource($state);
             return $this->responseService->created($data, 'State created successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
 
     /**
-     * Ek specific state dikhayein
+     * Display the specified state.
+     * 
+     * GET /states/{id}
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function show($id): JsonResponse
+    public function show(int $id): JsonResponse
     {
         try {
             $state = $this->stateService->getStateById($id);
-            // Resource ka istemal karein
+            // Transform data using Resource
             $data = new StateResource($state);
             return $this->responseService->success($data, 'State retrieved successfully');
         } catch (Throwable $e) {
@@ -107,33 +144,43 @@ class StateController extends Controller
     }
 
     /**
-     * State update karein
+     * Update the specified state.
+     * 
+     * PUT /states/{id}
+     * 
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, $id): JsonResponse
+    public function update(Request $request, int $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'country_id' => 'required|integer|exists:countries,id', // Validate karein ki country maujood hai
-        ]);
-
-        if ($validator->fails()) {
-            return $this->responseService->validationError($validator->errors()->toArray(), 'Validation failed');
-        }
-
         try {
-            $state = $this->stateService->updateState($id, $validator->validated());
-            // Resource ka istemal karein
+            $rules = [
+                'name' => 'required|string|max:255',
+                'country_id' => 'required|integer|exists:countries,id',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $state = $this->stateService->updateState($id, $validatedData);
             $data = new StateResource($state);
             return $this->responseService->updated($data, 'State updated successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
 
     /**
-     * State delete karein (HARD delete)
+     * Remove the specified state from storage (HARD delete).
+     * 
+     * DELETE /states/{id}
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy($id): JsonResponse
+    public function destroy(int $id): JsonResponse
     {
         try {
             $this->stateService->deleteState($id);

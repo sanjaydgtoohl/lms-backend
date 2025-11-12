@@ -3,123 +3,139 @@
 namespace App\Http\Controllers;
 
 use App\Models\BrandAgencyRelationship;
+use App\Services\ResponseService;
+use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
-use Illuminate\Database\QueryException;
-use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-
-// Assuming Brand and Agency Models exist in App\Models
-use App\Models\Brand;
-use App\Models\Agency;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class BrandAgencyRelationshipController extends Controller
 {
-    /**
-     * Display a listing of all Brand-Agency relationships (R).
-     */
-    public function index()
-    {
-        // Eager loading Brand and Agency data for efficiency
-        $relationships = BrandAgencyRelationship::with(['brand', 'agency'])->get();
+    use ValidatesRequests;
 
-        return response()->json($relationships, Response::HTTP_OK);
+    /**
+     * The response service instance
+     *
+     * @var ResponseService
+     */
+    protected $responseService;
+
+    /**
+     * Constructor
+     *
+     * @param ResponseService $responseService
+     */
+    public function __construct(ResponseService $responseService)
+    {
+        $this->responseService = $responseService;
     }
 
     /**
-     * Store a newly created relationship (Attach Brand to Agency) (C).
+     * Display a listing of all Brand-Agency relationships
+     *
+     * @return JsonResponse
      */
-    public function store(Request $request)
+    public function index(): JsonResponse
     {
-        // 1. Validation Rules
-        $rules = [
-            // Check if both IDs are present and exist in their respective tables
-            'brand_id' => 'required|exists:brands,id', 
-            'agency_id' => 'required|exists:agency,id', 
-        ];
-
-        // 2. Lumen Validation check
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation Failed',
-                'errors' => $validator->errors()
-            ], Response::HTTP_UNPROCESSABLE_ENTITY); // 422
-        }
-
-        $validatedData = $validator->validated();
-
         try {
+            $relationships = BrandAgencyRelationship::with(['brand', 'agency'])->get();
+            return $this->responseService->success($relationships, 'Brand-Agency relationships retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Store a newly created relationship (Attach Brand to Agency)
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            $rules = [
+                'brand_id' => 'required|integer|exists:brands,id', 
+                'agency_id' => 'required|integer|exists:agency,id', 
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
             // Check for existing relationship to prevent duplicate entries
             $exists = BrandAgencyRelationship::where('brand_id', $validatedData['brand_id'])
                                               ->where('agency_id', $validatedData['agency_id'])
                                               ->exists();
 
             if ($exists) {
-                return response()->json([
-                    'message' => 'Relationship already exists between this Brand and Agency.'
-                ], Response::HTTP_CONFLICT); // 409 Conflict
+                return $this->responseService->error(
+                    'Relationship already exists between this Brand and Agency',
+                    null,
+                    409,
+                    'RELATIONSHIP_EXISTS'
+                );
             }
 
             // Create the relationship record
             $relationship = BrandAgencyRelationship::create($validatedData);
-            $relationship->load(['brand', 'agency']); // Load related data for response
+            $relationship->load(['brand', 'agency']);
 
-            return response()->json([
-                'message' => 'Brand and Agency successfully linked.',
-                'relationship' => $relationship
-            ], Response::HTTP_CREATED); // 201
-
-        } catch (QueryException $e) {
-            return response()->json([
-                'message' => 'Database Error: Could not create relationship.',
-                'error' => $e->getMessage()
-            ], Response::HTTP_INTERNAL_SERVER_ERROR); // 500
+            return $this->responseService->created($relationship, 'Brand and Agency successfully linked');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
     
     /**
-     * Display the specified relationship by its ID (R).
+     * Display the specified relationship by its ID
+     *
+     * @param int $id
+     * @return JsonResponse
      */
-    public function show($id)
+    public function show(int $id): JsonResponse
     {
         try {
             $relationship = BrandAgencyRelationship::with(['brand', 'agency'])->findOrFail($id);
-            return response()->json($relationship, Response::HTTP_OK);
-            
-        } catch (ModelNotFoundException $e) {
-            return response()->json(['message' => 'Relationship not found.'], Response::HTTP_NOT_FOUND); // 404
+            return $this->responseService->success($relationship, 'Relationship retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
     /**
-     * Update operation is usually not needed for a simple pivot table like this.
-     * We skip it here. If needed, it would be identical to store/destroy logic.
+     * Update operation is not supported for pivot table
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): JsonResponse
     {
-        return response()->json([
-            'message' => 'Update is not supported for this pivot resource. Use POST for store/attach and DELETE for destroy/detach.'
-        ], Response::HTTP_METHOD_NOT_ALLOWED); // 405
+        return $this->responseService->error(
+            'Update is not supported for this pivot resource. Use POST for store/attach and DELETE for destroy/detach.',
+            null,
+            405,
+            'METHOD_NOT_ALLOWED'
+        );
     }
 
-
     /**
-     * Remove the specified relationship (Detach Brand from Agency) (D - Soft Delete).
+     * Remove the specified relationship (Detach Brand from Agency)
+     *
+     * @param int $id
+     * @return JsonResponse
      */
-    public function destroy($id)
+    public function destroy(int $id): JsonResponse
     {
         try {
             $relationship = BrandAgencyRelationship::findOrFail($id);
             $relationship->delete(); // Soft Delete
 
-            return response()->json([
-                'message' => 'Relationship successfully detached (soft deleted).'
-            ], Response::HTTP_NO_CONTENT); // 204
-
-        } catch (ModelNotFoundException $e) {
-            return response()->json(['message' => 'Relationship not found.'], Response::HTTP_NOT_FOUND); // 404
+            return $this->responseService->deleted('Relationship successfully detached');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 }

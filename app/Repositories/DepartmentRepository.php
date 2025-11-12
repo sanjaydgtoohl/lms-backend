@@ -47,7 +47,11 @@ class DepartmentRepository implements DepartmentRepositoryInterface
     }
 
     /**
-     * NAYA METHOD IMPLEMENT KIYA GAYA (Assuming this was missing and needed for slug generation)
+     * NEW METHOD IMPLEMENTED
+     * Added to support finding departments by slug
+     *
+     * @param string $slug The department slug to search for
+     * @return \App\Models\Department|null
      */
     public function findBySlug(string $slug)
     {

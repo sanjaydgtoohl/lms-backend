@@ -15,7 +15,7 @@ class Agency extends Model
      *
      * @var string
      */
-    protected $table = 'agency'; // <-- IMPORTANT
+    protected $table = 'agency';
 
     /**
      * The attributes that are mass assignable.
@@ -26,9 +26,9 @@ class Agency extends Model
         'name',
         'slug',
         'status',
-        'agency_group_id',
-        'agency_type_id',
+        'agency_type',
         'brand_id',
+        'is_parent'
     ];
 
     /**

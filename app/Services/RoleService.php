@@ -43,11 +43,11 @@ class RoleService
 	}
 
 	/**
-	 * Find role by slug
+	 * Find role by name (replaces findBySlug since slug doesn't exist)
 	 */
-	public function findBySlug(string $slug): ?Role
+	public function findByName(string $name): ?Role
 	{
-		return $this->roleRepository->findBySlug($slug);
+		return $this->roleRepository->findByName($name);
 	}
 
 	/**
@@ -73,11 +73,17 @@ class RoleService
 	 *
 	 * @throws ValidationException
 	 */
-	public function update(int $id, array $data): bool
+	public function update(int $id, array $data, ?array $permissions = null): bool
 	{
 		$this->validateRoleData($data, $id);
 
-		return $this->roleRepository->update($id, $data);
+		$updated = $this->roleRepository->update($id, $data);
+
+		if ($updated && $permissions !== null) {
+			$this->roleRepository->syncPermissions($id, $permissions);
+		}
+
+		return $updated;
 	}
 
 	/**
@@ -123,10 +129,8 @@ class RoleService
 	{
 		$rules = [
 			'name' => 'required|string|max:255|unique:roles,name' . ($ignoreId ? ",{$ignoreId}" : ''),
-			'slug' => 'required|string|max:255|unique:roles,slug' . ($ignoreId ? ",{$ignoreId}" : ''),
 			'display_name' => 'nullable|string|max:255',
 			'description' => 'nullable|string|max:1000',
-			'status' => 'nullable|in:1,2,15',
 		];
 
 		$validator = Validator::make($data, $rules);

@@ -4,6 +4,8 @@ namespace App\Contracts\Repositories;
 
 use App\Models\Brand;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection; // <-- Import Collection
+
 
 interface BrandRepositoryInterface
 {
@@ -35,6 +37,13 @@ interface BrandRepositoryInterface
      * @return Brand|null
      */
     public function getBrandBySlug(string $slug): ?Brand;
+
+    /**
+     * Get a simple list of brands (ID and Name).
+     *
+     * @return \Illuminate\Support\Collection|null
+     */
+    public function getBrandList(): ?Collection;
 
     // ============================================================================
     // WRITE OPERATIONS

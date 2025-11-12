@@ -44,11 +44,11 @@ class PermissionService
     }
 
     /**
-     * Find permission by slug
+     * Find permission by name (replaces findBySlug since slug doesn't exist)
      */
-    public function findBySlug(string $slug): ?Permission
+    public function findByName(string $name): ?Permission
     {
-        return $this->permissionRepository->findBySlug($slug);
+        return $this->permissionRepository->findByName($name);
     }
 
     /**
@@ -83,13 +83,6 @@ class PermissionService
         return $this->permissionRepository->delete($id);
     }
 
-    /**
-     * Get only active permissions
-     */
-    public function getActive(int $perPage = 15): LengthAwarePaginator
-    {
-        return $this->permissionRepository->getActive($perPage);
-    }
 
     /**
      * Attach permission to role
@@ -118,10 +111,8 @@ class PermissionService
     {
         $rules = [
             'name' => 'required|string|max:255|unique:permissions,name' . ($ignoreId ? ",{$ignoreId}" : ''),
-            'slug' => 'nullable|string|max:255|unique:permissions,slug' . ($ignoreId ? ",{$ignoreId}" : ''),
             'display_name' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'status' => 'nullable|in:1,2,15',
         ];
 
         $validator = Validator::make($data, $rules);

@@ -4,15 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // SoftDeletes ke liye
+use Illuminate\Database\Eloquent\SoftDeletes; // Import for soft delete functionality
 
 class BrandAgencyRelationship extends Model
 {
-    use HasFactory, SoftDeletes; // SoftDeletes trait ka use
+    use HasFactory, SoftDeletes; // Enable soft delete functionality
 
     /**
      * The table associated with the model.
-     * Table ka naam define kiya gaya hai
+     * Defines the database table name for this model
      *
      * @var string
      */
@@ -20,7 +20,7 @@ class BrandAgencyRelationship extends Model
 
     /**
      * The attributes that are mass assignable.
-     * Sirf fillable fields yahan define kiye jaate hain.
+     * Only these fields can be mass assigned
      *
      * @var array<int, string>
      */
@@ -29,11 +29,13 @@ class BrandAgencyRelationship extends Model
         'brand_id',
     ];
 
-    // Note: Agar aap is model ko seedha use karna chahte hain, toh aap 
-    // yahan Brand aur Agency ke sath 'belongsTo' relationship define kar sakte hain.
+    // Note: If you need to use this model directly, you can define
+    // belongsTo relationships with Brand and Agency models here.
 
     /**
-     * Is relationship ka Brand model.
+     * Get the Brand model for this relationship.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function brand()
     {
@@ -41,11 +43,13 @@ class BrandAgencyRelationship extends Model
     }
 
     /**
-     * Is relationship ka Agency model.
+     * Get the Agency model for this relationship.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function agency()
     {
-        // Yahan 'agency' table ke liye Agency model ka upyog karen.
+        // Use Agency model for the 'agency' table relationship
         return $this->belongsTo(Agency::class, 'agency_id'); 
     }
 }

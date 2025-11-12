@@ -226,4 +226,93 @@ class UserController extends Controller
             return $this->responseService->serverError('Failed to change password: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Get current authenticated user profile
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function me(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+            
+            $user = $this->userService->getUserById($user->id);
+            
+            return $this->responseService->success(
+                new UserResource($user),
+                'User profile retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve user profile: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update current authenticated user profile
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            // Remove password from update data if present (use changePassword endpoint instead)
+            $data = $request->except(['password', 'password_confirmation']);
+            
+            $success = $this->userService->updateUser($user->id, $data);
+            
+            if (!$success) {
+                return $this->responseService->notFound('User not found');
+            }
+            
+            $updatedUser = $this->userService->getUserById($user->id);
+            
+            return $this->responseService->updated(
+                new UserResource($updatedUser),
+                'Profile updated successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Profile update validation failed');
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to update profile: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get login history for current authenticated user
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getLoginHistory(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            $loginLogs = $user->loginLogs()->paginate($request->get('per_page', 15));
+            
+            return $this->responseService->paginated(
+                $loginLogs,
+                'Login history retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve login history: ' . $e->getMessage());
+        }
+    }
 }

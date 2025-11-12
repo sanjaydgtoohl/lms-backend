@@ -31,9 +31,9 @@ class PermissionRepository implements PermissionRepositoryInterface
         return $this->model->where('uuid', $uuid)->first();
     }
 
-    public function findBySlug(string $slug): ?Permission
+    public function findByName(string $name): ?Permission
     {
-        return $this->model->where('slug', $slug)->first();
+        return $this->model->where('name', $name)->first();
     }
 
     public function create(array $data): Permission
@@ -72,24 +72,15 @@ class PermissionRepository implements PermissionRepositoryInterface
             $query->where(function ($sub) use ($q) {
                 $sub->where('name', 'like', "%{$q}%")
                     ->orWhere('display_name', 'like', "%{$q}%")
-                    ->orWhere('description', 'like', "%{$q}%")
-                    ->orWhere('slug', 'like', "%{$q}%");
+                    ->orWhere('description', 'like', "%{$q}%");
             });
-        }
-
-        if (isset($criteria['status'])) {
-            $query->where('status', $criteria['status']);
         }
 
         if (! empty($criteria['name'])) {
             $query->where('name', 'like', "%{$criteria['name']}%");
         }
 
-        if (! empty($criteria['slug'])) {
-            $query->where('slug', $criteria['slug']);
-        }
-
-        return $query->orderBy('id', 'asc')->paginate($perPage);
+        return $query->orderBy('name', 'asc')->paginate($perPage);
     }
 
     public function findWithRelations(int $id, array $relations = []): ?Permission
@@ -97,22 +88,17 @@ class PermissionRepository implements PermissionRepositoryInterface
         return $this->model->with($relations)->find($id);
     }
 
-    public function getActive(int $perPage = 15): LengthAwarePaginator
-    {
-        return $this->model->where('status', Permission::STATUS_ACTIVE)->paginate($perPage);
-    }
-
     public function attachToRole(int $permissionId, int $roleId): bool
     {
+        $permission = $this->model->find($permissionId);
         $role = Role::find($roleId);
 
-        if (! $role) {
+        if (! $permission || ! $role) {
             return false;
         }
 
         try {
-            // Role::givePermission accepts id or Permission instance
-            $role->givePermission($permissionId);
+            $role->givePermission($permission);
             return true;
         } catch (\Throwable $e) {
             return false;
@@ -121,14 +107,15 @@ class PermissionRepository implements PermissionRepositoryInterface
 
     public function detachFromRole(int $permissionId, int $roleId): bool
     {
+        $permission = $this->model->find($permissionId);
         $role = Role::find($roleId);
 
-        if (! $role) {
+        if (! $permission || ! $role) {
             return false;
         }
 
         try {
-            $role->removePermission($permissionId);
+            $role->removePermission($permission);
             return true;
         } catch (\Throwable $e) {
             return false;

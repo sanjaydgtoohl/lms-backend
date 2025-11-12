@@ -20,16 +20,16 @@ class LeadSubSourceRepository implements LeadSubSourceRepositoryInterface
 
         // --- Filter logic ---
 
-        // 1. Puraana filter: Specific ID se
+        // 1. Legacy filter: Filter by specific lead source ID
         if (!empty($filters['lead_source_id'])) {
             $query->where('lead_source_id', $filters['lead_source_id']);
         }
 
-        // 2. NAYA filter: General search ke liye
-        // Hum maan rahe hain ki search 'name' column par hoga
+        // 2. NEW filter: For general search functionality
+        // We're assuming the search will be performed on the 'name' column
         if (!empty($filters['search'])) {
             $searchTerm = $filters['search'];
-            $query->where('name', 'LIKE', "%{$searchTerm}%"); // 'name' ko apne column naam se badlein
+            $query->where('name', 'LIKE', "%{$searchTerm}%"); // Replace 'name' with your actual column name if different
         }
         
         // --- End Filter logic ---
@@ -41,7 +41,7 @@ class LeadSubSourceRepository implements LeadSubSourceRepositoryInterface
 
     public function getLeadSubSourceById($id) 
     {
-        // Parent 'leadSource' ko bhi load karein
+        // Also load the parent 'leadSource' relationship
         return $this->model->with('leadSource')->findOrFail($id);
     }
 

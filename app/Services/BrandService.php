@@ -116,7 +116,6 @@ class BrandService
             if (empty($data['agency_id'])) {
                 $data['agency_id'] = $this->getOrCreateDirectAgency();
             }
-
             return $this->brandRepository->createBrand($data);
         } catch (DomainException $e) {
             throw $e;
@@ -170,6 +169,8 @@ class BrandService
         }
     }
 
+    
+
     // ============================================================================
     // PRIVATE HELPER METHODS
     // ============================================================================
@@ -192,7 +193,7 @@ class BrandService
                 'name' => 'Direct',
                 'slug' => 'direct',
                 'status' => '1',
-                'agency_type_id' => $defaultAgencyType->id,
+                'agency_type' => $defaultAgencyType->id,
             ]);
         } elseif ($directAgency->trashed()) {
             $directAgency->restore();
@@ -227,5 +228,25 @@ class BrandService
         }
 
         return $defaultAgencyType;
+    }
+
+    /**
+     * Get a simple list of brands (ID and Name).
+     *
+     * @return \Illuminate\Support\Collection|null
+     * @throws DomainException
+     */
+    public function getBrandList(): ?\Illuminate\Support\Collection
+    {
+        try {
+            // Hum repository se list maangenge
+            return $this->brandRepository->getBrandList();
+        } catch (QueryException $e) {
+            Log::error('Database error fetching brand list', ['exception' => $e]);
+            throw new DomainException('Database error while fetching brand list.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching brand list', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching brand list.');
+        }
     }
 }
