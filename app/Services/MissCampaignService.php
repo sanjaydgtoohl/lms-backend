@@ -129,7 +129,14 @@ class MissCampaignService
     {
         try {
             $model = new MissCampaign();
-            return $model->storeImage($file, 'miss-campaigns');
+            // Use HandlesFileUploads trait method
+            $uploadResult = $model->uploadImage($file, 'miss-campaigns', [
+                'disk' => 'public',
+                'prefix' => 'campaign_',
+            ]);
+            
+            // Return the path to store in database
+            return $uploadResult['path'] ?? null;
         } catch (Exception $e) {
             Log::error('Error uploading miss campaign image', ['exception' => $e]);
             throw new DomainException('Error uploading image.');
