@@ -19,19 +19,15 @@ return new class extends Migration
                   ->on('leads')
                   ->onDelete('cascade');
 
-            // --- Aapke form ke saare contact fields ---
             $table->string('full_name');
             $table->string('profile_url')->nullable();
             $table->string('email')->nullable();
             
-            // Phone numbers ko string mein save karna behtar hai
             $table->string('mobile_number', 20); // Required
             $table->string('mobile_number_optional', 20)->nullable(); // Optional
 
-            // "Brand" ya "Agency" store karne ke liye
             $table->string('type', 50)->nullable(); 
 
-            // Baaki saare _id fields (jo doosri tables se aa rahe hain)
             $table->unsignedBigInteger('designation_id')->nullable();
             $table->unsignedBigInteger('department_id')->nullable();
             $table->unsignedBigInteger('sub_source_id')->nullable();

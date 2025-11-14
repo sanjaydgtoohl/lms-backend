@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Traits\MediaUpload;
+use App\Traits\HandlesFileUploads;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class MissCampaign extends BaseModel
 {
-    use MediaUpload;
+    use HandlesFileUploads;
     /**
      * The table associated with the model.
      *

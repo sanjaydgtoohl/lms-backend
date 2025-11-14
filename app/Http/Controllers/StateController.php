@@ -16,11 +16,22 @@ use App\Http\Resources\StateResource;
  * 
  * Handles CRUD operations for states and their relationships with countries.
  */
+/**
+ * Controller for managing states.
+ * 
+ * Handles CRUD operations for states and their relationships with countries.
+ */
 class StateController extends Controller
 {
     use ValidatesRequests;
 
     protected $stateService;
+
+    /**
+     * The ResponseService instance.
+     *
+     * @var ResponseService
+     */
 
     /**
      * The ResponseService instance.
@@ -35,6 +46,12 @@ class StateController extends Controller
      * @param StateService $stateService Service for state operations
      * @param ResponseService $responseService Service for standardized API responses
      */
+    /**
+     * Create a new StateController instance.
+     *
+     * @param StateService $stateService Service for state operations
+     * @param ResponseService $responseService Service for standardized API responses
+     */
     public function __construct(StateService $stateService, ResponseService $responseService)
     {
         $this->stateService = $stateService;
@@ -42,6 +59,7 @@ class StateController extends Controller
     }
 
     /**
+     * Get paginated list of states (e.g., /api/v1/states)
      * Get paginated list of states (e.g., /api/v1/states)
      */
     public function index(): JsonResponse
@@ -59,6 +77,11 @@ class StateController extends Controller
     }
 
     /**
+     * Get a list of all states.
+     * 
+     * GET /states/all
+     * 
+     * @return \Illuminate\Http\JsonResponse
      * Get a list of all states.
      * 
      * GET /states/all
@@ -82,11 +105,18 @@ class StateController extends Controller
      * 
      * @param int $countryId
      * @return \Illuminate\Http\JsonResponse
+     * Get all states for a specific country.
+     * 
+     * GET /countries/{countryId}/states
+     * 
+     * @param int $countryId
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getStatesByCountry($countryId): JsonResponse
     {
         try {
             $states = $this->stateService->getStatesByCountry($countryId);
+            // Transform data using Resource collection
             // Transform data using Resource collection
             $data = StateResource::collection($states);
             return $this->responseService->success($data, 'States for country retrieved');
@@ -96,6 +126,12 @@ class StateController extends Controller
     }
 
     /**
+     * Store a newly created state.
+     * 
+     * POST /states
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      * Store a newly created state.
      * 
      * POST /states
@@ -130,11 +166,18 @@ class StateController extends Controller
      * 
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
+     * Display the specified state.
+     * 
+     * GET /states/{id}
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function show(int $id): JsonResponse
     {
         try {
             $state = $this->stateService->getStateById($id);
+            // Transform data using Resource
             // Transform data using Resource
             $data = new StateResource($state);
             return $this->responseService->success($data, 'State retrieved successfully');
@@ -144,6 +187,13 @@ class StateController extends Controller
     }
 
     /**
+     * Update the specified state.
+     * 
+     * PUT /states/{id}
+     * 
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      * Update the specified state.
      * 
      * PUT /states/{id}
@@ -173,6 +223,12 @@ class StateController extends Controller
     }
 
     /**
+     * Remove the specified state from storage (HARD delete).
+     * 
+     * DELETE /states/{id}
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      * Remove the specified state from storage (HARD delete).
      * 
      * DELETE /states/{id}
