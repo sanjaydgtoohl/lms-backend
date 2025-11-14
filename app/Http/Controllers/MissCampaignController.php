@@ -127,7 +127,8 @@ class MissCampaignController extends Controller
 
             // Handle image upload if present
             if ($request->hasFile('image_path')) {
-                $validatedData['image_path'] = $this->missCampaignService->uploadImage($request->file('image_path'));
+                $uploadResult = $this->missCampaignService->uploadImage($request->file('image_path'));
+                $validatedData['image_path'] = $uploadResult['path'] ?? null;
             }
 
             $campaign = $this->missCampaignService->createMissCampaign($validatedData);
@@ -176,7 +177,8 @@ class MissCampaignController extends Controller
 
             // Handle image upload if present
             if ($request->hasFile('image_path')) {
-                $validatedData['image_path'] = $this->missCampaignService->uploadImage($request->file('image_path'));
+                $uploadResult = $this->missCampaignService->uploadImage($request->file('image_path'));
+                $validatedData['image_path'] = $uploadResult['path'] ?? null;
             }
 
             $this->missCampaignService->updateMissCampaign($id, $validatedData);
