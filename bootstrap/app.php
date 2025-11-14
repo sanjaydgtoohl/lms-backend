@@ -95,7 +95,7 @@ $app->configure('laratrust');
 */
 
 $app->middleware([
-    // Global middleware can be added here
+    App\Http\Middleware\CorsMiddleware::class,
 ]);
 
 $app->routeMiddleware([
