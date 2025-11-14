@@ -11,14 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('status_groups', function (Blueprint $table) {
+        Schema::create('priorities', function (Blueprint $table) {
             $table->id();
+            $table->uuid('uuid')->unique();
             $table->string('name');
             $table->string('slug');
-            $table->json('status_id'); 
+            
+            $table->json('call_status')
+                ->nullable();
+
             $table->enum('status', ['1', '2', '15'])
                 ->default('1')
                 ->comment('1 = active, 2 = deactivated, 15 = user soft delete');
+
             $table->timestamps();
             $table->softDeletes();
         });
@@ -29,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('status_groups');
+        Schema::dropIfExists('priorities');
     }
 };
