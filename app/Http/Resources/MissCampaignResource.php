@@ -24,7 +24,8 @@ class MissCampaignResource extends JsonResource
             'status' => $this->status,
             'image_path' => $this->image_path,
             'image_url' => $this->when($this->image_path, function() {
-                return $this->getMediaUrl($this->image_path);
+                // use HandlesFileUploads trait helper on the underlying model
+                return $this->getFileUrl($this->image_path);
             }),
 
             // Relationships (IDs)

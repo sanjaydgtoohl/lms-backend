@@ -122,17 +122,24 @@ class MissCampaignService
      * Upload and store an image for a miss campaign.
      *
      * @param UploadedFile $file
-     * @return string|null
+     * @return array|null
      * @throws DomainException
      */
-    public function uploadImage(UploadedFile $file): ?string
+    public function uploadImage(UploadedFile $file): ?array
     {
         try {
             $model = new MissCampaign();
-            return $model->storeImage($file, 'miss-campaigns');
+            // Use HandlesFileUploads trait method
+            return $model->uploadImage($file, 'miss-campaigns', [
+                'disk' => 'public',
+                'prefix' => 'campaign_',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error uploading miss campaign image', ['errors' => $e->errors()]);
+            throw new DomainException('Invalid image file: ' . implode(', ', array_merge(...array_values($e->errors()))));
         } catch (Exception $e) {
             Log::error('Error uploading miss campaign image', ['exception' => $e]);
-            throw new DomainException('Error uploading image.');
+            throw new DomainException('Error uploading image: ' . $e->getMessage());
         }
     }
 
