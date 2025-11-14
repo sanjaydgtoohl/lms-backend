@@ -3,6 +3,11 @@
 /** @var \Laravel\Lumen\Routing\Router $router */
 
 use App\Http\Controllers\Api\AuthController;
+
+// Handle CORS preflight requests
+$router->options('{any:.*}', function () {
+    return response('', 200);
+});
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\IndustryController;
 use App\Http\Controllers\DesignationController;
