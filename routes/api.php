@@ -248,15 +248,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->delete('{id:[0-9]+}', 'PermissionController@destroy');
     });
 
-    // Leads routes
-    $router->group(['prefix' => 'leads'], function () use ($router) {
-        $router->get('/', 'LeadController@index');
-        $router->post('/', 'LeadController@store');
-        $router->get('{id:[0-9]+}', 'LeadController@show');
-        $router->put('{id:[0-9]+}', 'LeadController@update');
-        $router->patch('{id:[0-9]+}', 'LeadController@update');
-        $router->delete('{id:[0-9]+}', 'LeadController@destroy');
-    });
+    
 
     // Call Status routes
     $router->group(['prefix' => 'call-statuses'], function () use ($router) {
@@ -286,6 +278,28 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('{id:[0-9]+}', 'PriorityController@update');
         $router->patch('{id:[0-9]+}', 'PriorityController@update');
         $router->delete('{id:[0-9]+}', 'PriorityController@destroy');
+    });
+
+    // Lead routes
+    $router->group(['prefix' => 'leads'], function () use ($router) {
+        // List and filter routes first (specific routes before generic {id})
+        $router->get('/list', 'LeadController@list');
+        $router->get('/filter', 'LeadController@filter');
+        
+        // Generic CRUD operations
+        $router->get('/', 'LeadController@index');
+        $router->post('/', 'LeadController@store');
+        $router->get('{id:[0-9]+}', 'LeadController@show');
+        $router->put('{id:[0-9]+}', 'LeadController@update');
+        $router->patch('{id:[0-9]+}', 'LeadController@update');
+        $router->delete('{id:[0-9]+}', 'LeadController@destroy');
+        
+        // Additional Lead routes (specific routes after generic CRUD)
+        $router->post('{id:[0-9]+}/assign', 'LeadController@assign');
+        $router->post('{id:[0-9]+}/priority', 'LeadController@updatePriority');
+        $router->post('{id:[0-9]+}/status', 'LeadController@updateStatus');
+        $router->post('{id:[0-9]+}/call-status', 'LeadController@addCallStatus');
+        $router->delete('{id:[0-9]+}/call-status/{callStatusId:[0-9]+}', 'LeadController@removeCallStatus');
     });
 
     // Miss Campaign routes

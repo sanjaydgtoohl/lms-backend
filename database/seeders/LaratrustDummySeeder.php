@@ -61,12 +61,14 @@ class LaratrustDummySeeder extends Seeder
             DB::table('permissions')->updateOrInsert(
                 ['name' => $perm['name']],
                 [
+                    'uuid' => DB::raw("COALESCE(uuid, '" . Str::uuid() . "')"),
+                    'slug' => Str::slug($perm['name']),
                     'display_name' => $perm['display_name'],
                     'description' => $perm['description'],
                     'updated_at' => $now,
                     'created_at' => DB::raw("COALESCE(created_at, '$now')"),
                 ]
-            );
+            ); 
             $permissionIdByName[$perm['name']] = DB::table('permissions')->where('name', $perm['name'])->value('id');
         }
 

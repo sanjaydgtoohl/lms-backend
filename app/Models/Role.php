@@ -21,8 +21,10 @@ class Role extends BaseModel
      */
     protected $fillable = [
         'name',
+        'slug',
         'display_name',
         'description',
+        'status',
     ];
 
     /**

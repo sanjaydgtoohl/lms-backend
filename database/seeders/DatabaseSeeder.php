@@ -24,6 +24,9 @@ class DatabaseSeeder extends Seeder
             AgencyTypeSeeder::class,
             BrandTypeSeeder::class,
             ZoneSeeder::class,
+            PrioritySeeder::class,
+            CallStatusSeeder::class,
+            StatusSeeder::class,
         ]);
         
         // Re-enable foreign key checks

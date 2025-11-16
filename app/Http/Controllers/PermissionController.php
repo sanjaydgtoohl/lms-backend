@@ -58,11 +58,15 @@ class PermissionController extends Controller
     {
         try {
             $rules = [
-                'name' => 'required|string|max:255|unique:permissions,name',
-                'display_name' => 'nullable|string|max:255',
-                'description' => 'nullable|string',
-            ];
+                'name' => 'required|array',
+                'name.*' => 'required|string|max:255|distinct|unique:permissions,name',
 
+                'display_name' => 'nullable|array',
+                'display_name.*' => 'nullable|string|max:255',
+
+                'description' => 'nullable|array',
+                'description.*' => 'nullable|string|max:1000',
+            ];
             $validatedData = $this->validate($request, $rules);
 
             $permission = $this->permissionService->create($validatedData);

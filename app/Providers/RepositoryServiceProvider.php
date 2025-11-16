@@ -76,6 +76,9 @@ use App\Repositories\StatusRepository;
 use App\Contracts\Repositories\PriorityRepositoryInterface;
 use App\Repositories\PriorityRepository;
 
+use App\Contracts\Repositories\LeadRepositoryInterface;
+use App\Repositories\LeadRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -194,6 +197,11 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             PriorityRepositoryInterface::class,
             PriorityRepository::class
+        );
+
+        $this->app->bind(
+            LeadRepositoryInterface::class,
+            LeadRepository::class
         );
     }
     /**

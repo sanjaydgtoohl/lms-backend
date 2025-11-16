@@ -82,4 +82,11 @@ interface UserRepositoryInterface
      * @return User|null
      */
     public function updateLastLogin(int $id): ?User;
+
+    /**
+     * Get user statistics
+     *
+     * @return array
+     */
+    public function getStatistics(): array;
 }

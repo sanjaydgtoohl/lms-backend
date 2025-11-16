@@ -25,39 +25,88 @@ class Lead extends Model
     protected $fillable = [
         'brand_id',
         'agency_id',
-        'user_id', // Foreign key defined in migration
-        'status',
+        'current_assign_user',
+        'priority_id',
+        'call_status',
+        'lead_status',
+        'name',
+        'profile_url',
+        'email',
+        'mobile_number',
+        'type',
+        'designation_id',
+        'department_id',
+        'sub_source_id',
+        'country_id',
+        'state_id',
+        'city_id',
+        'zone_id',
+        'postal_code',
         'comment',
+        'status',
     ];
 
     /**
-     * Get all contacts associated with the lead.
-     * A lead can have multiple contacts.
+     * The attributes that should be cast.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @var array<string, string>
      */
-    public function contacts()
-    {
-        // Relationship defined using lead_id as foreign key in LeadContact model
-        return $this->hasMany(LeadContact::class, 'lead_id');
-    }
-
-    // --- Optional: Additional relationships ---
-
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
+    protected $casts = [
+        'mobile_number' => 'array',
+    ];
 
     public function brand()
     {
-        // Define relationship with Brand model
         return $this->belongsTo(Brand::class, 'brand_id');
     }
 
     public function agency()
     {
-        // Define relationship with Agency model
         return $this->belongsTo(Agency::class, 'agency_id');
+    }
+
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'current_assign_user');
+    }
+
+    public function priority()
+    {
+        return $this->belongsTo(Priority::class, 'priority_id');
+    }
+
+    public function designation()
+    {
+        return $this->belongsTo(Designation::class, 'designation_id');
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function subSource()
+    {
+        return $this->belongsTo(LeadSubSource::class, 'sub_source_id');
+    }
+
+    public function country()
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
+
+    public function state()
+    {
+        return $this->belongsTo(State::class, 'state_id');
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class, 'city_id');
+    }
+
+    public function zone()
+    {
+        return $this->belongsTo(Zone::class, 'zone_id');
     }
 }
