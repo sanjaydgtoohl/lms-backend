@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\Repositories\PermissionRepositoryInterface;
 use App\Models\Permission;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -52,14 +53,52 @@ class PermissionService
     }
 
     /**
-     * Create a new permission
+     * Create a new permission or multiple permissions with parent-child relationship
      *
      * @throws ValidationException
      */
     public function create(array $data): Permission
     {
-        $this->validatePermissionData($data);
+        // Handle bulk creation if name is an array
+        if (isset($data['name']) && is_array($data['name'])) {
+            $names = $data['name'];
+            $displayNames = $data['display_name'] ?? [];
+            $descriptions = $data['description'] ?? [];
+            
+            // Create the first permission as parent with is_parent = null
+            $firstPermissionData = [
+                'name' => $names[0],
+                'display_name' => $displayNames[0] ?? null,
+                'description' => $descriptions[0] ?? null,
+                'is_parent' => null,
+                'slug' => Str::slug($names[0]),
+            ];
+            
+            $this->validatePermissionData($firstPermissionData);
+            $permission = $this->permissionRepository->create($firstPermissionData);
+            
+            // Create remaining permissions as children with is_parent = parent id
+            for ($i = 1; $i < count($names); $i++) {
+                $permissionData = [
+                    'name' => $names[$i],
+                    'display_name' => $displayNames[$i] ?? null,
+                    'description' => $descriptions[$i] ?? null,
+                    'is_parent' => $permission->id,  // Set parent ID
+                    'slug' => Str::slug($names[$i]),
+                ];
+                $this->validatePermissionData($permissionData);
+                $this->permissionRepository->create($permissionData);
+            }
+            
+            return $permission;
+        }
 
+        // Generate slug from name if not provided
+        if (!isset($data['slug']) && isset($data['name'])) {
+            $data['slug'] = Str::slug($data['name']);
+        }
+
+        $this->validatePermissionData($data);
         return $this->permissionRepository->create($data);
     }
 

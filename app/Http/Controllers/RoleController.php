@@ -35,15 +35,21 @@ class RoleController extends Controller
             // Handle both paginator and collection results
             if ($roles instanceof \Illuminate\Pagination\LengthAwarePaginator || $roles instanceof \Illuminate\Pagination\Paginator) {
                 $roles->getCollection()->transform(function ($role) {
+                    // Load permissions for each role
+                    $role->load('permissions');
                     return new RoleResource($role);
                 });
             } elseif ($roles instanceof \Illuminate\Support\Collection) {
                 $roles->transform(function ($role) {
+                    // Load permissions for each role
+                    $role->load('permissions');
                     return new RoleResource($role);
                 });
             } else {
                 // Fallback: convert to collection and map resources
                 $roles = collect($roles)->map(function ($role) {
+                    // Load permissions for each role
+                    $role->load('permissions');
                     return new RoleResource($role);
                 });
             }
@@ -59,18 +65,33 @@ class RoleController extends Controller
         try {
             $rules = [
                 'name' => 'required|string|max:255|unique:roles,name',
+                'slug' => 'nullable|string|max:255',
                 'display_name' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
+                'status' => 'nullable|string|max:50',
                 'permissions' => 'nullable|array',
                 'permissions.*' => 'integer|exists:permissions,id',
+                'permission' => 'nullable|array',
+                'permission.*' => 'integer|exists:permissions,id',
             ];
 
             $validatedData = $this->validate($request, $rules);
 
-            $permissions = $validatedData['permissions'] ?? [];
+            // Handle both 'permissions' and 'permission[]' parameter names
+            $permissions = $validatedData['permissions'] ?? $validatedData['permission'] ?? [];
             unset($validatedData['permissions']);
+            unset($validatedData['permission']);
             
+            // Explicitly get slug from request if not in validated data
+            if (empty($validatedData['slug'])) {
+                $validatedData['slug'] = $request->input('slug');
+            }
+            
+            // Create role with permissions
             $role = $this->roleService->create($validatedData, $permissions);
+            
+            // Reload role with permissions relationship
+            $role->load('permissions');
             
             return $this->responseService->created(new RoleResource($role), 'Role created successfully');
         } catch (ValidationException $e) {
@@ -89,6 +110,9 @@ class RoleController extends Controller
                 return $this->responseService->notFound('Role not found');
             }
 
+            // Load permissions relationship
+            $role->load('permissions');
+
             return $this->responseService->success(new RoleResource($role), 'Role retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
@@ -106,18 +130,22 @@ class RoleController extends Controller
                     'max:255',
                     Rule::unique('roles', 'name')->ignore($id)
                 ],
+                'slug' => 'sometimes|nullable|string|max:255',
                 'display_name' => 'sometimes|nullable|string|max:255',
                 'description' => 'sometimes|nullable|string|max:1000',
+                'status' => 'sometimes|nullable|string|max:50',
                 'permissions' => 'sometimes|nullable|array',
                 'permissions.*' => 'integer|exists:permissions,id',
+                'permission' => 'sometimes|nullable|array',
+                'permission.*' => 'integer|exists:permissions,id',
             ];
 
             $validatedData = $this->validate($request, $rules);
 
-            $permissions = $validatedData['permissions'] ?? null;
-            if (isset($validatedData['permissions'])) {
-                unset($validatedData['permissions']);
-            }
+            // Handle both 'permissions' and 'permission[]' parameter names
+            $permissions = $validatedData['permissions'] ?? $validatedData['permission'] ?? null;
+            unset($validatedData['permissions']);
+            unset($validatedData['permission']);
 
             // Update the role
             $updated = $this->roleService->update($id, $validatedData, $permissions);
@@ -127,6 +155,9 @@ class RoleController extends Controller
             }
 
             $role = $this->roleService->find($id);
+            // Reload role with permissions relationship
+            $role->load('permissions');
+            
             return $this->responseService->updated(new RoleResource($role), 'Role updated successfully');
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');

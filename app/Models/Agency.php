@@ -32,11 +32,11 @@ class Agency extends Model
     ];
 
     /**
-     * Get the group this agency belongs to.
+     * Get the parent agency.
      */
-    public function agencyGroup()
+    public function parentAgency()
     {
-        return $this->belongsTo(AgencyGroup::class, 'agency_group_id');
+        return $this->belongsTo(Agency::class, 'is_parent');
     }
 
     /**
@@ -44,7 +44,7 @@ class Agency extends Model
      */
     public function agencyType()
     {
-        return $this->belongsTo(AgencyType::class, 'agency_type_id');
+        return $this->belongsTo(AgencyType::class, 'agency_type');
     }
 
     /**
@@ -52,6 +52,6 @@ class Agency extends Model
      */
     public function brand()
     {
-        return $this->belongsTo(Brand::class, 'brand_id'); // Assumes App\Models\Brand
+        return $this->belongsToMany(Brand::class, 'brand_agency_relationships', 'agency_id', 'brand_id');
     }
 }

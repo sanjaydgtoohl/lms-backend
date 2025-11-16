@@ -53,16 +53,23 @@ class RoleService
 	/**
 	 * Create a new role and optionally sync permissions
 	 *
+	 * @param array $data Role data (name, display_name, description, slug, status)
+	 * @param array $permissions Array of permission IDs to assign to the role
+	 * @return Role
 	 * @throws ValidationException
 	 */
 	public function create(array $data, array $permissions = []): Role
 	{
 		$this->validateRoleData($data);
 
+		// Create the role
 		$role = $this->roleRepository->create($data);
 
+		// Sync permissions if provided
 		if (! empty($permissions)) {
-			$this->roleRepository->syncPermissions($role->id, $permissions);
+			// Ensure permission IDs are integers
+			$permissionIds = array_map('intval', $permissions);
+			$role->permissions()->sync($permissionIds);
 		}
 
 		return $role;
@@ -71,16 +78,27 @@ class RoleService
 	/**
 	 * Update a role
 	 *
+	 * @param int $id Role ID
+	 * @param array $data Role data to update (name, display_name, description, slug, status)
+	 * @param array|null $permissions Array of permission IDs to sync (if null, permissions are not updated)
+	 * @return bool
 	 * @throws ValidationException
 	 */
 	public function update(int $id, array $data, ?array $permissions = null): bool
 	{
 		$this->validateRoleData($data, $id);
 
+		// Update the role
 		$updated = $this->roleRepository->update($id, $data);
 
+		// Sync permissions if provided
 		if ($updated && $permissions !== null) {
-			$this->roleRepository->syncPermissions($id, $permissions);
+			$role = $this->roleRepository->find($id);
+			if ($role) {
+				// Ensure permission IDs are integers
+				$permissionIds = array_map('intval', $permissions);
+				$role->permissions()->sync($permissionIds);
+			}
 		}
 
 		return $updated;

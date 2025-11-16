@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Zone; // Import Zone model
+use App\Models\Zone;
 use Illuminate\Support\Str;
 
 class ZoneSeeder extends Seeder

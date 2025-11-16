@@ -7,8 +7,9 @@ use App\Repositories\UserRepository;
 use App\Contracts\Repositories\UserRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class UserService
 {
@@ -33,9 +34,9 @@ class UserService
      * Get all users with pagination
      *
      * @param int $perPage
-     * @return LengthAwarePaginator
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function getAllUsers(int $perPage = 15): LengthAwarePaginator
+    public function getAllUsers(int $perPage = 15)
     {
         return $this->userRepository->all($perPage);
     }
@@ -80,9 +81,20 @@ class UserService
 
         // Set default values
         $data['status'] = $data['status'] ?? '1';
-        // $data['role'] = $data['role'] ?? 'user';
 
-        return $this->userRepository->create($data);
+        // Extract role_id or role (accept both formats)
+        $roleIds = $data['role_id'] ?? $data['role'] ?? [];
+        unset($data['role_id'], $data['role']);
+
+        $user = $this->userRepository->create($data);
+
+        // Sync roles if provided
+        if (!empty($roleIds)) {
+            $this->syncUserRoles($user->id, $roleIds);
+        }
+
+        // Reload user with relationships
+        return $this->userRepository->findWithRelations($user->id, ['profile', 'roles', 'permissions']);
     }
 
     /**
@@ -101,15 +113,28 @@ class UserService
             return false;
         }
 
-        // Validate data for update
+        // Validate data for update (includes role_id validation)
         $this->validateUserData($data, $id);
+
+        // Extract role_id or role (accept both formats)
+        $roleIds = $data['role_id'] ?? $data['role'] ?? null;
 
         // Hash password if provided
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
 
-        return $this->userRepository->update($id, $data);
+        // Remove role_id and role from data before updating user record
+        unset($data['role_id'], $data['role']);
+
+        $success = $this->userRepository->update($id, $data);
+
+        // Sync roles if provided
+        if ($roleIds !== null && is_array($roleIds)) {
+            $this->syncUserRoles($id, $roleIds);
+        }
+
+        return $success;
     }
 
     /**
@@ -153,9 +178,9 @@ class UserService
      *
      * @param array $criteria
      * @param int $perPage
-     * @return LengthAwarePaginator
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function searchUsers(array $criteria, int $perPage = 15): LengthAwarePaginator
+    public function searchUsers(array $criteria, int $perPage = 15)
     {
         return $this->userRepository->search($criteria, $perPage);
     }
@@ -215,7 +240,10 @@ class UserService
             'email' => 'required|email|max:255',
             'password' => 'sometimes|required|string|min:8',
             'phone' => 'nullable|string|max:20',
-            // 'role' => 'sometimes|in:admin,user,moderator',
+            'role_id' => 'sometimes|array',
+            'role_id.*' => 'integer|exists:roles,id',
+            'role' => 'sometimes|array',
+            'role.*' => 'integer|exists:roles,id',
             'status' => 'sometimes|in:1,2,3',
         ];
 
@@ -250,6 +278,46 @@ class UserService
 
         if ($validator->fails()) {
             throw new ValidationException($validator);
+        }
+    }
+
+    /**
+     * Sync user roles
+     *
+     * @param int $userId
+     * @param array $roleIds
+     * @return void
+     */
+    public function syncUserRoles(int $userId, array $roleIds): void
+    {
+        $user = $this->userRepository->find($userId);
+        
+        if (!$user) {
+            return;
+        }
+
+        // Get the user type class
+        $userType = User::class;
+
+        // First, delete all existing role entries for this user
+        DB::table('role_user')
+            ->where('user_id', $userId)
+            ->delete();
+
+        // Insert new role entries
+        $insertData = [];
+        foreach ($roleIds as $roleId) {
+            $insertData[] = [
+                'role_id' => $roleId,
+                'user_id' => $userId,
+                'user_type' => $userType,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        if (!empty($insertData)) {
+            DB::table('role_user')->insert($insertData);
         }
     }
 }
