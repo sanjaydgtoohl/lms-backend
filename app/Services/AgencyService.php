@@ -91,14 +91,104 @@ class AgencyService
     }
     
     public function update($id, array $data) {
-        if (isset($data['name'])) {
-            $model = $this->repo->getAgencyById($id);
-            if ($model->name !== $data['name']) {
-                $data['slug'] = Str::slug($data['name']);
+        try {
+            DB::beginTransaction();
+
+            // Handle array-based name and type updates
+            if (!empty($data['name']) && !empty($data['type'])) {
+                $count = count($data['name']);
+
+                for ($i = 0; $i < $count; $i++) {
+                    if (!empty($data['name'][$i]) && !empty($data['type'][$i])) {
+                        $agencyData = [
+                            'name' => $data['name'][$i],
+                            'agency_type' => $data['type'][$i],
+                            'slug' => Str::slug($data['name'][$i]),
+                        ];
+
+                        if (isset($data['status'])) {
+                            $agencyData['status'] = $data['status'];
+                        }
+
+                        if ($i == 0) {
+                            // Update the main agency
+                            $this->repo->updateAgency($id, $agencyData);
+                        }
+
+                        // Handle client relationships - update existing records
+                        if (isset($data['client']) && !empty($data['client'][$i]) && is_array($data['client'][$i])) {
+                            $clients = $data['client'][$i];
+                            
+                            // Get existing relationships for this agency
+                            $existingRelationships = BrandAgencyRelationship::where('agency_id', $id)->get();
+                            
+                            // Update existing records with new brand IDs
+                            foreach ($existingRelationships as $index => $relationship) {
+                                if (isset($clients[$index])) {
+                                    $relationship->update(['brand_id' => $clients[$index]]);
+                                }
+                            }
+                            
+                            // If there are more clients than existing relationships, create new ones
+                            if (count($clients) > $existingRelationships->count()) {
+                                for ($j = $existingRelationships->count(); $j < count($clients); $j++) {
+                                    $agencyClients = new BrandAgencyRelationship();
+                                    $agencyClients->agency_id = $id;
+                                    $agencyClients->brand_id = $clients[$j];
+                                    $agencyClients->save();
+                                }
+                            }
+                        }
+                    }
+                }
+            } elseif (isset($data['name']) && is_string($data['name'])) {
+                // Handle single name update (backward compatibility)
+                $model = $this->repo->getAgencyById($id);
+                if ($model->name !== $data['name']) {
+                    $data['slug'] = Str::slug($data['name']);
+                }
+                $this->repo->updateAgency($id, $data);
+            } else {
+                // Update without name/type changes - handle client relationships if provided
+                if (isset($data['client']) && is_array($data['client'])) {
+                    $clients = $data['client'];
+                    
+                    // Get existing relationships for this agency
+                    $existingRelationships = BrandAgencyRelationship::where('agency_id', $id)->get();
+                    
+                    // Update existing records with new brand IDs
+                    foreach ($existingRelationships as $index => $relationship) {
+                        if (isset($clients[$index])) {
+                            $relationship->update(['brand_id' => $clients[$index]]);
+                        }
+                    }
+                    
+                    // If there are more clients than existing relationships, create new ones
+                    if (count($clients) > $existingRelationships->count()) {
+                        for ($j = $existingRelationships->count(); $j < count($clients); $j++) {
+                            $agencyClients = new BrandAgencyRelationship();
+                            $agencyClients->agency_id = $id;
+                            $agencyClients->brand_id = $clients[$j];
+                            $agencyClients->save();
+                        }
+                    }
+                    
+                    // Remove client from data array to avoid updating it in the main update
+                    unset($data['client']);
+                }
+                
+                // Update remaining data if any
+                if (!empty($data)) {
+                    $this->repo->updateAgency($id, $data);
+                }
             }
+
+            DB::commit();
+            return $this->repo->getAgencyById($id);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
-        
-        return $this->repo->updateAgency($id, $data);
     }
 
     private function createUniqueSlug(string $name, $excludeId = null): string {

@@ -142,26 +142,25 @@ class AgencyController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         try {
-            $agency = Agency::findOrFail($id);
+            Agency::findOrFail($id);
             
             $rules = [
-                'name' => 'sometimes|required|string|max:255|unique:agency,name,' . $id,
-                'agency_type' => 'sometimes|required|integer|exists:agency_type,id', 
-                'brand_id' => 'nullable|integer|exists:brands,id', 
+                'name' => 'nullable|array',
+                'name.*' => 'string|max:255|distinct|unique:agency,name,' . $id,
+                'type' => 'nullable|array',
+                'type.*' => 'integer|exists:agency_type,id',
+                'client' => 'nullable|array',
+                'client.*.*' => 'integer|exists:brands,id',
                 'status' => 'nullable|in:1,2,15',
             ];
 
             $validatedData = $this->validate($request, $rules);
             
-            if (isset($validatedData['name'])) {
-                $validatedData['slug'] = Str::slug($validatedData['name']);
-            }
-            
-            if (empty($validatedData)) {
+            if (empty(array_filter($validatedData))) {
                 return $this->responseService->error('No data provided for update', null, 400, 'NO_DATA');
             }
 
-            $agency->update($validatedData);
+            $agency = $this->agencyService->update($id, $validatedData);
             $agency->load(['agencyType', 'brand', 'parentAgency']);
 
             return $this->responseService->updated(new AgencyResource($agency), 'Agency updated successfully');
