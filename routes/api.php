@@ -26,6 +26,9 @@ use App\Http\Controllers\StateController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\BrandAgencyRelationshipController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\CallStatusController;
+use App\Http\Controllers\StatusController;
+use App\Http\Controllers\PriorityController;
 
 use Carbon\Carbon;
 
@@ -250,23 +253,58 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->delete('{id:[0-9]+}', 'PermissionController@destroy');
     });
 
-    // Leads routes
+    
+
+    // Call Status routes
+    $router->group(['prefix' => 'call-statuses'], function () use ($router) {
+        $router->get('/', 'CallStatusController@index');
+        //$router->post('/', 'CallStatusController@store');
+        $router->get('{id:[0-9]+}', 'CallStatusController@show');
+        //$router->put('{id:[0-9]+}', 'CallStatusController@update');
+        //$router->patch('{id:[0-9]+}', 'CallStatusController@update');
+        //$router->delete('{id:[0-9]+}', 'CallStatusController@destroy');
+    });
+
+    // Status routes
+    $router->group(['prefix' => 'statuses'], function () use ($router) {
+        $router->get('/', 'StatusController@index');
+        //$router->post('/', 'StatusController@store');
+        $router->get('{id:[0-9]+}', 'StatusController@show');
+        //$router->put('{id:[0-9]+}', 'StatusController@update');
+        //$router->patch('{id:[0-9]+}', 'StatusController@update');
+        //$router->delete('{id:[0-9]+}', 'StatusController@destroy');
+    });
+
+    // Priority routes
+    $router->group(['prefix' => 'priorities'], function () use ($router) {
+        $router->get('/', 'PriorityController@index');
+        $router->post('/', 'PriorityController@store');
+        $router->get('{id:[0-9]+}', 'PriorityController@show');
+        $router->put('{id:[0-9]+}', 'PriorityController@update');
+        $router->patch('{id:[0-9]+}', 'PriorityController@update');
+        $router->delete('{id:[0-9]+}', 'PriorityController@destroy');
+    });
+
+    // Lead routes
     $router->group(['prefix' => 'leads'], function () use ($router) {
+        // List and filter routes first (specific routes before generic {id})
+        $router->get('/list', 'LeadController@list');
+        $router->get('/filter', 'LeadController@filter');
+        
+        // Generic CRUD operations
         $router->get('/', 'LeadController@index');
         $router->post('/', 'LeadController@store');
         $router->get('{id:[0-9]+}', 'LeadController@show');
         $router->put('{id:[0-9]+}', 'LeadController@update');
         $router->patch('{id:[0-9]+}', 'LeadController@update');
         $router->delete('{id:[0-9]+}', 'LeadController@destroy');
-    });
-
-    $router->group(['prefix' => 'status-groups'], function () use ($router) {
-        $router->get('/', 'StatusGroupController@index');
-        $router->post('/', 'StatusGroupController@store');
-        $router->get('{id:[0-9]+}', 'StatusGroupController@show');
-        $router->put('{id:[0-9]+}', 'StatusGroupController@update');
-        $router->patch('{id:[0-9]+}', 'StatusGroupController@update');
-        $router->delete('{id:[0-9]+}', 'StatusGroupController@destroy');
+        
+        // Additional Lead routes (specific routes after generic CRUD)
+        $router->post('{id:[0-9]+}/assign', 'LeadController@assign');
+        $router->post('{id:[0-9]+}/priority', 'LeadController@updatePriority');
+        $router->post('{id:[0-9]+}/status', 'LeadController@updateStatus');
+        $router->post('{id:[0-9]+}/call-status', 'LeadController@addCallStatus');
+        $router->delete('{id:[0-9]+}/call-status/{callStatusId:[0-9]+}', 'LeadController@removeCallStatus');
     });
 
     // Miss Campaign routes

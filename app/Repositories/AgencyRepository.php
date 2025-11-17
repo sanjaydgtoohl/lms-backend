@@ -33,7 +33,7 @@ class AgencyRepository implements AgencyRepositoryInterface
      */
     public function getAllAgency(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
-        $query = $this->model->where('status', '1');
+        $query = $this->model->with(['agencyType', 'brand', 'parentAgency'])->where('status', '1');
 
         // Apply search filter if search term is provided
         if ($searchTerm) {
@@ -57,7 +57,7 @@ class AgencyRepository implements AgencyRepositoryInterface
      */
     public function getAgencyById(int $id): ?Agency
     {
-        return $this->model->find($id);
+        return $this->model->with(['agencyType', 'brand', 'parentAgency'])->find($id);
     }
 
     /**
@@ -93,6 +93,7 @@ class AgencyRepository implements AgencyRepositoryInterface
     {
         $agency = $this->model->findOrFail($id);
         $agency->update($data);
+        $agency->load(['agencyType', 'brand', 'parentAgency']);
         return $agency;
     }
 

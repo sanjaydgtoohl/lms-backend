@@ -67,6 +67,18 @@ use App\Contracts\Repositories\MissCampaignRepositoryInterface;
 use App\Repositories\AgencyRepository;
 use App\Repositories\MissCampaignRepository;
 
+use App\Contracts\Repositories\CallStatusRepositoryInterface;
+use App\Repositories\CallStatusRepository;
+
+use App\Contracts\Repositories\StatusRepositoryInterface;
+use App\Repositories\StatusRepository;
+
+use App\Contracts\Repositories\PriorityRepositoryInterface;
+use App\Repositories\PriorityRepository;
+
+use App\Contracts\Repositories\LeadRepositoryInterface;
+use App\Repositories\LeadRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -166,15 +178,30 @@ class RepositoryServiceProvider extends ServiceProvider
             PermissionRepository::class
         );
 
-        $this->app->bind(
-            StatusGroupRepositoryInterface::class,
-            EloquentStatusGroupRepository::class
-        );
-
         // MissCampaign repository binding
         $this->app->bind(
             MissCampaignRepositoryInterface::class,
             MissCampaignRepository::class
+        );
+
+        $this->app->bind(
+            CallStatusRepositoryInterface::class,
+            CallStatusRepository::class
+        );
+
+        $this->app->bind(
+            StatusRepositoryInterface::class,
+            StatusRepository::class
+        );
+
+        $this->app->bind(
+            PriorityRepositoryInterface::class,
+            PriorityRepository::class
+        );
+
+        $this->app->bind(
+            LeadRepositoryInterface::class,
+            LeadRepository::class
         );
     }
     /**

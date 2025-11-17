@@ -48,11 +48,30 @@ class AgencyController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $agencies = Agency::with(['agencyGroup', 'agencyType', 'brand'])
-                                ->where('status', '1')
-                                ->get();
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1',
+                'search' => 'nullable|string|max:255',
+            ]);
 
-            return $this->responseService->success($agencies, 'Agencies retrieved successfully');
+            $perPage = $request->input('per_page', 15);
+            $searchTerm = $request->input('search', null);
+            
+            $query = Agency::with(['agencyType', 'brand', 'parentAgency'])
+                            ->where('status', '1');
+
+            // Apply search filter if search term is provided
+            if ($searchTerm) {
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('name', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('slug', 'LIKE', "%{$searchTerm}%");
+                });
+            }
+
+            $agencies = $query->orderBy('created_at', 'desc')
+                              ->paginate($perPage)
+                              ->appends(request()->query());
+
+            return $this->responseService->success(AgencyResource::collection($agencies), 'Agencies retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -80,6 +99,11 @@ class AgencyController extends Controller
            
            
             $agency = $this->agencyService->create($validatedData);
+            
+            // Eager load relationships before returning the resource
+            if ($agency) {
+                $agency->load(['agencyType', 'brand', 'parentAgency']);
+            }
 
             return $this->responseService->created(
                 new AgencyResource($agency),
@@ -101,8 +125,8 @@ class AgencyController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $agency = Agency::with(['agencyGroup', 'agencyType', 'brand'])->findOrFail($id);
-            return $this->responseService->success($agency, 'Agency retrieved successfully');
+            $agency = Agency::with(['agencyType', 'brand', 'parentAgency'])->findOrFail($id);
+            return $this->responseService->success(new AgencyResource($agency), 'Agency retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -122,8 +146,7 @@ class AgencyController extends Controller
             
             $rules = [
                 'name' => 'sometimes|required|string|max:255|unique:agency,name,' . $id,
-                'agency_group_id' => 'nullable|integer|exists:agency_groups,id', 
-                'agency_type_id' => 'sometimes|required|integer|exists:agency_type,id', 
+                'agency_type' => 'sometimes|required|integer|exists:agency_type,id', 
                 'brand_id' => 'nullable|integer|exists:brands,id', 
                 'status' => 'nullable|in:1,2,15',
             ];
@@ -139,9 +162,9 @@ class AgencyController extends Controller
             }
 
             $agency->update($validatedData);
-            $agency->load(['agencyGroup', 'agencyType', 'brand']);
+            $agency->load(['agencyType', 'brand', 'parentAgency']);
 
-            return $this->responseService->updated($agency, 'Agency updated successfully');
+            return $this->responseService->updated(new AgencyResource($agency), 'Agency updated successfully');
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {

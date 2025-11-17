@@ -22,6 +22,8 @@ class Permission extends BaseModel
         'name',
         'display_name',
         'description',
+        'is_parent',
+        'slug',
     ];
 
     /**

@@ -126,4 +126,14 @@ class Brand extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    /**
+     * Get the agencies that own this brand.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function agencies()
+    {
+        return $this->belongsToMany(Agency::class, 'brand_agency_relationships', 'brand_id', 'agency_id');
+    }
 }

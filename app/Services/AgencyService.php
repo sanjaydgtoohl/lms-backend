@@ -49,11 +49,11 @@ class AgencyService
                     if (!empty($data['name'][$i]) && !empty($data['type'][$i])) {
     
                         $agencyData = [
-                            'name'        => $data['name'][$i],
-                            'agency_type' => $data['type'][$i],
-                            'slug'        => Str::slug($data['name'][$i]),
-                            'is_parent'   => $is_parent,
-                            'status'      => 1,
+                            'name'              => $data['name'][$i],
+                            'agency_type'    => $data['type'][$i],
+                            'slug'              => Str::slug($data['name'][$i]),
+                            'is_parent'         => $is_parent,
+                            'status'            => 1,
                         ];
 
                         $clients = !empty($data['client']) && !empty($data['client'][$i]) ? $data['client'][$i] : [];

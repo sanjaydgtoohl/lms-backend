@@ -16,12 +16,13 @@ class PermissionResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            //'uuid' => $this->uuid,
+            'uuid' => $this->uuid,
             'name' => $this->name,
-            'display_name' => $this->display_name,
-            'description' => $this->description,
             'slug' => $this->slug,
             'status' => $this->status,
+            'display_name' => $this->display_name,
+            'description' => $this->description,
+            'is_parent' => $this->is_parent,
             'created_at' => optional($this->created_at)->toDateTimeString(),
             'updated_at' => optional($this->updated_at)->toDateTimeString(),
         ];
