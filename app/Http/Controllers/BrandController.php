@@ -121,7 +121,7 @@ class BrandController extends Controller
                 'state_id' => 'nullable|integer|exists:states,id',
                 'city_id' => 'nullable|integer|exists:cities,id',
                 'zone_id' => 'nullable|integer|exists:zones,id',
-                'agency_id' => 'nullable|integer|exists:agencies,id',
+                'agency_id' => 'nullable|integer|exists:agency,id',
             ];
 
             $validatedData = $this->validate($request, $rules);
@@ -166,7 +166,7 @@ class BrandController extends Controller
                 'state_id' => 'sometimes|nullable|integer|exists:states,id',
                 'city_id' => 'sometimes|nullable|integer|exists:cities,id',
                 'zone_id' => 'sometimes|nullable|integer|exists:zones,id',
-                'agency_id' => 'sometimes|nullable|integer|exists:agencies,id',
+                'agency_id' => 'sometimes|nullable|integer|exists:agency,id',
                 'status' => 'sometimes|required|in:1,2,15',
             ];
 
