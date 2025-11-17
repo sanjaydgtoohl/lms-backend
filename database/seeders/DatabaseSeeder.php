@@ -24,8 +24,8 @@ class DatabaseSeeder extends Seeder
             AgencyTypeSeeder::class,
             BrandTypeSeeder::class,
             ZoneSeeder::class,
-            PrioritySeeder::class,
             CallStatusSeeder::class,
+            PrioritySeeder::class,
             StatusSeeder::class,
         ]);
         
