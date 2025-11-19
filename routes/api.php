@@ -252,9 +252,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->patch('{id:[0-9]+}', 'PermissionController@update');
         $router->delete('{id:[0-9]+}', 'PermissionController@destroy');
     });
-
     
-
     // Call Status routes
     $router->group(['prefix' => 'call-statuses'], function () use ($router) {
         $router->get('/', 'CallStatusController@index');

@@ -30,22 +30,29 @@ class PermissionMiddleware
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure  $next
-     * @param  string  $permission
+     * @param  string|array  $permissions
      * @return mixed
      */
-    public function handle(Request $request, Closure $next, string $permission)
+    public function handle(Request $request, Closure $next, $permissions)
     {
         $user = $request->user ?? $request->user();
 
-        if (! $user) {
-            return $this->responseService->unauthorized('Authentication required');
+        if (!$user) {
+            return $this->responseService->unauthorized('Unauthenticated');
         }
 
-        // Check if user has specific permission
-        if (!$user->hasPermission($permission)) {
-            return $this->responseService->forbidden("You don't have permission to perform this action. Required permission: " . $permission);
+        // Convert single permission to array
+        if (is_string($permissions)) {
+            $permissions = [$permissions];
+        }
+
+        // Check if user has any of the required permissions
+        if (!$user->hasAnyPermission($permissions)) {
+            $permissionsList = implode(', ', $permissions);
+            return $this->responseService->forbidden('Insufficient permissions. Required permission(s): ' . $permissionsList);
         }
 
         return $next($request);
     }
 }
+

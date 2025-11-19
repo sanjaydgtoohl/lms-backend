@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\Permission;
-use App\Contracts\Repositories\PermissionRepositoryInterface;
 use App\Services\PermissionService;
 use App\Services\ResponseService;
 use App\Http\Resources\PermissionResource;
@@ -26,11 +26,17 @@ class PermissionController extends Controller
         $this->responseService = $responseService;
     }
 
+    /**
+     * Display a listing of the permissions.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function index(Request $request): JsonResponse
     {
         try {
             $perPage = (int) $request->get('per_page', 10);
-            $criteria = $request->only(['q', 'name']);
+            $criteria = $request->only(['q', 'name', 'status', 'is_parent']);
 
             $permissions = $this->permissionService->list($criteria, $perPage);
 
@@ -54,20 +60,33 @@ class PermissionController extends Controller
         }
     }
 
+    /**
+     * Store a newly created permission in storage.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function store(Request $request): JsonResponse
     {
         try {
             $rules = [
-                'name' => 'required|array',
-                'name.*' => 'required|string|max:255|distinct|unique:permissions,name',
-
-                'display_name' => 'nullable|array',
-                'display_name.*' => 'nullable|string|max:255',
-
-                'description' => 'nullable|array',
-                'description.*' => 'nullable|string|max:1000',
+                'name' => 'required|string|max:255|unique:permissions,name',
+                'display_name' => 'nullable|string|max:255',
+                'description' => 'nullable|string|max:1000',
+                'slug' => 'nullable|string|max:255|unique:permissions,slug',
+                'url' => 'nullable|string|max:255',
+                'icon_file' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:5120',
+                'icon_text' => 'nullable|string|max:255',
+                'is_parent' => 'nullable|integer|exists:permissions,id',
+                'status' => 'nullable|in:1,2,15',
             ];
             $validatedData = $this->validate($request, $rules);
+
+            // Handle icon file upload if present
+            if ($request->hasFile('icon_file')) {
+                $iconUrl = $this->permissionService->uploadIcon($request->file('icon_file'));
+                $validatedData['icon_file'] = $iconUrl;
+            }
 
             $permission = $this->permissionService->create($validatedData);
 
@@ -79,6 +98,12 @@ class PermissionController extends Controller
         }
     }
 
+    /**
+     * Display the specified permission.
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
     public function show($id): JsonResponse
     {
         try {
@@ -94,6 +119,13 @@ class PermissionController extends Controller
         }
     }
 
+    /**
+     * Update the specified permission in storage.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
     public function update(Request $request, $id): JsonResponse
     {
         try {
@@ -107,9 +139,39 @@ class PermissionController extends Controller
                 ],
                 'display_name' => 'sometimes|nullable|string|max:255',
                 'description' => 'sometimes|nullable|string|max:1000',
+                'slug' => [
+                    'sometimes',
+                    'nullable',
+                    'string',
+                    'max:255',
+                    Rule::unique('permissions', 'slug')->ignore($id),
+                ],
+                'url' => 'sometimes|nullable|string|max:255',
+                'icon_file' => 'sometimes|nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:5120',
+                'icon_text' => 'sometimes|nullable|string|max:255',
+                'is_parent' => 'sometimes|nullable|integer|exists:permissions,id',
+                'status' => 'sometimes|nullable|in:1,2,15',
             ];
 
             $validatedData = $this->validate($request, $rules);
+
+            // Get existing permission to check for old icon file
+            $existingPermission = $this->permissionService->find($id);
+            if (!$existingPermission) {
+                return $this->responseService->notFound('Permission not found');
+            }
+
+            // Handle icon file upload if present
+            if ($request->hasFile('icon_file')) {
+                // Delete old icon file if exists
+                if ($existingPermission->icon_file) {
+                    $this->permissionService->deleteIcon($existingPermission->icon_file);
+                }
+                
+                // Upload new icon file
+                $iconUrl = $this->permissionService->uploadIcon($request->file('icon_file'));
+                $validatedData['icon_file'] = $iconUrl;
+            }
 
             $updated = $this->permissionService->update($id, $validatedData);
 
@@ -126,9 +188,27 @@ class PermissionController extends Controller
         }
     }
 
+    /**
+     * Remove the specified permission from storage.
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
     public function destroy($id): JsonResponse
     {
         try {
+            // Get permission before deletion to check for icon file
+            $permission = $this->permissionService->find($id);
+            
+            if (! $permission) {
+                return $this->responseService->notFound('Permission not found');
+            }
+
+            // Delete icon file if exists
+            if ($permission->icon_file) {
+                $this->permissionService->deleteIcon($permission->icon_file);
+            }
+
             $deleted = $this->permissionService->delete($id);
 
             if (! $deleted) {
@@ -140,4 +220,220 @@ class PermissionController extends Controller
             return $this->responseService->handleException($e);
         }
     }
+
+    /**
+     * Get permissions by UUID.
+     *
+     * @param string $uuid
+     * @return JsonResponse
+     */
+    public function showByUuid(string $uuid): JsonResponse
+    {
+        try {
+            $permission = $this->permissionService->findByUuid($uuid);
+
+            if (! $permission) {
+                return $this->responseService->notFound('Permission not found');
+            }
+
+            return $this->responseService->success(new PermissionResource($permission), 'Permission retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get active permissions.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function active(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 10);
+            $permissions = $this->permissionService->getActive($perPage);
+
+            if ($permissions instanceof \Illuminate\Pagination\LengthAwarePaginator || $permissions instanceof \Illuminate\Pagination\Paginator) {
+                $permissions->getCollection()->transform(function ($permission) {
+                    return new PermissionResource($permission);
+                });
+            } elseif ($permissions instanceof \Illuminate\Support\Collection) {
+                $permissions->transform(function ($permission) {
+                    return new PermissionResource($permission);
+                });
+            } else {
+                $permissions = collect($permissions)->map(function ($permission) {
+                    return new PermissionResource($permission);
+                });
+            }
+
+            return $this->responseService->paginated($permissions, 'Active permissions retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get permissions by parent status.
+     *
+     * @param Request $request
+     * @param bool $isParent
+     * @return JsonResponse
+     */
+    public function byParentStatus(Request $request, bool $isParent): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 10);
+            $permissions = $this->permissionService->getByParentStatus($isParent, $perPage);
+
+            if ($permissions instanceof \Illuminate\Pagination\LengthAwarePaginator || $permissions instanceof \Illuminate\Pagination\Paginator) {
+                $permissions->getCollection()->transform(function ($permission) {
+                    return new PermissionResource($permission);
+                });
+            } elseif ($permissions instanceof \Illuminate\Support\Collection) {
+                $permissions->transform(function ($permission) {
+                    return new PermissionResource($permission);
+                });
+            } else {
+                $permissions = collect($permissions)->map(function ($permission) {
+                    return new PermissionResource($permission);
+                });
+            }
+
+            $message = $isParent 
+                ? 'Parent permissions retrieved successfully' 
+                : 'Child permissions retrieved successfully';
+
+            return $this->responseService->paginated($permissions, $message);
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get parent permissions.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function parents(Request $request): JsonResponse
+    {
+        return $this->byParentStatus($request, true);
+    }
+
+    /**
+     * Get child permissions.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function children(Request $request): JsonResponse
+    {
+        return $this->byParentStatus($request, false);
+    }
+
+    /**
+     * Sync roles for a permission.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function syncRoles(Request $request, $id): JsonResponse
+    {
+        try {
+            $rules = [
+                'role_ids' => 'required|array',
+                'role_ids.*' => 'required|integer|exists:roles,id',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $synced = $this->permissionService->syncRoles($id, $validatedData['role_ids']);
+
+            if (! $synced) {
+                return $this->responseService->notFound('Permission not found');
+            }
+
+            $permission = $this->permissionService->find($id);
+            return $this->responseService->success(
+                new PermissionResource($permission->load('roles')), 
+                'Roles synced successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Attach a role to a permission.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function attachRole(Request $request, $id): JsonResponse
+    {
+        try {
+            $rules = [
+                'role_id' => 'required|integer|exists:roles,id',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $attached = $this->permissionService->attachRole($id, $validatedData['role_id']);
+
+            if (! $attached) {
+                return $this->responseService->notFound('Permission or role not found');
+            }
+
+            $permission = $this->permissionService->find($id);
+            return $this->responseService->success(
+                new PermissionResource($permission->load('roles')), 
+                'Role attached successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Detach a role from a permission.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function detachRole(Request $request, $id): JsonResponse
+    {
+        try {
+            $rules = [
+                'role_id' => 'required|integer|exists:roles,id',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $detached = $this->permissionService->detachRole($id, $validatedData['role_id']);
+
+            if (! $detached) {
+                return $this->responseService->notFound('Permission not found');
+            }
+
+            $permission = $this->permissionService->find($id);
+            return $this->responseService->success(
+                new PermissionResource($permission->load('roles')), 
+                'Role detached successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
 }
+

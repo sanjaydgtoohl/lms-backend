@@ -14,7 +14,7 @@ interface PermissionRepositoryInterface
 	 * @return LengthAwarePaginator<Permission>
 	 */
 	public function all(int $perPage = 15): LengthAwarePaginator;
-
+	
 	/**
 	 * Find a permission by ID
 	 */
@@ -29,6 +29,11 @@ interface PermissionRepositoryInterface
 	 * Find a permission by name
 	 */
 	public function findByName(string $name): ?Permission;
+
+	/**
+	 * Find a permission by slug
+	 */
+	public function findBySlug(string $slug): ?Permission;
 
 	/**
 	 * Create a new permission
@@ -56,13 +61,39 @@ interface PermissionRepositoryInterface
 	public function findWithRelations(int $id, array $relations = []): ?Permission;
 
 	/**
-	 * Attach a permission to a role
+	 * Sync roles for a permission (replace existing)
+	 *
+	 * @param int $permissionId
+	 * @param array $roleIds
+	 * @return bool
 	 */
-	public function attachToRole(int $permissionId, int $roleId): bool;
+	public function syncRoles(int $permissionId, array $roleIds): bool;
 
 	/**
-	 * Detach a permission from a role
+	 * Attach a role to a permission
 	 */
-	public function detachFromRole(int $permissionId, int $roleId): bool;
+	public function attachRole(int $permissionId, int $roleId): bool;
+
+	/**
+	 * Detach a role from a permission
+	 */
+	public function detachRole(int $permissionId, int $roleId): bool;
+
+	/**
+	 * Get permissions by parent status
+	 *
+	 * @param bool $isParent
+	 * @param int $perPage
+	 * @return LengthAwarePaginator<Permission>
+	 */
+	public function getByParentStatus(bool $isParent, int $perPage = 15): LengthAwarePaginator;
+
+	/**
+	 * Get active permissions
+	 *
+	 * @param int $perPage
+	 * @return LengthAwarePaginator<Permission>
+	 */
+	public function getActive(int $perPage = 15): LengthAwarePaginator;
 }
 
