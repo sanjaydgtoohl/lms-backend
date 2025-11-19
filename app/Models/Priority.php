@@ -27,14 +27,6 @@ class Priority extends BaseModel
     ];
 
     /**
-     * Get the lead assign histories that have this priority.
-     */
-    public function leadAssignHistories()
-    {
-        return $this->hasMany(LeadAssignHistory::class, 'priority_id');
-    }
-
-    /**
      * Get the call statuses associated with this priority.
      */
     public function callStatuses()
