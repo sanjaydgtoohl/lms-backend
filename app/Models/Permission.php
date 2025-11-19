@@ -3,41 +3,58 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Traits\HandlesFileUploads;
 
 class Permission extends BaseModel
 {
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
+    use HandlesFileUploads;
+
     protected $table = 'permissions';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
+        'slug',
         'display_name',
         'description',
-        'is_parent',
-        'slug',
+        'url',
+        'icon_file',
+        'icon_text',
+        'is_parent',   // will now store parent permission ID
+        'status',
+        'uuid',
+    ];
+
+    protected $casts = [
+        // ❌ REMOVE boolean cast
+        // 'is_parent' => 'boolean',
+
+        // correct timestamps
+        'deleted_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
-     * Get roles that have this permission
+     * Parent Permission (belongsTo)
      */
-    public function roles(): BelongsToMany
+    public function parent()
     {
-        return $this->belongsToMany(Role::class, 'permission_role', 'permission_id', 'role_id')
-            ->withTimestamps();
+        return $this->belongsTo(Permission::class, 'is_parent');
     }
 
     /**
-     * Get users that have this permission
+     * Children Permissions (hasMany)
      */
+    public function children()
+    {
+        return $this->hasMany(Permission::class, 'is_parent');
+    }
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'permission_role', 'permission_id', 'role_id')->withTimestamps();
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'permission_user', 'permission_id', 'user_id')
@@ -45,4 +62,8 @@ class Permission extends BaseModel
             ->withTimestamps();
     }
 
+    public function isActive(): bool
+    {
+        return $this->status === '1';
+    }
 }
