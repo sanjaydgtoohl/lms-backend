@@ -15,6 +15,14 @@ class LaratrustDummySeeder extends Seeder
      */
     public function run()
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('roles')->truncate();
+        DB::table('permissions')->truncate();
+        DB::table('permission_role')->truncate();
+        DB::table('role_user')->truncate();
+        DB::table('permission_user')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
         $now = now();
 
         // Roles

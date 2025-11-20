@@ -16,8 +16,9 @@ class BrandTypeSeeder extends Seeder
      */
     public function run(): void
     {
-        Schema::disableForeignKeyConstraints();
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         DB::table('brand_types')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         
         $types = [
             'National',
@@ -34,6 +35,5 @@ class BrandTypeSeeder extends Seeder
                 'updated_at' => Carbon::now()  // <-- [FIX 2] Ise badlein
             ]);
         }
-        Schema::enableForeignKeyConstraints(); // <-- 3. Re-enable checks
     }
 }
