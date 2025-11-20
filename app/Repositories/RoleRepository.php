@@ -80,8 +80,8 @@ class RoleRepository implements RoleRepositoryInterface
             $query->where('name', 'like', "%{$criteria['name']}%");
         }
 
-        // Order results ascending by name by default
-        return $query->orderBy('name', 'asc')->paginate($perPage);
+        // Order results ascending by id by default
+        return $query->orderBy('id', 'asc')->paginate($perPage);
     }
 
     public function findWithRelations(int $id, array $relations = []): ?Role

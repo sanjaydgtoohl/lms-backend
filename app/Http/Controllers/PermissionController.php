@@ -435,5 +435,37 @@ class PermissionController extends Controller
             return $this->responseService->handleException($e);
         }
     }
+
+    /**
+     * Get all parent permissions with id and display_name.
+     *
+     * @return JsonResponse
+     */
+    public function allParentPermissions(): JsonResponse
+    {
+        try {
+            $permissions = $this->permissionService->getAllParentPermissions();
+
+            return $this->responseService->success($permissions, 'Parent permissions retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get all permissions as tree with id, display_name, and is_parent.
+     *
+     * @return JsonResponse
+     */
+    public function allPermissionTree(): JsonResponse
+    {
+        try {
+            $permissions = $this->permissionService->getAllPermissionTree();
+
+            return $this->responseService->success($permissions, 'Permission tree retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
 }
 

@@ -219,6 +219,26 @@ class PermissionService
 	}
 
 	/**
+	 * Get all parent permissions with id and display_name
+	 *
+	 * @return array
+	 */
+	public function getAllParentPermissions(): array
+	{
+		return $this->permissionRepository->getAllParentPermissions();
+	}
+
+	/**
+	 * Get all permissions as tree structure with id, display_name, and is_parent
+	 *
+	 * @return array
+	 */
+	public function getAllPermissionTree(): array
+	{
+		return $this->permissionRepository->getAllPermissionTree();
+	}
+
+	/**
 	 * Upload icon file for permission
 	 *
 	 * @param UploadedFile $file
