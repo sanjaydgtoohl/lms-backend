@@ -246,6 +246,8 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Permissions routes
     $router->group(['prefix' => 'permissions'], function () use ($router) {
         $router->get('/', 'PermissionController@index');
+        $router->get('all-parent-permissions', 'PermissionController@allParentPermissions');
+        $router->get('all-permission-tree', 'PermissionController@allPermissionTree');
         $router->post('/', 'PermissionController@store');
         $router->get('{id:[0-9]+}', 'PermissionController@show');
         $router->put('{id:[0-9]+}', 'PermissionController@update');

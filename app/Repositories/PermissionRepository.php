@@ -94,8 +94,8 @@ class PermissionRepository implements PermissionRepositoryInterface
             $query->where('is_parent', $criteria['is_parent']);
         }
 
-        // Order results ascending by name by default
-        return $query->orderBy('name', 'asc')->paginate($perPage);
+        // Order results ascending by id by default
+        return $query->orderBy('id', 'asc')->paginate($perPage);
     }
 
     public function findWithRelations(int $id, array $relations = []): ?Permission
@@ -168,6 +168,59 @@ class PermissionRepository implements PermissionRepositoryInterface
         return $this->model->active()
             ->latest()
             ->paginate($perPage);
+    }
+
+    public function getAllParentPermissions(): array
+    {
+        return $this->model->whereNotNull('is_parent')
+            ->where('is_parent', '!=', 0)
+            ->select('id', 'display_name')
+            ->orderBy('display_name', 'asc')
+            ->get()
+            ->toArray();
+    }
+
+    public function getAllPermissionTree(): array
+    {
+        // Get all permissions with id, display_name, and is_parent
+        $allPermissions = $this->model->select('id', 'display_name', 'is_parent')
+            ->orderBy('id', 'asc')
+            ->get()
+            ->toArray();
+
+        return $this->buildTree($allPermissions);
+    }
+
+    /**
+     * Build hierarchical tree structure from flat permissions array
+     *
+     * @param array $permissions
+     * @param int|null $parentId
+     * @return array
+     */
+    private function buildTree(array $permissions, ?int $parentId = null): array
+    {
+        $tree = [];
+
+        foreach ($permissions as $permission) {
+            // Check if this permission belongs to the current parent level
+            if ($permission['is_parent'] == $parentId) {
+                $item = [
+                    'id' => $permission['id'],
+                    'display_name' => $permission['display_name'],
+                ];
+
+                // Recursively get children for this permission
+                $subTree = $this->buildTree($permissions, $permission['id']);
+                if (!empty($subTree)) {
+                    $item[] = $subTree;
+                }
+
+                $tree[] = $item;
+            }
+        }
+
+        return $tree;
     }
 }
 

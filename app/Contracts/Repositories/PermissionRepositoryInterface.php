@@ -95,5 +95,19 @@ interface PermissionRepositoryInterface
 	 * @return LengthAwarePaginator<Permission>
 	 */
 	public function getActive(int $perPage = 15): LengthAwarePaginator;
+
+	/**
+	 * Get all parent permissions with id and display_name
+	 *
+	 * @return array
+	 */
+	public function getAllParentPermissions(): array;
+
+	/**
+	 * Get all permissions as tree structure with id, display_name, and is_parent
+	 *
+	 * @return array
+	 */
+	public function getAllPermissionTree(): array;
 }
 
