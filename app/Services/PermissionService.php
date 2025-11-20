@@ -279,6 +279,7 @@ class PermissionService
 			'is_parent' => [
 				'nullable',
 				'integer',
+				'min:1',
 				function ($attribute, $value, $fail) use ($ignoreId) {
 					if ($value !== null) {
 						// Check if the parent permission exists

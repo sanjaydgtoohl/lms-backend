@@ -77,7 +77,7 @@ class PermissionController extends Controller
                 'url' => 'nullable|string|max:255',
                 'icon_file' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:5120',
                 'icon_text' => 'nullable|string|max:255',
-                'is_parent' => 'nullable|integer|exists:permissions,id',
+                'is_parent' => 'nullable|integer|min:1',
                 'status' => 'nullable|in:1,2,15',
             ];
             $validatedData = $this->validate($request, $rules);
@@ -149,7 +149,7 @@ class PermissionController extends Controller
                 'url' => 'sometimes|nullable|string|max:255',
                 'icon_file' => 'sometimes|nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:5120',
                 'icon_text' => 'sometimes|nullable|string|max:255',
-                'is_parent' => 'sometimes|nullable|integer|exists:permissions,id',
+                'is_parent' => 'sometimes|nullable|integer|min:1',
                 'status' => 'sometimes|nullable|in:1,2,15',
             ];
 
