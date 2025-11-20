@@ -14,6 +14,10 @@ class CallStatusSeeder extends Seeder
      */
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('call_statuses')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
         DB::table('call_statuses')->insert([
             [
                 'uuid' => (string) Str::uuid(),
