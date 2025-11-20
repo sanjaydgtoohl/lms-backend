@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Zone;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class ZoneSeeder extends Seeder
 {
@@ -15,6 +16,10 @@ class ZoneSeeder extends Seeder
      */
     public function run()
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Zone::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
         $zones = [
             'North Zone',
             'South Zone',

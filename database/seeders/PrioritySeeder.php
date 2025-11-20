@@ -11,6 +11,10 @@ class PrioritySeeder extends Seeder
 {
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('priorities')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
         // Fetch call_status IDs in insertion order
         $callStatuses = DB::table('call_statuses')
             ->orderBy('id')
