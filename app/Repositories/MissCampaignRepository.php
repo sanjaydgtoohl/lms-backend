@@ -51,7 +51,7 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
         return $this->model
             ->select('id', 'name')
             ->where('status', '1')
-            ->orderBy('name', 'asc')
+            ->orderBy('id', 'asc')
             ->get();
     }
 
