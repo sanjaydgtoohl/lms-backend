@@ -13,7 +13,9 @@ class DropLeadsTable extends Migration
      */
     public function up()
     {
-        Schema::dropIfExists('leads');
+        if (Schema::hasTable('leads')) {
+            Schema::dropIfExists('leads');
+        }
     }
 
     /**
@@ -23,7 +25,6 @@ class DropLeadsTable extends Migration
      */
     public function down()
     {
-        // Rollback not fully implemented - you may need to restore from backup
-        // or create a detailed recreation migration if needed
+        // Optional: recreate leads table if needed
     }
 }
