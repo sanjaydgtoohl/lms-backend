@@ -78,6 +78,28 @@ class AgencyController extends Controller
     }
 
     /**
+     * Get list of agencies with only id and name (e.g., /api/v1/agencies/list)
+     */
+    public function list(): JsonResponse
+    {
+        try {
+            $agencies = Agency::where('status', '1')
+                              ->orderBy('created_at', 'desc')
+                              ->limit(10000)
+                              ->get()
+                              ->map(function ($agency) {
+                                  return [
+                                      'id' => $agency->id,
+                                      'name' => $agency->name,
+                                  ];
+                              });
+            return $this->responseService->success($agencies, 'Agencies list retrieved');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
      * Create a new agency
      *
      * @param Request $request
