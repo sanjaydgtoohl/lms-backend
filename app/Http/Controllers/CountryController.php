@@ -55,6 +55,24 @@ class CountryController extends Controller
         }
     }
 
+    /**
+     * Get list of countries with only id and name (e.g., /api/v1/countries/list)
+     */
+    public function list(): JsonResponse
+    {
+        try {
+            $countries = $this->countryService->getAllCountries();
+            $data = $countries->map(function ($country) {
+                return [
+                    'id' => $country->id,
+                    'name' => $country->name,
+                ];
+            });
+            return $this->responseService->success($data, 'Countries list retrieved');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
 
     public function store(Request $request): JsonResponse
     {

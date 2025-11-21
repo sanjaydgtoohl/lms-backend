@@ -66,6 +66,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // User routes
     $router->group(['prefix' => 'users'], function () use ($router) {
         $router->get('/', 'Api\UserController@index');
+        $router->get('list', 'Api\UserController@list');
         $router->get('search', 'Api\UserController@search');
         $router->get('statistics', 'Api\UserController@statistics');
         $router->get('{id}', 'Api\UserController@show');
@@ -87,6 +88,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     $router->group(['prefix' => 'industries'], function () use ($router) {
     
         $router->get('/', 'IndustryController@index');
+        $router->get('list', 'IndustryController@list');
         $router->post('/', 'IndustryController@store');
         $router->get('{id}', 'IndustryController@show');
         $router->put('{id}', 'IndustryController@update');
@@ -95,6 +97,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
 
     $router->group(['prefix' => 'designations'], function () use ($router) {
         $router->get('/', 'DesignationController@index');
+        $router->get('list', 'DesignationController@list');
         $router->post('/', 'DesignationController@store');
         $router->get('{id}', 'DesignationController@show');
         $router->put('{id}', 'DesignationController@update');
@@ -103,6 +106,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
 
     $router->group(['prefix' => 'departments'], function () use ($router) {
         $router->get('/', 'DepartmentController@index');
+        $router->get('list', 'DepartmentController@list');
         $router->post('/', 'DepartmentController@store');
         $router->get('{id}', 'DepartmentController@show');
         $router->put('{id}', 'DepartmentController@update');
@@ -119,6 +123,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
 
     $router->group(['prefix' => 'lead-sub-sources'], function () use ($router) {
         $router->get('/', 'LeadSubSourceController@index');
+        $router->get('list', 'LeadSubSourceController@list');
         $router->post('/', 'LeadSubSourceController@store');
         $router->get('{id}', 'LeadSubSourceController@show');
         $router->put('{id}', 'LeadSubSourceController@update');
@@ -127,6 +132,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
 
     $router->group(['prefix' => 'countries'], function () use ($router) {
         $router->get('/', 'CountryController@index');
+        $router->get('list', 'CountryController@list');
         $router->get('{id:[0-9]+}', 'CountryController@show');
         $router->get('{id:[0-9]+}/states', 'StateController@getStatesByCountry');
         $router->get('{id:[0-9]+}/cities', 'CityController@getCitiesByCountry');
@@ -153,6 +159,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     
     $router->group(['prefix' => 'agencies'], function () use ($router) {
         $router->get('/', 'AgencyController@index');
+        $router->get('list', 'AgencyController@list');
         $router->get('create-data', 'AgencyController@create');
         $router->post('batch', 'AgencyController@storeBatch');
         $router->post('/', 'AgencyController@store');
@@ -201,6 +208,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // States routes
     $router->group(['prefix' => 'states'], function () use ($router) {
         $router->get('/', 'StateController@index');
+        $router->get('list', 'StateController@list');
         $router->get('all', 'StateController@getAll');
         $router->post('/', 'StateController@store');
         $router->get('{id:[0-9]+}', 'StateController@show');
