@@ -41,6 +41,25 @@ class IndustryController extends Controller
         }
     }
 
+    /**
+     * Get list of industries with only id and name (e.g., /api/v1/industries/list)
+     */
+    public function list(): JsonResponse
+    {
+        try {
+            $industries = $this->industryService->getAllIndustries(perPage: 10000);
+            $data = $industries->items() ? collect($industries->items())->map(function ($industry) {
+                return [
+                    'id' => $industry->id,
+                    'name' => $industry->name,
+                ];
+            }) : collect([]);
+            return $this->responseService->success($data, 'Industries list retrieved');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
     public function store(Request $request): JsonResponse
     {
         try {

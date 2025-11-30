@@ -91,6 +91,25 @@ class LeadSubSourceController extends Controller
     }
 
     /**
+     * Get list of lead sub-sources with only id and name (e.g., /api/v1/lead-sub-sources/list)
+     */
+    public function list()
+    {
+        try {
+            $leadSubSources = $this->leadSubSourceService->getAllLeadSubSources(filters: [], perPage: 10000);
+            $data = $leadSubSources->items() ? collect($leadSubSources->items())->map(function ($subSource) {
+                return [
+                    'id' => $subSource->id,
+                    'name' => $subSource->name,
+                ];
+            }) : collect([]);
+            return $this->responseService->success($data, 'Lead sub-sources list retrieved');
+        } catch (Exception $e) {
+            return $this->responseService->error('Failed to fetch lead sub-sources list.', [$e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Store a newly created lead sub-source.
      * 
      * POST /lead-sub-sources

@@ -45,6 +45,25 @@ class DesignationController extends Controller
         }
     }
 
+    /**
+     * Get list of designations with only id and title (e.g., /api/v1/designations/list)
+     */
+    public function list(): JsonResponse
+    {
+        try {
+            $designations = $this->designationService->getAllDesignations(perPage: 10000);
+            $data = $designations->items() ? collect($designations->items())->map(function ($designation) {
+                return [
+                    'id' => $designation->id,
+                    'title' => $designation->title,
+                ];
+            }) : collect([]);
+            return $this->responseService->success($data, 'Designations list retrieved');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
     public function store(Request $request): JsonResponse
     {
         try {
