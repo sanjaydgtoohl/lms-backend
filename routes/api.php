@@ -32,6 +32,8 @@ use App\Http\Controllers\PriorityController;
 use App\Http\Controllers\MissCampaignController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\BriefStatusController;
+use App\Http\Controllers\BriefController;
 
 use Carbon\Carbon;
 
@@ -327,6 +329,36 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('/{id:[0-9]+}', 'MissCampaignController@update');     
         $router->patch('/{id:[0-9]+}', 'MissCampaignController@update'); 
         $router->delete('/{id:[0-9]+}', 'MissCampaignController@destroy');
+    });
+
+    // Brief Status routes
+    $router->group(['prefix' => 'brief-statuses'], function () use ($router) {
+        $router->get('/', 'BriefStatusController@index');
+        $router->post('/', 'BriefStatusController@store');
+        $router->get('{id:[0-9]+}', 'BriefStatusController@show');
+        $router->put('{id:[0-9]+}', 'BriefStatusController@update');
+        $router->patch('{id:[0-9]+}', 'BriefStatusController@update');
+        $router->delete('{id:[0-9]+}', 'BriefStatusController@destroy');
+    });
+
+    // Brief routes
+    $router->group(['prefix' => 'briefs'], function () use ($router) {
+        // List and filter routes first (specific routes before generic {id})
+        $router->get('/list', 'BriefController@index');
+        $router->get('/filter', 'BriefController@index');
+        
+        // Generic CRUD operations
+        $router->get('/', 'BriefController@index');
+        $router->post('/', 'BriefController@store');
+        $router->get('{id:[0-9]+}', 'BriefController@show');
+        $router->put('{id:[0-9]+}', 'BriefController@update');
+        $router->patch('{id:[0-9]+}', 'BriefController@update');
+        $router->delete('{id:[0-9]+}', 'BriefController@destroy');
+        
+        // Additional Brief routes
+        $router->get('brand/{brandId:[0-9]+}', 'BriefController@getByBrand');
+        $router->get('agency/{agencyId:[0-9]+}', 'BriefController@getByAgency');
+        $router->get('user/{userId:[0-9]+}', 'BriefController@getByAssignedUser');
     });
 });
 

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('leads', function (Blueprint $table) {
             $table->id();
-
+            $table->uuid('uuid')->unique();
             // Foreign keys
             $table->foreignId('brand_id')->nullable()->constrained('brands');
             $table->foreignId('agency_id')->nullable()->constrained('agency'); // FIXED
@@ -23,9 +23,11 @@ return new class extends Migration
 
             // lead_status: tell me if this should be linked to a table
             $table->unsignedBigInteger('lead_status')->nullable();
+            $table->foreign('lead_status')->references('id')->on('statuses')->onDelete('set null');
 
             // Lead main info
             $table->string('name')->nullable();
+            $table->string('slug');
             $table->string('profile_url')->nullable();
             $table->string('email')->nullable();
             $table->json('mobile_number')->nullable();

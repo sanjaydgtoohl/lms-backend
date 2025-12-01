@@ -1,0 +1,37 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+class BriefStatusSeeder extends Seeder
+{
+    public function run(): void
+    {
+        DB::table('brief_statuses')->truncate();
+
+        $statuses = [
+            [ 'name' => 'Not Interested', 'slug' => 'not-interested', 'priority_id' => 3, 'status' => '1' ], // Low
+            [ 'name' => 'Submission',     'slug' => 'submission',      'priority_id' => 2, 'status' => '1' ], // Medium
+            [ 'name' => 'Negotiation',    'slug' => 'negotiation',     'priority_id' => 2, 'status' => '1' ], // Medium
+            [ 'name' => 'Approve',        'slug' => 'approve',         'priority_id' => 1, 'status' => '1' ], // High
+            [ 'name' => 'Closed',         'slug' => 'closed',          'priority_id' => 1, 'status' => '1' ], // High
+        ];
+
+        foreach ($statuses as $status) {
+            DB::table('brief_statuses')->updateOrInsert(
+                ['name' => $status['name']], // unique condition
+                [
+                    'uuid'         => Str::uuid(),
+                    'slug'         => $status['slug'],
+                    'priority_id'  => $status['priority_id'],
+                    'status'       => $status['status'],
+                    'created_at'   => now(),
+                    'updated_at'   => now(),
+                ]
+            );
+        }
+    }
+}
