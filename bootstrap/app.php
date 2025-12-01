@@ -126,7 +126,9 @@ $app->register(\Flipbox\LumenGenerator\LumenGeneratorServiceProvider::class);
 // Register providers
 $app->register(Laratrust\LaratrustServiceProvider::class);
 
-class_alias(Laratrust\LaratrustFacade::class, 'Laratrust');
+if (!class_exists('Laratrust')) {
+    class_alias(Laratrust\LaratrustFacade::class, 'Laratrust');
+}
 
 /*
 |--------------------------------------------------------------------------

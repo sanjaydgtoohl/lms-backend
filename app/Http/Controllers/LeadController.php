@@ -62,7 +62,20 @@ class LeadController extends Controller
             $perPage = (int) $request->input('per_page', 15);
             $searchTerm = $request->input('search', null);
 
-            $leads = $this->leadService->getAllLeads($perPage, $searchTerm);
+            // If filters are provided, use the filter method
+            if ($request->has(['brand_id', 'agency_id', 'current_assign_user', 'priority_id', 'status'])) {
+                $filters = array_filter([
+                    'brand_id' => $request->input('brand_id'),
+                    'agency_id' => $request->input('agency_id'),
+                    'current_assign_user' => $request->input('current_assign_user'),
+                    'priority_id' => $request->input('priority_id'),
+                    'status' => $request->input('status'),
+                    'search' => $searchTerm,
+                ]);
+                $leads = $this->leadService->getLeadsWithFilters($filters, $perPage);
+            } else {
+                $leads = $this->leadService->getAllLeads($perPage, $searchTerm);
+            }
 
             return $this->responseService->paginated(
                 LeadResource::collection($leads),

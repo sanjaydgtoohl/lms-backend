@@ -64,8 +64,7 @@ class LeadRepository implements LeadRepositoryInterface
     public function getAllLeads(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
         $query = $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
-            ->where('status', '1');
+            ->with(self::DEFAULT_RELATIONSHIPS);
 
         // Apply search filter if search term is provided
         if ($searchTerm) {
