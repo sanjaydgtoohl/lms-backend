@@ -194,7 +194,7 @@ class LeadRepository implements LeadRepositoryInterface
         return $this->model
             ->select('id', 'name')
             ->where('status', '1')
-            ->orderBy('name', 'asc')
+            ->orderBy('id', 'asc')
             ->get();
     }
 
