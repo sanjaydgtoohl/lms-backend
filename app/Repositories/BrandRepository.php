@@ -84,7 +84,7 @@ class BrandRepository implements BrandRepositoryInterface
         return $this->model
             ->select('id', 'name')        // Select only id and name
             ->where('status', '1')        // Match 'active' status from getAllBrands
-            ->orderBy('name', 'asc')      // Order alphabetically by name
+            ->orderBy('created_at', 'desc')      // Order by created_at in descending order
             ->get();
     }
 

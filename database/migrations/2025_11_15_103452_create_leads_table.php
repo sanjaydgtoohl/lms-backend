@@ -37,9 +37,15 @@ return new class extends Migration
             $table->foreignId('designation_id')->nullable()->constrained('designations');
             $table->foreignId('department_id')->nullable()->constrained('departments');
             $table->foreignId('sub_source_id')->nullable()->constrained('lead_sub_source');
-            $table->foreignId('country_id')->nullable()->constrained('countries');
-            $table->foreignId('state_id')->nullable()->constrained('states');
-            $table->foreignId('city_id')->nullable()->constrained('cities');
+            $table->mediumInteger('country_id')->unsigned()->nullable();
+            $table->foreign('country_id')->references('id')->on('countries')->onDelete('set null');
+
+            $table->mediumInteger('state_id')->unsigned()->nullable();
+            $table->foreign('state_id')->references('id')->on('states')->onDelete('set null');
+
+            $table->mediumInteger('city_id')->unsigned()->nullable();
+            $table->foreign('city_id')->references('id')->on('cities')->onDelete('set null');
+
             $table->foreignId('zone_id')->nullable()->constrained('zones');
             $table->foreignId('statuses')->nullable()->constrained('statuses');
 

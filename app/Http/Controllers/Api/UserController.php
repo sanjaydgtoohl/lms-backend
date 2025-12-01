@@ -60,6 +60,25 @@ class UserController extends Controller
     }
 
     /**
+     * Get list of users with only id and name (e.g., /api/v1/users/list)
+     */
+    public function list(): JsonResponse
+    {
+        try {
+            $users = $this->userService->getAllUsers(perPage: 10000);
+            $data = $users->items() ? collect($users->items())->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                ];
+            }) : collect([]);
+            return $this->responseService->success($data, 'Users list retrieved');
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve users list: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get user by ID
      *
      * @param int $id

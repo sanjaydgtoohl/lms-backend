@@ -60,6 +60,25 @@ class DepartmentController extends Controller
     }
 
     /**
+     * Get list of departments with only id and name (e.g., /api/v1/departments/list)
+     */
+    public function list(): JsonResponse
+    {
+        try {
+            $departments = $this->departmentService->getAllDepartments(perPage: 10000);
+            $data = $departments->items() ? collect($departments->items())->map(function ($department) {
+                return [
+                    'id' => $department->id,
+                    'name' => $department->name,
+                ];
+            }) : collect([]);
+            return $this->responseService->success($data, 'Departments list retrieved');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
      * Create a new department
      */
     public function store(Request $request): JsonResponse
