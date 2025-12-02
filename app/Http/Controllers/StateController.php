@@ -103,11 +103,21 @@ class StateController extends Controller
 
     /**
      * Get list of states with only id and name (e.g., /api/v1/states/list)
+     * Can filter by country_id query parameter (e.g., /api/v1/states/list?country_id=1)
      */
-    public function list(): JsonResponse
+    public function list(Request $request): JsonResponse
     {
         try {
-            $states = $this->stateService->getAllStates();
+            $countryId = $request->input('country_id', null);
+            
+            if ($countryId) {
+                // Get states for specific country
+                $states = $this->stateService->getStatesByCountry($countryId);
+            } else {
+                // Get all states if no country_id provided
+                $states = $this->stateService->getAllStates();
+            }
+            
             $data = $states->map(function ($state) {
                 return [
                     'id' => $state->id,
