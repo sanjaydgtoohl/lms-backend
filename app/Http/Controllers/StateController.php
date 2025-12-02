@@ -62,10 +62,13 @@ class StateController extends Controller
      * Get paginated list of states (e.g., /api/v1/states)
      * Get paginated list of states (e.g., /api/v1/states)
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $states = $this->stateService->getPaginatedStates();
+            $perPage = (int) $request->input('per_page', 15);
+            $search = $request->input('search', null);
+            
+            $states = $this->stateService->getPaginatedStates($perPage, $search);
             // Transform paginator items while preserving pagination meta
             $states->getCollection()->transform(function ($state) {
                 return new StateResource($state);

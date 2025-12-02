@@ -18,9 +18,9 @@ class CityService
         return $this->cityRepo->getAll();
     }
 
-    public function getPaginatedCities()
+    public function getPaginatedCities(int $perPage = 15, ?string $search = null)
     {
-        return $this->cityRepo->getPaginated(10);
+        return $this->cityRepo->getPaginated($perPage, $search);
     }
 
     public function getCitiesByState(int $stateId)

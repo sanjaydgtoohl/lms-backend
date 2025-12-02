@@ -28,13 +28,18 @@ class CityController extends Controller
     /**
      * Get paginated list of cities (e.g., /api/v1/cities)
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $cities = $this->cityService->getPaginatedCities();
-            // Use resource collection for response transformation
-            $data = CityResource::collection($cities);
-            return $this->responseService->paginated($data, 'Cities retrieved successfully');
+            $perPage = (int) $request->input('per_page', 15);
+            $search = $request->input('search', null);
+            
+            $cities = $this->cityService->getPaginatedCities($perPage, $search);
+            // Transform paginator items while preserving pagination meta
+            $cities->getCollection()->transform(function ($city) {
+                return new CityResource($city);
+            });
+            return $this->responseService->paginated($cities, 'Cities retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

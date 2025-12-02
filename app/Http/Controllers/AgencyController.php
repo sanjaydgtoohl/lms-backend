@@ -71,7 +71,10 @@ class AgencyController extends Controller
                               ->paginate($perPage)
                               ->appends(request()->query());
 
-            return $this->responseService->success(AgencyResource::collection($agencies), 'Agencies retrieved successfully');
+            // Apply resource collection to paginated results
+            $resource = AgencyResource::collection($agencies);
+
+            return $this->responseService->paginated($resource, 'Agencies retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

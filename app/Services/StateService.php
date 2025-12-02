@@ -23,9 +23,9 @@ class StateService
         return $this->stateRepo->getByCountry($countryId);
     }
 
-    public function getPaginatedStates()
+    public function getPaginatedStates(int $perPage = 15, ?string $search = null)
     {
-        return $this->stateRepo->getPaginated(10);
+        return $this->stateRepo->getPaginated($perPage, $search);
     }
 
     public function getStateById(int $id)

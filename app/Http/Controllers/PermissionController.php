@@ -35,26 +35,20 @@ class PermissionController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $perPage = (int) $request->get('per_page', 10);
-            $criteria = $request->only(['q', 'name', 'status', 'is_parent']);
+            $perPage = (int) $request->get('per_page', 15);
+            $criteria = array_filter([
+                'q' => $request->input('search'),
+                'name' => $request->input('name'),
+                'status' => $request->input('status'),
+                'is_parent' => $request->input('is_parent'),
+            ], fn($value) => $value !== null);
 
             $permissions = $this->permissionService->list($criteria, $perPage);
 
-            if ($permissions instanceof \Illuminate\Pagination\LengthAwarePaginator || $permissions instanceof \Illuminate\Pagination\Paginator) {
-                $permissions->getCollection()->transform(function ($permission) {
-                    return new PermissionResource($permission);
-                });
-            } elseif ($permissions instanceof \Illuminate\Support\Collection) {
-                $permissions->transform(function ($permission) {
-                    return new PermissionResource($permission);
-                });
-            } else {
-                $permissions = collect($permissions)->map(function ($permission) {
-                    return new PermissionResource($permission);
-                });
-            }
+            // Apply resource collection to paginated results
+            $resource = PermissionResource::collection($permissions);
 
-            return $this->responseService->paginated($permissions, 'Permissions retrieved successfully');
+            return $this->responseService->paginated($resource, 'Permissions retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

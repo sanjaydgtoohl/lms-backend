@@ -79,6 +79,12 @@ use App\Repositories\PriorityRepository;
 use App\Contracts\Repositories\LeadRepositoryInterface;
 use App\Repositories\LeadRepository;
 
+use App\Contracts\Repositories\BriefStatusRepositoryInterface;
+use App\Repositories\BriefStatusRepository;
+
+use App\Contracts\Repositories\BriefRepositoryInterface;
+use App\Repositories\BriefRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -203,6 +209,17 @@ class RepositoryServiceProvider extends ServiceProvider
             LeadRepositoryInterface::class,
             LeadRepository::class
         );
+
+        $this->app->bind(
+            BriefStatusRepositoryInterface::class,
+            BriefStatusRepository::class
+        );
+
+        $this->app->bind(
+            BriefRepositoryInterface::class,
+            BriefRepository::class
+        );
+
     }
     /**
      * Bootstrap any application services.

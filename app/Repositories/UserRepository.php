@@ -83,8 +83,21 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         $modelClass = $this->modelClass;
         $query = $modelClass::with(['roles', 'permissions']);
 
+        // Handle the generic 'search' parameter
+        if (!empty($criteria['search'])) {
+            $search = $criteria['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
         foreach ($criteria as $field => $value) {
-            if ($field === 'role') {
+            if ($field === 'search') {
+                // Already handled above
+                continue;
+            } elseif ($field === 'role') {
                 // Handle role search through relationships
                 $query->whereHas('roles', function ($q) use ($value) {
                     $q->where('name', $value);
