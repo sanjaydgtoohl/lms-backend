@@ -18,7 +18,9 @@ class LeadResource extends JsonResource
         return [
             // Basic Information
             'id' => $this->id,
+            'uuid' => $this->uuid,
             'name' => $this->name,
+            'slug' => $this->slug,
             'email' => $this->email,
             'profile_url' => $this->profile_url,
             'mobile_number' => $this->mobile_number,
@@ -121,6 +123,13 @@ class LeadResource extends JsonResource
                 return [
                     'id' => $this->zone->id ?? null,
                     'name' => $this->zone->name ?? null,
+                ];
+            }),
+
+            'status_relation' => $this->whenLoaded('statusRelation', function () {
+                return [
+                    'id' => $this->statusRelation->id ?? null,
+                    'name' => $this->statusRelation->name ?? null,
                 ];
             }),
 

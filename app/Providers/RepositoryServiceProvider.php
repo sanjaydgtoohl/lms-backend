@@ -85,6 +85,9 @@ use App\Repositories\BriefStatusRepository;
 use App\Contracts\Repositories\BriefRepositoryInterface;
 use App\Repositories\BriefRepository;
 
+use App\Contracts\Repositories\MeetingRepositoryInterface;
+use App\Repositories\EloquentMeetingRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -220,6 +223,10 @@ class RepositoryServiceProvider extends ServiceProvider
             BriefRepository::class
         );
 
+        $this->app->bind(
+            MeetingRepositoryInterface::class,
+            EloquentMeetingRepository::class
+        );
     }
     /**
      * Bootstrap any application services.
