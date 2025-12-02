@@ -10,7 +10,11 @@ class BriefStatusSeeder extends Seeder
 {
     public function run(): void
     {
+        // Disable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
         DB::table('brief_statuses')->truncate();
+        // Re-enable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $statuses = [
             [ 'name' => 'Not Interested', 'slug' => 'not-interested', 'priority_id' => 3, 'status' => '1' ], // Low
