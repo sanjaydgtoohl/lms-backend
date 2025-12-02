@@ -47,11 +47,23 @@ class UserController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $perPage = $request->get('per_page', 15);
-            $users = $this->userService->getAllUsers($perPage);
+            $perPage = (int) $request->get('per_page', 15);
+            $search = $request->input('search', null);
+            
+            if ($search) {
+                $criteria = [
+                    'search' => $search,
+                ];
+                $users = $this->userService->searchUsers($criteria, $perPage);
+            } else {
+                $users = $this->userService->getAllUsers($perPage);
+            }
+            
+            // Apply resource collection to paginated results
+            $resource = UserResource::collection($users);
             
             return $this->responseService->paginated(
-                UserResource::collection($users),
+                $resource,
                 'Users retrieved successfully'
             );
         } catch (\Exception $e) {

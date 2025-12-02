@@ -27,10 +27,13 @@ class CountryController extends Controller
     /**
      * Get paginated list of countries (e.g., /api/v1/countries)
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $countries = $this->countryService->getPaginatedCountries();
+            $perPage = (int) $request->input('per_page', 15);
+            $search = $request->input('search', null);
+            
+            $countries = $this->countryService->getPaginatedCountries($perPage, $search);
             // Transform paginator items with CountryResource while keeping pagination meta
             $countries->getCollection()->transform(function ($country) {
                 return new CountryResource($country);

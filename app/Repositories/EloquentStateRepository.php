@@ -29,10 +29,16 @@ class EloquentStateRepository implements StateRepositoryInterface
                            ->get();
     }
 
-    public function getPaginated(int $perPage = 10)
+    public function getPaginated(int $perPage = 15, ?string $search = null)
     {
-        // Country aur cities ke saath load karein
-        return $this->model->with(['country', 'cities'])->latest()->paginate($perPage);
+        $query = $this->model->with(['country', 'cities']);
+        
+        // Apply search filter if provided
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+        
+        return $query->latest()->paginate($perPage);
     }
 
     public function findById(int $id)

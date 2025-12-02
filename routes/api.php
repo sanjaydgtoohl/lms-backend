@@ -244,6 +244,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Roles routes
     $router->group(['prefix' => 'roles'], function () use ($router) {
         $router->get('/', 'RoleController@index');
+        $router->get('list', 'RoleController@list');
         $router->post('/', 'RoleController@store');
         $router->get('{id:[0-9]+}', 'RoleController@show');
         $router->put('{id:[0-9]+}', 'RoleController@update');
