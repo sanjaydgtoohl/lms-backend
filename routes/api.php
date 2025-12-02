@@ -34,6 +34,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\BriefStatusController;
 use App\Http\Controllers\BriefController;
+use App\Http\Controllers\MeetingController;
 
 use Carbon\Carbon;
 
@@ -223,6 +224,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Cities routes
     $router->group(['prefix' => 'cities'], function () use ($router) {
         $router->get('/', 'CityController@index');
+        $router->get('list', 'CityController@list');
         $router->get('all', 'CityController@getAll');
         $router->post('/', 'CityController@store');
         $router->get('{id:[0-9]+}', 'CityController@show');
@@ -360,6 +362,29 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('brand/{brandId:[0-9]+}', 'BriefController@getByBrand');
         $router->get('agency/{agencyId:[0-9]+}', 'BriefController@getByAgency');
         $router->get('user/{userId:[0-9]+}', 'BriefController@getByAssignedUser');
+    });
+
+    // Meetings routes
+    $router->group(['prefix' => 'meetings'], function () use ($router) {
+        $router->get('/', 'MeetingController@index');
+        $router->get('list', 'MeetingController@list');
+        $router->get('all', 'MeetingController@getAll');
+        $router->post('/', 'MeetingController@store');
+        $router->get('{id:[0-9]+}', 'MeetingController@show');
+        $router->put('{id:[0-9]+}', 'MeetingController@update');
+        $router->patch('{id:[0-9]+}', 'MeetingController@update');
+        $router->delete('{id:[0-9]+}', 'MeetingController@destroy');
+        $router->patch('{id:[0-9]+}/restore', 'MeetingController@restore');
+    });
+
+    // Meetings by lead (e.g., /api/v1/leads/1/meetings)
+    $router->group(['prefix' => 'leads'], function () use ($router) {
+        $router->get('{leadId:[0-9]+}/meetings', 'MeetingController@getMeetingsByLead');
+    });
+
+    // Meetings by attendee (e.g., /api/v1/users/1/meetings)
+    $router->group(['prefix' => 'users'], function () use ($router) {
+        $router->get('{attendeeId:[0-9]+}/meetings', 'MeetingController@getMeetingsByAttendee');
     });
 });
 

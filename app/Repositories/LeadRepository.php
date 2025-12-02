@@ -33,6 +33,7 @@ class LeadRepository implements LeadRepositoryInterface
         'state',
         'city',
         'zone',
+        'statusRelation',
     ];
 
     /**
@@ -275,6 +276,16 @@ class LeadRepository implements LeadRepositoryInterface
     public function createLead(array $data): Lead
     {
         try {
+            // Generate UUID if not provided
+            if (!isset($data['uuid'])) {
+                $data['uuid'] = (string) Str::uuid();
+            }
+            
+            // Generate slug from name if not provided
+            if (!isset($data['slug'])) {
+                $data['slug'] = Str::slug($data['name'] ?? 'lead-' . time());
+            }
+            
             // Initialize array fields if not provided
             if (!isset($data['mobile_number'])) {
                 $data['mobile_number'] = [];

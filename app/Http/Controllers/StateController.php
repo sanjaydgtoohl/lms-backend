@@ -102,12 +102,21 @@ class StateController extends Controller
     }
 
     /**
-     * Get list of states with only id and name (e.g., /api/v1/states/list)
+     * Get list of states with only id and name for a specific country (e.g., /api/v1/states/list?country_id=1)
+     * country_id is mandatory
      */
-    public function list(): JsonResponse
+    public function list(Request $request): JsonResponse
     {
         try {
-            $states = $this->stateService->getAllStates();
+            $this->validate($request, [
+                'country_id' => 'required|integer|exists:countries,id',
+            ]);
+            
+            $countryId = $request->input('country_id');
+            
+            // Get states for specific country
+            $states = $this->stateService->getStatesByCountry($countryId);
+            
             $data = $states->map(function ($state) {
                 return [
                     'id' => $state->id,
@@ -115,6 +124,8 @@ class StateController extends Controller
                 ];
             });
             return $this->responseService->success($data, 'States list retrieved');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
