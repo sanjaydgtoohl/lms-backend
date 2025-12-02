@@ -60,6 +60,36 @@ class CityController extends Controller
     }
 
     /**
+     * Get list of cities with only id and name for a specific state (e.g., /api/v1/cities/list?state_id=1)
+     * state_id is mandatory
+     */
+    public function list(Request $request): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'state_id' => 'required|integer|exists:states,id',
+            ]);
+            
+            $stateId = $request->input('state_id');
+            
+            // Get cities for specific state
+            $cities = $this->cityService->getCitiesByState($stateId);
+            
+            $data = $cities->map(function ($city) {
+                return [
+                    'id' => $city->id,
+                    'name' => $city->name,
+                ];
+            });
+            return $this->responseService->success($data, 'Cities list retrieved');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
      * Get all cities for a specific state
      * (e.g., /api/v1/states/1/cities)
      */

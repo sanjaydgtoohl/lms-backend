@@ -223,6 +223,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Cities routes
     $router->group(['prefix' => 'cities'], function () use ($router) {
         $router->get('/', 'CityController@index');
+        $router->get('list', 'CityController@list');
         $router->get('all', 'CityController@getAll');
         $router->post('/', 'CityController@store');
         $router->get('{id:[0-9]+}', 'CityController@show');
