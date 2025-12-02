@@ -1,0 +1,59 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Meeting extends Model
+{
+    use SoftDeletes;
+
+    protected $table = 'meetings';
+
+    protected $fillable = [
+        'uuid',
+        'title',
+        'slug',
+        'lead_id',
+        'attendees_id',
+        'type',
+        'location',
+        'agenda',
+        'link',
+        'meeting_date',
+        'meeting_time',
+        'status',
+    ];
+
+    protected $casts = [
+        'meeting_date' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
+    ];
+
+    /**
+     * Relationship with Lead model
+     */
+    public function lead()
+    {
+        return $this->belongsTo(Lead::class);
+    }
+
+    /**
+     * Relationship with User model (Attendee)
+     */
+    public function attendee()
+    {
+        return $this->belongsTo(User::class, 'attendees_id');
+    }
+
+    /**
+     * Get the route key for model binding
+     */
+    public function getRouteKeyName()
+    {
+        return 'uuid';
+    }
+}

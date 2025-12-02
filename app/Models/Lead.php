@@ -23,6 +23,7 @@ class Lead extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'uuid',
         'brand_id',
         'agency_id',
         'current_assign_user',
@@ -30,6 +31,7 @@ class Lead extends Model
         'call_status',
         'lead_status',
         'name',
+        'slug',
         'profile_url',
         'email',
         'mobile_number',
@@ -41,6 +43,7 @@ class Lead extends Model
         'state_id',
         'city_id',
         'zone_id',
+        'statuses',
         'postal_code',
         'comment',
         'status',
@@ -54,6 +57,16 @@ class Lead extends Model
     protected $casts = [
         'mobile_number' => 'array',
     ];
+
+    /**
+     * Get the route key for the model.
+     *
+     * @return string
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
 
     public function brand()
     {
@@ -108,5 +121,10 @@ class Lead extends Model
     public function zone()
     {
         return $this->belongsTo(Zone::class, 'zone_id');
+    }
+
+    public function statusRelation()
+    {
+        return $this->belongsTo(Status::class, 'statuses');
     }
 }
