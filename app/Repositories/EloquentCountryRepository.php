@@ -20,10 +20,16 @@ class EloquentCountryRepository implements CountryRepositoryInterface
         return $this->model->latest()->get();
     }
 
-    public function getPaginated(int $perPage = 10)
+    public function getPaginated(int $perPage = 15, ?string $search = null)
     {
-        // Load with states relationship
-        return $this->model->with('states')->latest()->paginate($perPage);
+        $query = $this->model->with('states');
+        
+        // Apply search filter if provided
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+        
+        return $query->latest()->paginate($perPage);
     }
 
     public function findById(int $id)

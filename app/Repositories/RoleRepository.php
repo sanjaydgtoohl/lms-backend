@@ -64,7 +64,7 @@ class RoleRepository implements RoleRepositoryInterface
 
     public function search(array $criteria, int $perPage = 15): LengthAwarePaginator
     {
-        $query = $this->model->newQuery();
+        $query = $this->model->with('permissions')->newQuery();
 
         // Global q parameter for quick search
         if (! empty($criteria['q'])) {

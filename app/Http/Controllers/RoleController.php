@@ -28,33 +28,37 @@ class RoleController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $perPage = (int) $request->get('per_page', 10);
-            $criteria = $request->only(['q', 'name']);
+            $perPage = (int) $request->get('per_page', 15);
+            $criteria = array_filter([
+                'q' => $request->input('search'),
+                'name' => $request->input('name'),
+            ], fn($value) => $value !== null);
 
             $roles = $this->roleService->list($criteria, $perPage);
-            // Handle both paginator and collection results
-            if ($roles instanceof \Illuminate\Pagination\LengthAwarePaginator || $roles instanceof \Illuminate\Pagination\Paginator) {
-                $roles->getCollection()->transform(function ($role) {
-                    // Load permissions for each role
-                    $role->load('permissions');
-                    return new RoleResource($role);
-                });
-            } elseif ($roles instanceof \Illuminate\Support\Collection) {
-                $roles->transform(function ($role) {
-                    // Load permissions for each role
-                    $role->load('permissions');
-                    return new RoleResource($role);
-                });
-            } else {
-                // Fallback: convert to collection and map resources
-                $roles = collect($roles)->map(function ($role) {
-                    // Load permissions for each role
-                    $role->load('permissions');
-                    return new RoleResource($role);
-                });
-            }
 
-            return $this->responseService->paginated($roles, 'Roles retrieved successfully');
+            // Apply resource collection to paginated results
+            $resource = RoleResource::collection($roles);
+
+            return $this->responseService->paginated($resource, 'Roles retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get list of roles with only id and name
+     */
+    public function list(): JsonResponse
+    {
+        try {
+            $roles = $this->roleService->list([], 10000);
+            $data = collect($roles->items())->map(function ($role) {
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                ];
+            });
+            return $this->responseService->success($data, 'Roles list retrieved');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

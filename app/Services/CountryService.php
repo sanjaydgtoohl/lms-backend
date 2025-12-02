@@ -18,9 +18,9 @@ class CountryService
         return $this->countries->getAll();
     }
 
-    public function getPaginatedCountries(int $perPage = 10)
+    public function getPaginatedCountries(int $perPage = 15, ?string $search = null)
     {
-        return $this->countries->getPaginated($perPage);
+        return $this->countries->getPaginated($perPage, $search);
     }
 
     public function getCountryById(int $id)

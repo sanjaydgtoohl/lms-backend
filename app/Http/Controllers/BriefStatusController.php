@@ -1,0 +1,207 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Resources\BriefStatusResource;
+use App\Services\BriefStatusService;
+use App\Services\ResponseService;
+use App\Traits\ValidatesRequests;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Throwable;
+use Illuminate\Validation\ValidationException;
+
+class BriefStatusController extends Controller
+{
+    use ValidatesRequests;
+
+    /**
+     * @var ResponseService
+     */
+    protected ResponseService $responseService;
+
+    /**
+     * @var BriefStatusService
+     */
+    protected BriefStatusService $briefStatusService;
+
+    /**
+     * Create a new BriefStatusController instance.
+     *
+     * @param ResponseService $responseService
+     * @param BriefStatusService $briefStatusService
+     */
+    public function __construct(ResponseService $responseService, BriefStatusService $briefStatusService)
+    {
+        $this->responseService = $responseService;
+        $this->briefStatusService = $briefStatusService;
+    }
+
+    // ============================================================================
+    // READ OPERATIONS
+    // ============================================================================
+
+    /**
+     * Display a listing of brief statuses.
+     *
+     * GET /brief-statuses
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function index(Request $request): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1',
+                'search' => 'nullable|string|max:255',
+            ]);
+
+            $perPage = (int) $request->input('per_page', 15);
+            $searchTerm = $request->input('search', null);
+
+            $briefStatuses = $this->briefStatusService->getAllBriefStatuses($perPage, $searchTerm);
+
+            return $this->responseService->paginated(
+                BriefStatusResource::collection($briefStatuses),
+                'Brief statuses retrieved successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Display the specified brief status.
+     *
+     * GET /brief-statuses/{id}
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function show(int $id): JsonResponse
+    {
+        try {
+            $briefStatus = $this->briefStatusService->getBriefStatus($id);
+
+            if (!$briefStatus) {
+                return $this->responseService->notFound('Brief status not found');
+            }
+
+            return $this->responseService->success(
+                new BriefStatusResource($briefStatus),
+                'Brief status retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    // ============================================================================
+    // WRITE OPERATIONS
+    // ============================================================================
+
+    /**
+     * Store a newly created brief status.
+     *
+     * POST /brief-statuses
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'name' => 'required|string|max:255|unique:brief_statuses,name',
+                'slug' => 'required|string|max:255|unique:brief_statuses,slug',
+                'priority_id' => 'nullable|integer|exists:priorities,id',
+                'status' => 'nullable|in:1,2,15',
+            ]);
+
+            $briefStatus = $this->briefStatusService->createBriefStatus($request->all());
+
+            return $this->responseService->created(
+                new BriefStatusResource($briefStatus),
+                'Brief status created successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Update the specified brief status.
+     *
+     * PUT /brief-statuses/{id}
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'name' => 'sometimes|string|max:255|unique:brief_statuses,name,' . $id,
+                'slug' => 'sometimes|string|max:255|unique:brief_statuses,slug,' . $id,
+                'priority_id' => 'nullable|integer|exists:priorities,id',
+                'status' => 'nullable|in:1,2,15',
+            ]);
+
+            $briefStatus = $this->briefStatusService->updateBriefStatus($id, $request->all());
+
+            if (!$briefStatus) {
+                return $this->responseService->notFound('Brief status not found');
+            }
+
+            return $this->responseService->success(
+                new BriefStatusResource($briefStatus),
+                'Brief status updated successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Delete the specified brief status.
+     *
+     * DELETE /brief-statuses/{id}
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        try {
+            $deleted = $this->briefStatusService->deleteBriefStatus($id);
+
+            if (!$deleted) {
+                return $this->responseService->notFound('Brief status not found');
+            }
+
+            return $this->responseService->success(
+                null,
+                'Brief status deleted successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+}
