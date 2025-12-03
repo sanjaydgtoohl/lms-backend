@@ -172,12 +172,21 @@ class PermissionRepository implements PermissionRepositoryInterface
 
     public function getAllPermissionTree(): \Illuminate\Support\Collection
     {
-        // Get all root permissions (where is_parent is NULL) with their children
+        // Get all root permissions (where is_parent is NULL) with their children recursively
         return $this->model
-            ->with('children')
+            ->with($this->getRecursiveChildrenRelation())
             ->where('status', 1)
             ->whereNull('is_parent')
             ->orderBy('id', 'asc')
             ->get();
+    }
+
+    /**
+     * Get recursive children relation query
+     * This loads children -> grandchildren -> great-grandchildren, etc.
+     */
+    private function getRecursiveChildrenRelation()
+    {
+        return 'children.children.children.children.children';
     }
 }
