@@ -481,4 +481,74 @@ class LeadController extends Controller
             return $this->responseService->handleException($e);
         }
     }
+
+    /**
+     * Get contact persons (leads) by brand ID with simple response.
+     *
+     * GET /leads/contact-persons/by-brand/{brandId}
+     *
+     * @param int $brandId
+     * @return JsonResponse
+     */
+    public function getContactPersonsByBrand(int $brandId): JsonResponse
+    {
+        try {
+            // Validate that the brand exists
+            $brand = \App\Models\Brand::find($brandId);
+            if (!$brand) {
+                return $this->responseService->notFound('Brand not found');
+            }
+
+            $leads = $this->leadService->getLeadsByBrand($brandId, perPage: 10000);
+            
+            $contactPersons = collect($leads->items())->map(function ($lead) {
+                return [
+                    'id' => $lead->id,
+                    'name' => $lead->name,
+                ];
+            });
+
+            return $this->responseService->success(
+                $contactPersons,
+                'Contact persons retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get contact persons (leads) by agency ID with simple response.
+     *
+     * GET /leads/contact-persons/by-agency/{agencyId}
+     *
+     * @param int $agencyId
+     * @return JsonResponse
+     */
+    public function getContactPersonsByAgency(int $agencyId): JsonResponse
+    {
+        try {
+            // Validate that the agency exists
+            $agency = \App\Models\Agency::find($agencyId);
+            if (!$agency) {
+                return $this->responseService->notFound('Agency not found');
+            }
+
+            $leads = $this->leadService->getLeadsByAgency($agencyId, perPage: 10000);
+            
+            $contactPersons = collect($leads->items())->map(function ($lead) {
+                return [
+                    'id' => $lead->id,
+                    'name' => $lead->name,
+                ];
+            });
+
+            return $this->responseService->success(
+                $contactPersons,
+                'Contact persons retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
 }

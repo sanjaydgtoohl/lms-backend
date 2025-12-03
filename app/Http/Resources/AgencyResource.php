@@ -20,6 +20,7 @@ class AgencyResource extends JsonResource
             'is_parent' => $this->parentAgency ? new AgencyResource($this->parentAgency) : null,
             'agency_type' => new AgencyTypeResource($this->whenLoaded('agencyType')),
             'status' => $this->status,
+            'contact_person_count' => $this->getContactPersonCount(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'deleted_at' => $this->deleted_at,
