@@ -170,26 +170,14 @@ class PermissionRepository implements PermissionRepositoryInterface
             ->paginate($perPage);
     }
 
-    public function getAllParentPermissions(): array
+    public function getAllPermissionTree(): \Illuminate\Support\Collection
     {
-        return $this->model->whereNotNull('is_parent')
-            ->where('is_parent', '!=', 0)
-            ->select('id', 'display_name')
-            ->orderBy('display_name', 'asc')
-            ->get()
-            ->toArray();
-    }
-
-    public function getAllPermissionTree(): array
-    {
-        // Get all permissions with id, display_name, and is_parent
-        $allPermissions = $this->model->with('children')
-            // ->select('id', 'display_name', 'is_parent')
-            ->where('status',1)
+        // Get all root permissions (where is_parent is NULL) with their children
+        return $this->model
+            ->with('children')
+            ->where('status', 1)
+            ->whereNull('is_parent')
             ->orderBy('id', 'asc')
-            ->get()
-            ->toArray();
-
-        return $allPermissions;
+            ->get();
     }
 }
