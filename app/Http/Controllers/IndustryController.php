@@ -70,7 +70,7 @@ class IndustryController extends Controller
             }
 
             $rules = [
-                'name' => 'required|string|max:255',
+                'name' => 'required|string|max:255|unique:industries,name',
                 'slug' => 'sometimes|string|max:255',
                 'status' => 'sometimes|in:1,2,15',
             ];
@@ -110,7 +110,7 @@ class IndustryController extends Controller
             }
 
             $rules = [
-                'name' => 'required|string|max:255',
+                'name' => 'required|string|max:255|unique:industries,name,' . $id,
                 'slug' => 'sometimes|string|max:255',
                 'status' => 'sometimes|in:1,2,15',
             ];

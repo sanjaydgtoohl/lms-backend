@@ -59,6 +59,7 @@ class Brief extends Model
      */
     protected $casts = [
         'submission_date' => 'datetime',
+        'budget' => 'decimal:2',
     ];
 
     /**
