@@ -183,44 +183,13 @@ class PermissionRepository implements PermissionRepositoryInterface
     public function getAllPermissionTree(): array
     {
         // Get all permissions with id, display_name, and is_parent
-        $allPermissions = $this->model->select('id', 'display_name', 'is_parent')
+        $allPermissions = $this->model->with('children')
+            // ->select('id', 'display_name', 'is_parent')
+            ->where('status',1)
             ->orderBy('id', 'asc')
             ->get()
             ->toArray();
 
-        return $this->buildTree($allPermissions);
-    }
-
-    /**
-     * Build hierarchical tree structure from flat permissions array
-     *
-     * @param array $permissions
-     * @param int|null $parentId
-     * @return array
-     */
-    private function buildTree(array $permissions, ?int $parentId = null): array
-    {
-        $tree = [];
-
-        foreach ($permissions as $permission) {
-            // Check if this permission belongs to the current parent level
-            if ($permission['is_parent'] == $parentId) {
-                $item = [
-                    'id' => $permission['id'],
-                    'display_name' => $permission['display_name'],
-                ];
-
-                // Recursively get children for this permission
-                $subTree = $this->buildTree($permissions, $permission['id']);
-                if (!empty($subTree)) {
-                    $item[] = $subTree;
-                }
-
-                $tree[] = $item;
-            }
-        }
-
-        return $tree;
+        return $allPermissions;
     }
 }
-
