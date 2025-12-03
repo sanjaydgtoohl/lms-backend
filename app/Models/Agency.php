@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Agency extends Model
 {
@@ -28,7 +29,8 @@ class Agency extends Model
         'status',
         'agency_type',
         'brand_id',
-        'is_parent'
+        'is_parent',
+        'contact_person_id'
     ];
 
     /**
@@ -53,5 +55,25 @@ class Agency extends Model
     public function brand()
     {
         return $this->belongsToMany(Brand::class, 'brand_agency_relationships', 'agency_id', 'brand_id');
+    }
+
+    /**
+     * Get all contact persons (leads) for this agency.
+     *
+     * @return HasMany
+     */
+    public function contactPersons(): HasMany
+    {
+        return $this->hasMany(Lead::class, 'agency_id');
+    }
+
+    /**
+     * Get the count of contact persons for this agency.
+     *
+     * @return int
+     */
+    public function getContactPersonCount(): int
+    {
+        return $this->contactPersons()->count();
     }
 }

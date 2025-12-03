@@ -66,6 +66,7 @@ class BrandResource extends JsonResource
                     'name' => $this->creator->name ?? null,
                 ];
             }),
+            'contact_person_count' => $this->getContactPersonCount(),
             'created_at' => $this->created_at,
         ];
     }
