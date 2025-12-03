@@ -24,6 +24,8 @@ class PermissionResource extends JsonResource
             'icon_file' => $this->icon_file,
             'icon_text' => $this->icon_text ?? null,
             'description' => $this->description,
+            'is_parent' => $this->is_parent,
+            'status' => $this->status,
             'children' => $this->when(
                 $this->relationLoaded('children') && $this->children->isNotEmpty(),
                 fn() => PermissionResource::collection($this->children)
