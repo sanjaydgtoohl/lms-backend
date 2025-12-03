@@ -59,7 +59,7 @@ class BriefController extends Controller
                 'assign_user_id' => 'nullable|integer|exists:users,id',
                 'brief_status_id' => 'nullable|integer|exists:brief_statuses,id',
                 'priority_id' => 'nullable|integer|exists:priorities,id',
-                'status' => 'nullable|in:0,1',
+                'status' => 'nullable|in:1,2,15',
             ]);
 
             $perPage = (int) $request->input('per_page', 15);
@@ -138,7 +138,7 @@ class BriefController extends Controller
                 'contact_person_id' => 'required|integer|exists:leads,id',
                 'brand_id' => 'required|integer|exists:brands,id',
                 'agency_id' => 'required|integer|exists:agency,id',
-                'mode_of_campaign' => 'nullable|string|max:255',
+                'mode_of_campaign' => 'nullable|in:programmatic,non_programmatic',
                 'media_type' => 'nullable|string|max:255',
                 'budget' => 'nullable|numeric|min:0',
                 'assign_user_id' => 'nullable|integer|exists:users,id',
@@ -146,7 +146,7 @@ class BriefController extends Controller
                 'priority_id' => 'nullable|integer|exists:priorities,id',
                 'comment' => 'nullable|string',
                 'submission_date' => 'nullable|date_format:Y-m-d H:i:s',
-                'status' => 'nullable|in:0,1',
+                'status' => 'nullable|in:1,2,15',
             ];
 
             $this->validate($request, $rules);
@@ -169,6 +169,10 @@ class BriefController extends Controller
             $data['uuid'] = (string) Str::uuid();
             $data['slug'] = Str::slug($request->input('name')) . '-' . uniqid();
             $data['created_by'] = Auth::id();
+            // Set default status if not provided
+            if (!isset($data['status'])) {
+                $data['status'] = '2';
+            }
 
             $brief = $this->briefService->createBrief($data);
 
@@ -205,7 +209,7 @@ class BriefController extends Controller
                 'contact_person_id' => 'sometimes|required|integer|exists:leads,id',
                 'brand_id' => 'sometimes|required|integer|exists:brands,id',
                 'agency_id' => 'sometimes|required|integer|exists:agency,id',
-                'mode_of_campaign' => 'nullable|string|max:255',
+                'mode_of_campaign' => 'nullable|in:programmatic,non_programmatic',
                 'media_type' => 'nullable|string|max:255',
                 'budget' => 'nullable|numeric|min:0',
                 'assign_user_id' => 'nullable|integer|exists:users,id',
@@ -213,7 +217,7 @@ class BriefController extends Controller
                 'priority_id' => 'nullable|integer|exists:priorities,id',
                 'comment' => 'nullable|string',
                 'submission_date' => 'nullable|date_format:Y-m-d H:i:s',
-                'status' => 'nullable|in:0,1',
+                'status' => 'nullable|in:1,2,15',
             ];
 
             $this->validate($request, $rules);

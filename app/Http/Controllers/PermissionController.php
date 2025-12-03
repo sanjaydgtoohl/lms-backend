@@ -55,6 +55,27 @@ class PermissionController extends Controller
     }
 
     /**
+     * Get list of permissions with only id and display_name
+     *
+     * @return JsonResponse
+     */
+    public function list(): JsonResponse
+    {
+        try {
+            $permissions = $this->permissionService->list([], 10000);
+            $data = $permissions->items() ? collect($permissions->items())->map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'display_name' => $permission->display_name,
+                ];
+            }) : collect([]);
+            return $this->responseService->success($data, 'Permissions list retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
      * Store a newly created permission in storage.
      *
      * @param Request $request
@@ -431,22 +452,6 @@ class PermissionController extends Controller
     }
 
     /**
-     * Get all parent permissions with id and display_name.
-     *
-     * @return JsonResponse
-     */
-    public function allParentPermissions(): JsonResponse
-    {
-        try {
-            $permissions = $this->permissionService->getAllParentPermissions();
-
-            return $this->responseService->success($permissions, 'Parent permissions retrieved successfully');
-        } catch (Throwable $e) {
-            return $this->responseService->handleException($e);
-        }
-    }
-
-    /**
      * Get all permissions as tree with id, display_name, and is_parent.
      *
      * @return JsonResponse
@@ -455,8 +460,9 @@ class PermissionController extends Controller
     {
         try {
             $permissions = $this->permissionService->getAllPermissionTree();
+            $resource = PermissionResource::collection($permissions);
 
-            return $this->responseService->success($permissions, 'Permission tree retrieved successfully');
+            return $this->responseService->success($resource, 'Permission tree retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

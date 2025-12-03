@@ -219,21 +219,11 @@ class PermissionService
 	}
 
 	/**
-	 * Get all parent permissions with id and display_name
-	 *
-	 * @return array
-	 */
-	public function getAllParentPermissions(): array
-	{
-		return $this->permissionRepository->getAllParentPermissions();
-	}
-
-	/**
 	 * Get all permissions as tree structure with id, display_name, and is_parent
 	 *
-	 * @return array
+	 * @return \Illuminate\Support\Collection
 	 */
-	public function getAllPermissionTree(): array
+	public function getAllPermissionTree(): \Illuminate\Support\Collection
 	{
 		return $this->permissionRepository->getAllPermissionTree();
 	}
