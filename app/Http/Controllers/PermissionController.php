@@ -86,8 +86,8 @@ class PermissionController extends Controller
         try {
             $rules = [
                 'name' => 'required|string|max:255|unique:permissions,name',
-                'display_name' => 'nullable|string|max:255',
-                'description' => 'nullable|string|max:1000',
+                'display_name' => 'required|string|max:255',
+                'description' => 'required|string|max:1000',
                 'slug' => 'nullable|string|max:255|unique:permissions,slug',
                 'url' => 'nullable|string|max:255',
                 'icon_file' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:5120',
@@ -152,8 +152,8 @@ class PermissionController extends Controller
                     'max:255',
                     Rule::unique('permissions', 'name')->ignore($id),
                 ],
-                'display_name' => 'sometimes|nullable|string|max:255',
-                'description' => 'sometimes|nullable|string|max:1000',
+                'display_name' => 'sometimes|required|string|max:255',
+                'description' => 'sometimes|required|string|max:1000',
                 'slug' => [
                     'sometimes',
                     'nullable',
