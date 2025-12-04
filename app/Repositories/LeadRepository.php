@@ -309,13 +309,35 @@ class LeadRepository implements LeadRepositoryInterface
                 $data['mobile_number'] = [$data['mobile_number']];
             }
             
-            // Handle call_status_id: convert to call_status and lead_status
+            // Handle call_status_id: convert to call_status, lead_status, and priority_id
             if (isset($data['call_status_id']) && !empty($data['call_status_id'])) {
                 $callStatusId = $data['call_status_id'];
                 $data['call_status'] = $callStatusId;
                 
-                // Find the Status that contains this callStatusId
+                // Find the Priority that contains this callStatusId
+                $priorityRecord = null;
                 $statusRecord = null;
+                
+                $allPriorities = \App\Models\Priority::all();
+                
+                foreach ($allPriorities as $priority) {
+                    // call_status is stored as JSON array
+                    $callStatuses = is_string($priority->call_status) 
+                        ? json_decode($priority->call_status, true) 
+                        : $priority->call_status;
+                    
+                    if (is_array($callStatuses) && in_array($callStatusId, $callStatuses)) {
+                        $priorityRecord = $priority;
+                        break;
+                    }
+                }
+                
+                // Set priority_id if found
+                if ($priorityRecord && !isset($data['priority_id'])) {
+                    $data['priority_id'] = $priorityRecord->id;
+                }
+                
+                // Find the Status that contains this callStatusId
                 $allStatuses = Status::all();
                 
                 foreach ($allStatuses as $status) {
@@ -367,6 +389,23 @@ class LeadRepository implements LeadRepositoryInterface
     {
         try {
             $lead = $this->model->findOrFail($id);
+            
+            // If name is being updated, also update the slug
+            if (isset($data['name'])) {
+                $data['slug'] = Str::slug($data['name']);
+            }
+            
+            // Handle brand_id and agency_id updates
+            // If brand_id is being set, clear agency_id
+            if (isset($data['brand_id']) && !empty($data['brand_id'])) {
+                $data['agency_id'] = null;
+            }
+            
+            // If agency_id is being set, clear brand_id
+            if (isset($data['agency_id']) && !empty($data['agency_id'])) {
+                $data['brand_id'] = null;
+            }
+            
             $result = $lead->update($data);
             
             // Save history after update

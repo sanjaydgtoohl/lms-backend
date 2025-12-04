@@ -484,7 +484,7 @@ class LeadController extends Controller
     }
 
     /**
-     * Get contact persons (leads) by brand ID with simple response.
+     * Get contact persons (leads) by brand ID with complete data.
      *
      * GET /leads/contact-persons/by-brand/{brandId}
      *
@@ -502,15 +502,8 @@ class LeadController extends Controller
 
             $leads = $this->leadService->getLeadsByBrand($brandId, perPage: 10000);
             
-            $contactPersons = collect($leads->items())->map(function ($lead) {
-                return [
-                    'id' => $lead->id,
-                    'name' => $lead->name,
-                ];
-            });
-
             return $this->responseService->success(
-                $contactPersons,
+                LeadResource::collection($leads->items()),
                 'Contact persons retrieved successfully'
             );
         } catch (Throwable $e) {
@@ -519,7 +512,7 @@ class LeadController extends Controller
     }
 
     /**
-     * Get contact persons (leads) by agency ID with simple response.
+     * Get contact persons (leads) by agency ID with complete data.
      *
      * GET /leads/contact-persons/by-agency/{agencyId}
      *
@@ -537,15 +530,8 @@ class LeadController extends Controller
 
             $leads = $this->leadService->getLeadsByAgency($agencyId, perPage: 10000);
             
-            $contactPersons = collect($leads->items())->map(function ($lead) {
-                return [
-                    'id' => $lead->id,
-                    'name' => $lead->name,
-                ];
-            });
-
             return $this->responseService->success(
-                $contactPersons,
+                LeadResource::collection($leads->items()),
                 'Contact persons retrieved successfully'
             );
         } catch (Throwable $e) {

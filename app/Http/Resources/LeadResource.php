@@ -103,7 +103,7 @@ class LeadResource extends JsonResource
             'designation' => $this->whenLoaded('designation', function () {
                 return [
                     'id' => $this->designation->id ?? null,
-                    'name' => $this->designation->name ?? null,
+                    'name' => $this->designation->title ?? null,
                 ];
             }),
 
