@@ -26,7 +26,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function getAllMeetings(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
-        $query = $this->model->with(['lead', 'attendee']);
+        $query = $this->model->with(['lead']);
 
         // Apply search filter if provided
         if ($searchTerm) {
@@ -45,7 +45,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function getAll(): Collection
     {
-        return $this->model->with(['lead', 'attendee'])->latest()->get();
+        return $this->model->with(['lead'])->latest()->get();
     }
 
     /**
@@ -53,7 +53,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function getById(int $id): ?Meeting
     {
-        return $this->model->with(['lead', 'attendee'])->find($id);
+        return $this->model->with(['lead'])->find($id);
     }
 
     /**
@@ -61,7 +61,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function getByUuid(string $uuid): ?Meeting
     {
-        return $this->model->with(['lead', 'attendee'])->where('uuid', $uuid)->first();
+        return $this->model->with(['lead'])->where('uuid', $uuid)->first();
     }
 
     /**
@@ -69,7 +69,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function getByLead(int $leadId): Collection
     {
-        return $this->model->with(['lead', 'attendee'])
+        return $this->model->with(['lead'])
                            ->where('lead_id', $leadId)
                            ->latest()
                            ->get();
@@ -80,8 +80,8 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function getByAttendee(int $attendeeId): Collection
     {
-        return $this->model->with(['lead', 'attendee'])
-                           ->where('attendees_id', $attendeeId)
+        return $this->model->with(['lead'])
+                           ->whereJsonContains('attendees_id', $attendeeId)
                            ->latest()
                            ->get();
     }
@@ -91,7 +91,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function getByStatus(string $status): Collection
     {
-        return $this->model->with(['lead', 'attendee'])
+        return $this->model->with(['lead'])
                            ->where('status', $status)
                            ->latest()
                            ->get();
@@ -124,7 +124,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function update(int $id, array $data): Meeting
     {
-        $meeting = $this->model->findOrFail($id);
+        $meeting = $this->model->where('id', $id)->firstOrFail();
 
         // Update slug if title is being updated
         if (isset($data['title']) && !isset($data['slug'])) {
@@ -133,7 +133,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
 
         $meeting->update($data);
 
-        return $meeting->fresh(['lead', 'attendee']);
+        return $meeting->fresh(['lead']);
     }
 
     /**
@@ -141,7 +141,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function delete(int $id): bool
     {
-        $meeting = $this->model->findOrFail($id);
+        $meeting = $this->model->where('id', $id)->firstOrFail();
         return $meeting->forceDelete();
     }
 
@@ -150,7 +150,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function softDelete(int $id): bool
     {
-        $meeting = $this->model->findOrFail($id);
+        $meeting = $this->model->where('id', $id)->firstOrFail();
         return $meeting->delete();
     }
 
@@ -159,7 +159,7 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
      */
     public function restore(int $id): bool
     {
-        $meeting = $this->model->withTrashed()->findOrFail($id);
+        $meeting = $this->model->withTrashed()->where('id', $id)->firstOrFail();
         return $meeting->restore();
     }
 }
