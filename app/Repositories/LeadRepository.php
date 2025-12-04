@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Contracts\Repositories\LeadRepositoryInterface;
 use App\Models\Lead;
 use App\Models\LeadAssignHistory;
+use App\Models\Status;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use DomainException;
@@ -25,6 +26,7 @@ class LeadRepository implements LeadRepositoryInterface
         'brand',
         'agency',
         'assignedUser',
+        'createdByUser',
         'priority',
         'designation',
         'department',
@@ -34,6 +36,8 @@ class LeadRepository implements LeadRepositoryInterface
         'city',
         'zone',
         'statusRelation',
+        'callStatusRelation',
+        'leadStatusRelation',
     ];
 
     /**
@@ -269,6 +273,7 @@ class LeadRepository implements LeadRepositoryInterface
 
     /**
      * Create a new lead record.
+     * If call_status_id is provided, automatically sets call_status and lead_status.
      *
      * @param array<string, mixed> $data
      * @return Lead
@@ -286,6 +291,14 @@ class LeadRepository implements LeadRepositoryInterface
                 $data['slug'] = Str::slug($data['name'] ?? 'lead-' . time());
             }
             
+            // Set created_by to the currently authenticated user if not provided
+            if (!isset($data['created_by'])) {
+                $currentUser = Auth::user();
+                if ($currentUser) {
+                    $data['created_by'] = $currentUser->id;
+                }
+            }
+            
             // Initialize array fields if not provided
             if (!isset($data['mobile_number'])) {
                 $data['mobile_number'] = [];
@@ -294,6 +307,36 @@ class LeadRepository implements LeadRepositoryInterface
             // Ensure mobile_number is an array
             if (is_string($data['mobile_number'])) {
                 $data['mobile_number'] = [$data['mobile_number']];
+            }
+            
+            // Handle call_status_id: convert to call_status and lead_status
+            if (isset($data['call_status_id']) && !empty($data['call_status_id'])) {
+                $callStatusId = $data['call_status_id'];
+                $data['call_status'] = $callStatusId;
+                
+                // Find the Status that contains this callStatusId
+                $statusRecord = null;
+                $allStatuses = Status::all();
+                
+                foreach ($allStatuses as $status) {
+                    // call_status is stored as JSON array
+                    $callStatuses = is_string($status->call_status) 
+                        ? json_decode($status->call_status, true) 
+                        : $status->call_status;
+                    
+                    if (is_array($callStatuses) && in_array($callStatusId, $callStatuses)) {
+                        $statusRecord = $status;
+                        break;
+                    }
+                }
+                
+                // If matching status found, set lead_status
+                if ($statusRecord) {
+                    $data['lead_status'] = $statusRecord->id;
+                }
+                
+                // Remove call_status_id from data as it's not a column
+                unset($data['call_status_id']);
             }
             
             // Remove null values to avoid validation errors
@@ -436,7 +479,39 @@ class LeadRepository implements LeadRepositoryInterface
     {
         try {
             $lead = $this->model->findOrFail($leadId);
-            $result = $lead->update(['call_status' => $callStatusId]);
+            
+            // Get all statuses to find which one contains this callStatusId
+            $statusRecord = null;
+            $allStatuses = Status::all();
+            
+            foreach ($allStatuses as $status) {
+                // call_status is stored as JSON array
+                $callStatuses = is_string($status->call_status) 
+                    ? json_decode($status->call_status, true) 
+                    : $status->call_status;
+                
+                if (is_array($callStatuses) && in_array($callStatusId, $callStatuses)) {
+                    $statusRecord = $status;
+                    break;
+                }
+            }
+            
+            Log::info('Adding call status', [
+                'lead_id' => $leadId,
+                'call_status_id' => $callStatusId,
+                'status_record_found' => $statusRecord ? 'Yes' : 'No',
+                'status_id' => $statusRecord?->id,
+            ]);
+            
+            // Prepare update data
+            $updateData = ['call_status' => $callStatusId];
+            
+            // If matching status found, also update lead_status (the lead's status)
+            if ($statusRecord) {
+                $updateData['lead_status'] = $statusRecord->id;
+            }
+            
+            $result = $lead->update($updateData);
             
             // Save history after update
             if ($result) {
@@ -467,7 +542,10 @@ class LeadRepository implements LeadRepositoryInterface
             
             // Only remove if the current call_status matches the provided one
             if ($lead->call_status === $callStatusId) {
-                $result = $lead->update(['call_status' => null]);
+                $result = $lead->update([
+                    'call_status' => null,
+                    'lead_status' => null,
+                ]);
                 
                 // Save history after update
                 if ($result) {

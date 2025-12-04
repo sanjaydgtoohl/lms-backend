@@ -27,6 +27,7 @@ class Lead extends Model
         'brand_id',
         'agency_id',
         'current_assign_user',
+        'created_by',
         'priority_id',
         'call_status',
         'lead_status',
@@ -83,6 +84,11 @@ class Lead extends Model
         return $this->belongsTo(User::class, 'current_assign_user');
     }
 
+    public function createdByUser()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     public function priority()
     {
         return $this->belongsTo(Priority::class, 'priority_id');
@@ -126,5 +132,21 @@ class Lead extends Model
     public function statusRelation()
     {
         return $this->belongsTo(Status::class, 'statuses');
+    }
+
+    /**
+     * Get the call status associated with this lead.
+     */
+    public function callStatusRelation()
+    {
+        return $this->belongsTo(CallStatus::class, 'call_status');
+    }
+
+    /**
+     * Get the lead status associated with this lead.
+     */
+    public function leadStatusRelation()
+    {
+        return $this->belongsTo(Status::class, 'lead_status');
     }
 }

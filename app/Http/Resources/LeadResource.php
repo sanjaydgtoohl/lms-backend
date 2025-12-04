@@ -30,6 +30,7 @@ class LeadResource extends JsonResource
 
             // Foreign Key IDs
             'brand_id' => $this->brand_id,
+            'created_by' => $this->created_by,
             'agency_id' => $this->agency_id,
             'current_assign_user' => $this->current_assign_user,
             'priority_id' => $this->priority_id,
@@ -47,6 +48,20 @@ class LeadResource extends JsonResource
             'call_status' => $this->call_status,
 
             // Relationship Objects
+            'call_status_relation' => $this->whenLoaded('callStatusRelation', function () {
+                return [
+                    'id' => $this->callStatusRelation->id ?? null,
+                    'name' => $this->callStatusRelation->name ?? null,
+                ];
+            }),
+
+            'lead_status_relation' => $this->whenLoaded('leadStatusRelation', function () {
+                return [
+                    'id' => $this->leadStatusRelation->id ?? null,
+                    'name' => $this->leadStatusRelation->name ?? null,
+                ];
+            }),
+
             'brand' => $this->whenLoaded('brand', function () {
                 return [
                     'id' => $this->brand->id ?? null,
@@ -58,6 +73,14 @@ class LeadResource extends JsonResource
                 return [
                     'id' => $this->agency->id ?? null,
                     'name' => $this->agency->name ?? null,
+                ];
+            }),
+
+            'created_by_user' => $this->whenLoaded('createdByUser', function () {
+                return [
+                    'id' => $this->createdByUser->id ?? null,
+                    'name' => $this->createdByUser->name ?? null,
+                    'email' => $this->createdByUser->email ?? null,
                 ];
             }),
 
