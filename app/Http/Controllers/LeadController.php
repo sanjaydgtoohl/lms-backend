@@ -138,6 +138,7 @@ class LeadController extends Controller
                 'agency_id' => 'nullable|integer|exists:agency,id',
                 'current_assign_user' => 'nullable|integer|exists:users,id',
                 'priority_id' => 'nullable|integer|exists:priorities,id',
+                'call_status_id' => 'nullable|integer|exists:call_statuses,id',
                 'type' => 'required|in:Agency,Brand',
                 'designation_id' => 'required|integer|exists:designations,id',
                 'department_id' => 'required|integer|exists:departments,id',

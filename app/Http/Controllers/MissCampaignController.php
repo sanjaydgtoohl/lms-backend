@@ -115,7 +115,7 @@ class MissCampaignController extends Controller
                 'name' => 'required|string|max:255',
                 'brand_id' => 'required|integer|exists:brands,id',
                 'lead_source_id' => 'required|integer|exists:lead_source,id',
-                'lead_sub_source_id' => 'nullable|integer|exists:lead_sub_source,id',
+                'lead_sub_source_id' => 'required|integer|exists:lead_sub_source,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:5120'
             ];
 
@@ -163,7 +163,7 @@ class MissCampaignController extends Controller
                 'name' => 'sometimes|required|string|max:255',
                 'brand_id' => 'sometimes|required|integer|exists:brands,id',
                 'lead_source_id' => 'sometimes|required|integer|exists:lead_source,id',
-                'lead_sub_source_id' => 'sometimes|nullable|integer|exists:lead_sub_source,id',
+                'lead_sub_source_id' => 'sometimes|required|integer|exists:lead_sub_source,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:5120',
                 'status' => 'sometimes|required|in:1,2,15',
             ];

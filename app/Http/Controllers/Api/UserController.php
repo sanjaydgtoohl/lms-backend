@@ -9,6 +9,7 @@ use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
@@ -123,6 +124,26 @@ class UserController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
+            // Validate required fields first
+            $rules = [
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|max:255|unique:users,email',
+                'password' => 'required|string|min:8',
+                'phone' => 'nullable|string|max:20',
+                'role_id' => 'required|array',
+                'role_id.*' => 'integer|exists:roles,id',
+                'status' => 'sometimes|in:1,2,3',
+            ];
+
+            $validated = \Illuminate\Support\Facades\Validator::make($request->all(), $rules);
+            
+            if ($validated->fails()) {
+                return $this->responseService->validationError(
+                    $validated->errors()->toArray(),
+                    'Validation failed'
+                );
+            }
+
             $user = $this->userService->createUser($request->all());
             
             return $this->responseService->created(
