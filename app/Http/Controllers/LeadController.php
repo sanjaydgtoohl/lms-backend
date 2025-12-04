@@ -205,6 +205,7 @@ class LeadController extends Controller
                 'agency_id' => 'sometimes|nullable|integer|exists:agency,id',
                 'current_assign_user' => 'sometimes|nullable|integer|exists:users,id',
                 'priority_id' => 'sometimes|nullable|integer|exists:priorities,id',
+                'call_status_id' => 'sometimes|nullable|integer|exists:call_statuses,id',
                 'type' => 'sometimes|nullable|in:Agency,Brand',
                 'designation_id' => 'sometimes|nullable|integer|exists:designations,id',
                 'department_id' => 'sometimes|nullable|integer|exists:departments,id',
@@ -233,7 +234,12 @@ class LeadController extends Controller
                 }
             }
 
-            $this->leadService->updateLead($id, $validatedData);
+            // Only pass data that was actually provided in the request
+            $dataToUpdate = array_filter($validatedData, function ($key) use ($request) {
+                return $request->has($key);
+            }, ARRAY_FILTER_USE_KEY);
+
+            $this->leadService->updateLead($id, $dataToUpdate);
 
             // Fetch updated lead
             $lead = $this->leadService->getLead($id);

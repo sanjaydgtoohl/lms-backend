@@ -9,6 +9,7 @@ use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Throwable;
+use DomainException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -131,7 +132,8 @@ class MeetingController extends Controller
             $rules = [
                 'title' => 'required|string|max:255',
                 'lead_id' => 'required|integer|exists:leads,id',
-                'attendees_id' => 'nullable|integer|exists:users,id',
+                'attendees_id' => 'nullable|array',
+                'attendees_id.*' => 'integer|exists:users,id',
                 'type' => 'required|in:face_to_face,online',
                 'location' => 'nullable|string|max:255',
                 'agenda' => 'nullable|string',
@@ -142,6 +144,11 @@ class MeetingController extends Controller
             ];
 
             $validatedData = $this->validate($request, $rules);
+
+            // Handle attendees_id: if it's a string (JSON), convert to array
+            if (isset($validatedData['attendees_id']) && is_string($validatedData['attendees_id'])) {
+                $validatedData['attendees_id'] = json_decode($validatedData['attendees_id'], true);
+            }
 
             $meeting = $this->meetingService->createMeeting($validatedData);
             $data = new MeetingResource($meeting);
@@ -163,6 +170,10 @@ class MeetingController extends Controller
             $meeting = $this->meetingService->getMeetingById($id);
             $data = new MeetingResource($meeting);
             return $this->responseService->success($data, 'Meeting retrieved successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->notFound($e->getMessage());
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -176,25 +187,33 @@ class MeetingController extends Controller
     {
         try {
             $rules = [
-                'title' => 'required|string|max:255',
-                'lead_id' => 'required|integer|exists:leads,id',
-                'attendees_id' => 'nullable|integer|exists:users,id',
-                'type' => 'required|in:face_to_face,online',
-                'location' => 'nullable|string|max:255',
-                'agenda' => 'nullable|string',
-                'link' => 'nullable|string|url',
-                'meeting_date' => 'nullable|date',
-                'meeting_time' => 'nullable|date_format:H:i',
-                'status' => 'nullable|in:1,2,15',
+                'title' => 'sometimes|required|string|max:255',
+                'lead_id' => 'sometimes|required|integer|exists:leads,id',
+                'attendees_id' => 'sometimes|nullable|array',
+                'attendees_id.*' => 'integer|exists:users,id',
+                'type' => 'sometimes|required|in:face_to_face,online',
+                'location' => 'sometimes|nullable|string|max:255',
+                'agenda' => 'sometimes|nullable|string',
+                'link' => 'sometimes|nullable|string|url',
+                'meeting_date' => 'sometimes|nullable|date',
+                'meeting_time' => 'sometimes|nullable|date_format:H:i',
+                'status' => 'sometimes|nullable|in:1,2,15',
             ];
 
             $validatedData = $this->validate($request, $rules);
+
+            // Handle attendees_id: if it's a string (JSON), convert to array
+            if (isset($validatedData['attendees_id']) && is_string($validatedData['attendees_id'])) {
+                $validatedData['attendees_id'] = json_decode($validatedData['attendees_id'], true);
+            }
 
             $meeting = $this->meetingService->updateMeeting($id, $validatedData);
             $data = new MeetingResource($meeting);
             return $this->responseService->updated($data, 'Meeting updated successfully');
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->notFound($e->getMessage());
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -209,6 +228,10 @@ class MeetingController extends Controller
         try {
             $this->meetingService->softDeleteMeeting($id);
             return $this->responseService->deleted('Meeting deleted successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->notFound($e->getMessage());
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -223,6 +246,10 @@ class MeetingController extends Controller
         try {
             $this->meetingService->restoreMeeting($id);
             return $this->responseService->success(null, 'Meeting restored successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->notFound($e->getMessage());
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

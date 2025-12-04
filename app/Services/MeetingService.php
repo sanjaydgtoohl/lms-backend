@@ -7,6 +7,7 @@ use App\Models\Meeting;
 use DomainException;
 use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -216,6 +217,9 @@ class MeetingService
     {
         try {
             return $this->repository->update($id, $data);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Meeting not found', ['id' => $id, 'data' => $data]);
+            throw new DomainException('Meeting not found.');
         } catch (QueryException $e) {
             Log::error('Database error updating meeting', ['id' => $id, 'data' => $data, 'exception' => $e]);
             throw new DomainException('Database error while updating meeting.');
@@ -236,6 +240,9 @@ class MeetingService
     {
         try {
             return $this->repository->delete($id);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Meeting not found', ['id' => $id]);
+            throw new DomainException('Meeting not found.');
         } catch (QueryException $e) {
             Log::error('Database error deleting meeting', ['id' => $id, 'exception' => $e]);
             throw new DomainException('Database error while deleting meeting.');
@@ -256,6 +263,9 @@ class MeetingService
     {
         try {
             return $this->repository->softDelete($id);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Meeting not found', ['id' => $id]);
+            throw new DomainException('Meeting not found.');
         } catch (QueryException $e) {
             Log::error('Database error soft deleting meeting', ['id' => $id, 'exception' => $e]);
             throw new DomainException('Database error while soft deleting meeting.');
@@ -276,12 +286,15 @@ class MeetingService
     {
         try {
             return $this->repository->restore($id);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Meeting not found', ['id' => $id]);
+            throw new DomainException('Meeting not found.');
         } catch (QueryException $e) {
             Log::error('Database error restoring meeting', ['id' => $id, 'exception' => $e]);
             throw new DomainException('Database error while restoring meeting.');
         } catch (Exception $e) {
             Log::error('Unexpected error restoring meeting', ['id' => $id, 'exception' => $e]);
-            throw new DomainException('Unexpected error while restoring meeting.');
+            throw new DomainException('Unexpected error while restoring meeting.', 0, $e);
         }
     }
 }

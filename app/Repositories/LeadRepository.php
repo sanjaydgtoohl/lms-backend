@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Contracts\Repositories\LeadRepositoryInterface;
 use App\Models\Lead;
 use App\Models\LeadAssignHistory;
+use App\Models\Priority;
 use App\Models\Status;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -309,35 +310,13 @@ class LeadRepository implements LeadRepositoryInterface
                 $data['mobile_number'] = [$data['mobile_number']];
             }
             
-            // Handle call_status_id: convert to call_status, lead_status, and priority_id
+            // Handle call_status_id: convert to call_status and lead_status
             if (isset($data['call_status_id']) && !empty($data['call_status_id'])) {
                 $callStatusId = $data['call_status_id'];
                 $data['call_status'] = $callStatusId;
                 
-                // Find the Priority that contains this callStatusId
-                $priorityRecord = null;
-                $statusRecord = null;
-                
-                $allPriorities = \App\Models\Priority::all();
-                
-                foreach ($allPriorities as $priority) {
-                    // call_status is stored as JSON array
-                    $callStatuses = is_string($priority->call_status) 
-                        ? json_decode($priority->call_status, true) 
-                        : $priority->call_status;
-                    
-                    if (is_array($callStatuses) && in_array($callStatusId, $callStatuses)) {
-                        $priorityRecord = $priority;
-                        break;
-                    }
-                }
-                
-                // Set priority_id if found
-                if ($priorityRecord && !isset($data['priority_id'])) {
-                    $data['priority_id'] = $priorityRecord->id;
-                }
-                
                 // Find the Status that contains this callStatusId
+                $statusRecord = null;
                 $allStatuses = Status::all();
                 
                 foreach ($allStatuses as $status) {
@@ -355,6 +334,27 @@ class LeadRepository implements LeadRepositoryInterface
                 // If matching status found, set lead_status
                 if ($statusRecord) {
                     $data['lead_status'] = $statusRecord->id;
+                }
+                
+                // Find and set priority based on call_status_id
+                $priorityRecord = null;
+                $allPriorities = Priority::all();
+                
+                foreach ($allPriorities as $priority) {
+                    // call_status is stored as JSON array in Priority model
+                    $priorityCallStatuses = is_string($priority->call_status) 
+                        ? json_decode($priority->call_status, true) 
+                        : $priority->call_status;
+                    
+                    if (is_array($priorityCallStatuses) && in_array($callStatusId, $priorityCallStatuses)) {
+                        $priorityRecord = $priority;
+                        break;
+                    }
+                }
+                
+                // If matching priority found, set priority_id
+                if ($priorityRecord) {
+                    $data['priority_id'] = $priorityRecord->id;
                 }
                 
                 // Remove call_status_id from data as it's not a column
@@ -406,12 +406,61 @@ class LeadRepository implements LeadRepositoryInterface
                 $data['brand_id'] = null;
             }
             
-            $result = $lead->update($data);
-            
-            // Save history after update
-            if ($result) {
-                $this->saveLeadHistory($lead);
+            // Handle call_status_id: convert to call_status, lead_status, and priority_id
+            if (isset($data['call_status_id']) && !empty($data['call_status_id'])) {
+                $callStatusId = $data['call_status_id'];
+                $data['call_status'] = $callStatusId;
+                
+                // Find the Status that contains this callStatusId
+                $statusRecord = null;
+                $allStatuses = Status::all();
+                
+                foreach ($allStatuses as $status) {
+                    // call_status is stored as JSON array
+                    $callStatuses = is_string($status->call_status) 
+                        ? json_decode($status->call_status, true) 
+                        : $status->call_status;
+                    
+                    if (is_array($callStatuses) && in_array($callStatusId, $callStatuses)) {
+                        $statusRecord = $status;
+                        break;
+                    }
+                }
+                
+                // If matching status found, set lead_status
+                if ($statusRecord) {
+                    $data['lead_status'] = $statusRecord->id;
+                }
+                
+                // Find and set priority based on call_status_id
+                $priorityRecord = null;
+                $allPriorities = Priority::all();
+                
+                foreach ($allPriorities as $priority) {
+                    // call_status is stored as JSON array in Priority model
+                    $priorityCallStatuses = is_string($priority->call_status) 
+                        ? json_decode($priority->call_status, true) 
+                        : $priority->call_status;
+                    
+                    if (is_array($priorityCallStatuses) && in_array($callStatusId, $priorityCallStatuses)) {
+                        $priorityRecord = $priority;
+                        break;
+                    }
+                }
+                
+                // If matching priority found, set priority_id
+                if ($priorityRecord) {
+                    $data['priority_id'] = $priorityRecord->id;
+                }
+                
+                // Remove call_status_id from data as it's not a column
+                unset($data['call_status_id']);
             }
+            
+            // Save history before update (captures old data)
+            $this->saveLeadHistory($lead);
+            
+            $result = $lead->update($data);
             
             return $result;
         } catch (QueryException $e) {
@@ -434,12 +483,11 @@ class LeadRepository implements LeadRepositoryInterface
     {
         try {
             $lead = $this->model->findOrFail($leadId);
-            $result = $lead->update(['current_assign_user' => $userId]);
             
-            // Save history after update
-            if ($result) {
-                $this->saveLeadHistory($lead);
-            }
+            // Save history before update (captures old data)
+            $this->saveLeadHistory($lead);
+            
+            $result = $lead->update(['current_assign_user' => $userId]);
             
             return $result;
         } catch (QueryException $e) {
@@ -462,12 +510,11 @@ class LeadRepository implements LeadRepositoryInterface
     {
         try {
             $lead = $this->model->findOrFail($leadId);
-            $result = $lead->update(['priority_id' => $priorityId]);
             
-            // Save history after update
-            if ($result) {
-                $this->saveLeadHistory($lead);
-            }
+            // Save history before update (captures old data)
+            $this->saveLeadHistory($lead);
+            
+            $result = $lead->update(['priority_id' => $priorityId]);
             
             return $result;
         } catch (QueryException $e) {
@@ -490,12 +537,11 @@ class LeadRepository implements LeadRepositoryInterface
     {
         try {
             $lead = $this->model->findOrFail($leadId);
-            $result = $lead->update(['status' => $status]);
             
-            // Save history after update
-            if ($result) {
-                $this->saveLeadHistory($lead);
-            }
+            // Save history before update (captures old data)
+            $this->saveLeadHistory($lead);
+            
+            $result = $lead->update(['status' => $status]);
             
             return $result;
         } catch (QueryException $e) {
@@ -550,12 +596,10 @@ class LeadRepository implements LeadRepositoryInterface
                 $updateData['lead_status'] = $statusRecord->id;
             }
             
-            $result = $lead->update($updateData);
+            // Save history before update (captures old data)
+            $this->saveLeadHistory($lead);
             
-            // Save history after update
-            if ($result) {
-                $this->saveLeadHistory($lead);
-            }
+            $result = $lead->update($updateData);
             
             return $result;
         } catch (QueryException $e) {
@@ -581,15 +625,13 @@ class LeadRepository implements LeadRepositoryInterface
             
             // Only remove if the current call_status matches the provided one
             if ($lead->call_status === $callStatusId) {
+                // Save history before update (captures old data)
+                $this->saveLeadHistory($lead);
+                
                 $result = $lead->update([
                     'call_status' => null,
                     'lead_status' => null,
                 ]);
-                
-                // Save history after update
-                if ($result) {
-                    $this->saveLeadHistory($lead);
-                }
                 
                 return $result;
             }

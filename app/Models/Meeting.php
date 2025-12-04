@@ -28,6 +28,7 @@ class Meeting extends Model
 
     protected $casts = [
         'meeting_date' => 'date',
+        'attendees_id' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -39,14 +40,6 @@ class Meeting extends Model
     public function lead()
     {
         return $this->belongsTo(Lead::class);
-    }
-
-    /**
-     * Relationship with User model (Attendee)
-     */
-    public function attendee()
-    {
-        return $this->belongsTo(User::class, 'attendees_id');
     }
 
     /**
