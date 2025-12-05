@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Throwable;
+use DomainException;
 use Illuminate\Validation\ValidationException;
 
 class LeadController extends Controller
@@ -133,7 +134,7 @@ class LeadController extends Controller
                 'email' => 'nullable|email|max:255',
                 'profile_url' => 'nullable|string|max:255',
                 'mobile_number' => 'required|array',
-                'mobile_number.*' => 'string|max:20',
+                'mobile_number.*' => 'regex:/^[0-9]+$/|max:10',
                 'brand_id' => 'nullable|integer|exists:brands,id',
                 'agency_id' => 'nullable|integer|exists:agency,id',
                 'current_assign_user' => 'nullable|integer|exists:users,id',
@@ -418,6 +419,8 @@ class LeadController extends Controller
             );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->notFound($e->getMessage());
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

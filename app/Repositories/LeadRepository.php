@@ -581,19 +581,42 @@ class LeadRepository implements LeadRepositoryInterface
                 }
             }
             
+            // Get priority based on call_status mapping
+            $priorityId = null;
+            $allPriorities = Priority::all();
+            foreach ($allPriorities as $priority) {
+                $priorityCallStatuses = is_string($priority->call_status) 
+                    ? json_decode($priority->call_status, true) 
+                    : $priority->call_status;
+                
+                if (is_array($priorityCallStatuses) && in_array($callStatusId, $priorityCallStatuses)) {
+                    $priorityId = $priority->id;
+                    break;
+                }
+            }
+            
             Log::info('Adding call status', [
                 'lead_id' => $leadId,
                 'call_status_id' => $callStatusId,
                 'status_record_found' => $statusRecord ? 'Yes' : 'No',
                 'status_id' => $statusRecord?->id,
+                'priority_id' => $priorityId,
             ]);
             
             // Prepare update data
-            $updateData = ['call_status' => $callStatusId];
+            $updateData = [
+                'call_status' => $callStatusId,
+                'call_attempt' => $lead->call_attempt + 1, // Increment call attempt count
+            ];
             
             // If matching status found, also update lead_status (the lead's status)
             if ($statusRecord) {
                 $updateData['lead_status'] = $statusRecord->id;
+            }
+            
+            // If priority found, update it
+            if ($priorityId) {
+                $updateData['priority_id'] = $priorityId;
             }
             
             // Save history before update (captures old data)
