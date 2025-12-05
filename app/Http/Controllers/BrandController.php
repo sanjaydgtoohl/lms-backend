@@ -118,9 +118,9 @@ class BrandController extends Controller
                 'country_id' => 'required|integer|exists:countries,id',
                 'website' => 'nullable|url|max:255',
                 'postal_code' => 'nullable|string|max:20',
-                'state_id' => 'nullable|integer|exists:states,id',
-                'city_id' => 'nullable|integer|exists:cities,id',
-                'zone_id' => 'nullable|integer|exists:zones,id',
+                'state_id' => 'required|integer|exists:states,id',
+                'city_id' => 'required|integer|exists:cities,id',
+                'zone_id' => 'required|integer|exists:zones,id',
                 'agency_id' => 'nullable|integer|exists:agency,id',
             ];
 
@@ -163,9 +163,9 @@ class BrandController extends Controller
                 'country_id' => 'sometimes|required|integer|exists:countries,id',
                 'website' => 'sometimes|nullable|url|max:255',
                 'postal_code' => 'sometimes|nullable|string|max:20',
-                'state_id' => 'sometimes|nullable|integer|exists:states,id',
-                'city_id' => 'sometimes|nullable|integer|exists:cities,id',
-                'zone_id' => 'sometimes|nullable|integer|exists:zones,id',
+                'state_id' => 'sometimes|required|integer|exists:states,id',
+                'city_id' => 'sometimes|required|integer|exists:cities,id',
+                'zone_id' => 'sometimes|required|integer|exists:zones,id',
                 'agency_id' => 'sometimes|nullable|integer|exists:agency,id',
                 'status' => 'sometimes|required|in:1,2,15',
             ];

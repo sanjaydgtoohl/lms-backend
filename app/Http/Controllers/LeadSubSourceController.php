@@ -122,7 +122,7 @@ class LeadSubSourceController extends Controller
         try {
             $this->validate($request, [
                 'lead_source_id' => 'required|integer|exists:lead_source,id',
-                'name' => 'required|string|max:255',
+                'name' => 'required|string|max:255|unique:lead_sub_source,name,NULL,id,lead_source_id,' . $request->input('lead_source_id'),
                 'description' => 'nullable|string',
                 'status' => 'nullable|in:1,2,15',
             ]);
@@ -176,9 +176,12 @@ class LeadSubSourceController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            $leadSubSource = $this->leadSubSourceService->getLeadSubSource($id);
+            $leadSourceId = $request->input('lead_source_id', $leadSubSource->lead_source_id);
+            
             $this->validate($request, [
                 'lead_source_id' => 'sometimes|required|integer|exists:lead_source,id',
-                'name' => 'sometimes|required|string|max:255',
+                'name' => 'sometimes|required|string|max:255|unique:lead_sub_source,name,' . $id . ',id,lead_source_id,' . $leadSourceId,
                 'description' => 'nullable|string',
                 'status' => 'sometimes|required|in:1,2,15',
             ]);
