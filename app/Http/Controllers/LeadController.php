@@ -155,6 +155,18 @@ class LeadController extends Controller
 
             $validatedData = $this->validate($request, $rules);
 
+            // Validate that mobile numbers in the array are unique (no duplicates within the array)
+            if (!empty($validatedData['mobile_number'])) {
+                $mobileNumbers = $validatedData['mobile_number'];
+                $uniqueMobileNumbers = array_unique($mobileNumbers);
+                if (count($mobileNumbers) !== count($uniqueMobileNumbers)) {
+                    return $this->responseService->validationError(
+                        ['mobile_number' => ['Mobile numbers must be unique. Duplicate numbers are not allowed.']],
+                        'Validation failed'
+                    );
+                }
+            }
+
             // Validate that exactly ONE of brand_id or agency_id is provided
             $hasBrandId = !empty($validatedData['brand_id']);
             $hasAgencyId = !empty($validatedData['agency_id']);
@@ -221,6 +233,18 @@ class LeadController extends Controller
             ];
 
             $validatedData = $this->validate($request, $rules);
+
+            // Validate that mobile numbers in the array are unique (no duplicates within the array)
+            if (!empty($validatedData['mobile_number'])) {
+                $mobileNumbers = $validatedData['mobile_number'];
+                $uniqueMobileNumbers = array_unique($mobileNumbers);
+                if (count($mobileNumbers) !== count($uniqueMobileNumbers)) {
+                    return $this->responseService->validationError(
+                        ['mobile_number' => ['Mobile numbers must be unique. Duplicate numbers are not allowed.']],
+                        'Validation failed'
+                    );
+                }
+            }
 
             // If updating brand_id or agency_id, validate that exactly ONE is selected
             if ($request->has('brand_id') || $request->has('agency_id')) {

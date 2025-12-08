@@ -127,6 +127,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     $router->group(['prefix' => 'lead-sub-sources'], function () use ($router) {
         $router->get('/', 'LeadSubSourceController@index');
         $router->get('list', 'LeadSubSourceController@list');
+        $router->get('by-source/{sourceId}', 'LeadSubSourceController@getBySourceId');
         $router->post('/', 'LeadSubSourceController@store');
         $router->get('{id}', 'LeadSubSourceController@show');
         $router->put('{id}', 'LeadSubSourceController@update');

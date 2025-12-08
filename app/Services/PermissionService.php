@@ -152,6 +152,25 @@ class PermissionService
 			}
 		}
 
+		// Auto-generate slug if not provided but display_name or name changed
+		if (!isset($data['slug']) && (isset($data['display_name']) || isset($data['name']))) {
+			$baseSlug = Str::slug($data['display_name'] ?? $data['name']);
+			$slug = $baseSlug;
+			$counter = 1;
+			
+			// Ensure slug is unique (excluding current permission)
+			while ($this->permissionRepository->findBySlug($slug)) {
+				$existingPermission = $this->permissionRepository->findBySlug($slug);
+				// If found permission is the same one we're updating, break
+				if ($existingPermission && $existingPermission->id == $id) {
+					break;
+				}
+				$slug = $baseSlug . '-' . $counter;
+				$counter++;
+			}
+			$data['slug'] = $slug;
+		}
+
 		$this->validatePermissionData($data, $id);
 
 		// Update the permission

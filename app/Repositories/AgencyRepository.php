@@ -29,9 +29,10 @@ class AgencyRepository implements AgencyRepositoryInterface
      *
      * @param int $perPage
      * @param string|null $searchTerm
+     * @param int|null $isParent Filter by parent agency group (is_parent)
      * @return LengthAwarePaginator
      */
-    public function getAllAgency(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
+    public function getAllAgency(int $perPage = 10, ?string $searchTerm = null, ?int $isParent = null): LengthAwarePaginator
     {
         $query = $this->model->with(['agencyType', 'brand', 'parentAgency'])->where('status', '1');
 
@@ -41,6 +42,11 @@ class AgencyRepository implements AgencyRepositoryInterface
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('slug', 'LIKE', "%{$searchTerm}%");
             });
+        }
+
+        // Apply parent agency group filter if provided
+        if ($isParent !== null) {
+            $query->where('is_parent', $isParent);
         }
 
         return $query

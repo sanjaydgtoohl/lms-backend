@@ -220,4 +220,26 @@ class LeadSubSourceController extends Controller
             return $this->responseService->error('Failed to delete lead sub-source.', [$e->getMessage()], 500);
         }
     }
+
+    /**
+     * Get lead sub-sources by source ID
+     * 
+     * GET /lead-sub-sources/by-source/{sourceId}
+     * 
+     * @param int $sourceId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getBySourceId($sourceId)
+    {
+        try {
+            $leadSubSources = $this->leadSubSourceService->getLeadSubSourcesBySourceId($sourceId);
+
+            return $this->responseService->success(
+                LeadSubSourceResource::collection($leadSubSources),
+                'Lead sub-sources fetched successfully by source ID.'
+            );
+        } catch (Exception $e) {
+            return $this->responseService->error('Failed to fetch lead sub-sources.', [$e->getMessage()], 500);
+        }
+    }
 }

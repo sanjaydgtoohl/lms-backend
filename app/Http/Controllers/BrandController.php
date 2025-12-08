@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Throwable;
 use Illuminate\Validation\ValidationException;
+use DomainException;
 
 class BrandController extends Controller
 {
@@ -192,6 +193,11 @@ class BrandController extends Controller
             );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->validationError(
+                ['brand' => [$e->getMessage()]],
+                $e->getMessage()
+            );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

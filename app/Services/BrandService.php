@@ -155,10 +155,23 @@ class BrandService
     public function updateBrand(int $id, array $data): bool
     {
         try {
+            // Get the current brand to compare
+            $currentBrand = Brand::withTrashed()->find($id);
+            
+            if (!$currentBrand) {
+                throw new DomainException('Brand not found.');
+            }
+
             // Check if brand name is being updated and if it already exists (excluding current brand)
             if (!empty($data['name'])) {
-                if (Brand::where('name', $data['name'])->where('id', '!=', $id)->exists()) {
-                    throw new DomainException('Brand name must be unique. This brand name already exists.');
+                // Only check uniqueness if the name is actually different from current
+                if ($currentBrand->name !== $data['name']) {
+                    if (Brand::where('name', $data['name'])
+                        ->where('id', '!=', $id)
+                        ->whereNull('deleted_at')
+                        ->exists()) {
+                        throw new DomainException('Brand name must be unique. This brand name already exists.');
+                    }
                 }
             }
 
@@ -177,6 +190,9 @@ class BrandService
         } catch (QueryException $e) {
             Log::error('Database error updating brand', ['id' => $id, 'data' => $data, 'exception' => $e]);
             throw new DomainException('Database error while updating brand.');
+        } catch (DomainException $e) {
+            // Re-throw domain exceptions
+            throw $e;
         } catch (Exception $e) {
             Log::error('Unexpected error updating brand', ['id' => $id, 'data' => $data, 'exception' => $e]);
             throw new DomainException('Unexpected error while updating brand.');

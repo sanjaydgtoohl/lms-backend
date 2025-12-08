@@ -67,4 +67,9 @@ class LeadSubSourceRepository implements LeadSubSourceRepositoryInterface
     {
         return $this->model->where('slug', $slug)->first();
     }
+
+    public function getLeadSubSourcesBySourceId($sourceId)
+    {
+        return $this->model->where('lead_source_id', $sourceId)->get();
+    }
 }

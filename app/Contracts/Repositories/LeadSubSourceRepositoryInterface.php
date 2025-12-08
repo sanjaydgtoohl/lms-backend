@@ -10,4 +10,5 @@ interface LeadSubSourceRepositoryInterface
     public function updateLeadSubSource($id, array $data);
     public function deleteLeadSubSource($id);
     public function findBySlug(string $slug);
+    public function getLeadSubSourcesBySourceId($sourceId);
 }
