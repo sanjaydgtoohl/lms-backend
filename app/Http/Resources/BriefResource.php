@@ -25,7 +25,7 @@ class BriefResource extends JsonResource
             'media_type' => $this->media_type,
             'budget' => $this->budget,
             'comment' => $this->comment,
-            'submission_date' => $this->submission_date?->toIso8601String(),
+            'submission_date' => $this->formatSubmissionDate(),
             'status' => $this->status,
 
             // Foreign Key IDs
@@ -89,5 +89,31 @@ class BriefResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
             'deleted_at' => $this->deleted_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Format submission date properly
+     */
+    private function formatSubmissionDate(): ?string
+    {
+        if (!$this->submission_date) {
+            return null;
+        }
+
+        // If it's already a Carbon instance, convert to simple format
+        if ($this->submission_date instanceof \Carbon\Carbon) {
+            return $this->submission_date->format('Y-m-d H:i');
+        }
+
+        // If it's a string, try to parse and convert it
+        if (is_string($this->submission_date)) {
+            try {
+                return \Carbon\Carbon::parse($this->submission_date)->format('Y-m-d H:i');
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+
+        return null;
     }
 }

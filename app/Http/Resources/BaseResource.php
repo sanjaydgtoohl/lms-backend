@@ -18,8 +18,8 @@ abstract class BaseResource extends JsonResource
         return [
             'id' => $this->id,
             //'uuid' => $this->uuid ?? null,
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
+            'created_at' => $this->created_at?->setTimezone('Asia/Kolkata')->toISOString(),
+            'updated_at' => $this->updated_at?->setTimezone('Asia/Kolkata')->toISOString(),
             //'created_at_formatted' => $this->created_at_formatted ?? null,
             //'updated_at_formatted' => $this->updated_at_formatted ?? null,
             'created_at_human' => $this->created_at_human ?? null,
@@ -38,7 +38,7 @@ abstract class BaseResource extends JsonResource
         return [
             'meta' => [
                 'version' => '1.0',
-                'timestamp' => Carbon::now()->toISOString(),
+                'timestamp' => Carbon::now()->setTimezone('Asia/Kolkata')->toISOString(),
             ]
         ];
     }
@@ -52,6 +52,6 @@ abstract class BaseResource extends JsonResource
      */
     public function withResponse($request, $response): void
     {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Tzype', 'application/json');
     }
 }

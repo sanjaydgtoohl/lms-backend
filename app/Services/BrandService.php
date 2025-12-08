@@ -112,6 +112,22 @@ class BrandService
                 throw new DomainException('Brand name is required.');
             }
 
+            // Check if brand name already exists
+            if (Brand::where('name', $data['name'])->exists()) {
+                throw new DomainException('Brand name must be unique. This brand name already exists.');
+            }
+
+            // Validate required fields: state, city, zone
+            if (empty($data['state_id'])) {
+                throw new DomainException('State is required.');
+            }
+            if (empty($data['city_id'])) {
+                throw new DomainException('City is required.');
+            }
+            if (empty($data['zone_id'])) {
+                throw new DomainException('Zone is required.');
+            }
+
             // Attach to default "Direct" agency if none provided
             if (empty($data['agency_id'])) {
                 $data['agency_id'] = $this->getOrCreateDirectAgency();
@@ -139,10 +155,44 @@ class BrandService
     public function updateBrand(int $id, array $data): bool
     {
         try {
+            // Get the current brand to compare
+            $currentBrand = Brand::withTrashed()->find($id);
+            
+            if (!$currentBrand) {
+                throw new DomainException('Brand not found.');
+            }
+
+            // Check if brand name is being updated and if it already exists (excluding current brand)
+            if (!empty($data['name'])) {
+                // Only check uniqueness if the name is actually different from current
+                if ($currentBrand->name !== $data['name']) {
+                    if (Brand::where('name', $data['name'])
+                        ->where('id', '!=', $id)
+                        ->whereNull('deleted_at')
+                        ->exists()) {
+                        throw new DomainException('Brand name must be unique. This brand name already exists.');
+                    }
+                }
+            }
+
+            // Validate required fields: state, city, zone (if provided)
+            if (isset($data['state_id']) && empty($data['state_id'])) {
+                throw new DomainException('State is required.');
+            }
+            if (isset($data['city_id']) && empty($data['city_id'])) {
+                throw new DomainException('City is required.');
+            }
+            if (isset($data['zone_id']) && empty($data['zone_id'])) {
+                throw new DomainException('Zone is required.');
+            }
+
             return $this->brandRepository->updateBrand($id, $data);
         } catch (QueryException $e) {
             Log::error('Database error updating brand', ['id' => $id, 'data' => $data, 'exception' => $e]);
             throw new DomainException('Database error while updating brand.');
+        } catch (DomainException $e) {
+            // Re-throw domain exceptions
+            throw $e;
         } catch (Exception $e) {
             Log::error('Unexpected error updating brand', ['id' => $id, 'data' => $data, 'exception' => $e]);
             throw new DomainException('Unexpected error while updating brand.');

@@ -136,8 +136,8 @@ class BriefController extends Controller
                 'name' => 'required|string|max:255',
                 'product_name' => 'nullable|string|max:255',
                 'contact_person_id' => 'required|integer|exists:leads,id',
-                'brand_id' => 'required|integer|exists:brands,id',
-                'agency_id' => 'required|integer|exists:agency,id',
+                'brand_id' => 'nullable|integer|exists:brands,id',
+                'agency_id' => 'nullable|integer|exists:agency,id',
                 'mode_of_campaign' => 'nullable|in:programmatic,non_programmatic',
                 'media_type' => 'nullable|string|max:255',
                 'budget' => 'nullable|numeric|min:0',
@@ -207,8 +207,8 @@ class BriefController extends Controller
                 'name' => 'sometimes|required|string|max:255',
                 'product_name' => 'nullable|string|max:255',
                 'contact_person_id' => 'sometimes|required|integer|exists:leads,id',
-                'brand_id' => 'sometimes|required|integer|exists:brands,id',
-                'agency_id' => 'sometimes|required|integer|exists:agency,id',
+                'brand_id' => 'nullable|integer|exists:brands,id',
+                'agency_id' => 'nullable|integer|exists:agency,id',
                 'mode_of_campaign' => 'nullable|in:programmatic,non_programmatic',
                 'media_type' => 'nullable|string|max:255',
                 'budget' => 'nullable|numeric|min:0',
@@ -348,6 +348,48 @@ class BriefController extends Controller
             return $this->responseService->paginated(
                 BriefResource::collection($briefs),
                 'Briefs retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Update brief status.
+     *
+     * PUT /briefs/{id}/update-status
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function updateStatus(Request $request, int $id): JsonResponse
+    {
+        try {
+            $rules = [
+                'brief_status_id' => 'required|integer|exists:brief_statuses,id',
+            ];
+
+            $this->validate($request, $rules);
+
+            $brief = $this->briefService->getBrief($id);
+
+            if (!$brief) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            $brief = $this->briefService->updateBrief($id, [
+                'brief_status_id' => $request->input('brief_status_id'),
+            ]);
+
+            return $this->responseService->success(
+                new BriefResource($brief),
+                'Brief status updated successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

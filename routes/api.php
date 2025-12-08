@@ -127,6 +127,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     $router->group(['prefix' => 'lead-sub-sources'], function () use ($router) {
         $router->get('/', 'LeadSubSourceController@index');
         $router->get('list', 'LeadSubSourceController@list');
+        $router->get('by-source/{sourceId}', 'LeadSubSourceController@getBySourceId');
         $router->post('/', 'LeadSubSourceController@store');
         $router->get('{id}', 'LeadSubSourceController@show');
         $router->put('{id}', 'LeadSubSourceController@update');
@@ -321,7 +322,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->post('{id:[0-9]+}/assign', 'LeadController@assign');
         $router->post('{id:[0-9]+}/priority', 'LeadController@updatePriority');
         $router->post('{id:[0-9]+}/status', 'LeadController@updateStatus');
-        $router->post('{id:[0-9]+}/call-status', 'LeadController@addCallStatus');
+        $router->put('{id:[0-9]+}/call-status', 'LeadController@addCallStatus');
         $router->delete('{id:[0-9]+}/call-status/{callStatusId:[0-9]+}', 'LeadController@removeCallStatus');
     });
 
@@ -361,6 +362,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->delete('{id:[0-9]+}', 'BriefController@destroy');
         
         // Additional Brief routes
+        $router->put('{id:[0-9]+}/update-status', 'BriefController@updateStatus');
         $router->get('brand/{brandId:[0-9]+}', 'BriefController@getByBrand');
         $router->get('agency/{agencyId:[0-9]+}', 'BriefController@getByAgency');
         $router->get('user/{userId:[0-9]+}', 'BriefController@getByAssignedUser');
