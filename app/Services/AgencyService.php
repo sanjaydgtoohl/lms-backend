@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use App\Contracts\Repositories\AgencyRepositoryInterface;
+use App\Models\Agency;
 use App\Models\BrandAgencyRelationship;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -47,6 +48,11 @@ class AgencyService
     
                 for ($i = 0; $i < $count; $i++) {
                     if (!empty($data['name'][$i]) && !empty($data['type'][$i])) {
+                        
+                        // Check if agency name already exists
+                        if (Agency::where('name', $data['name'][$i])->exists()) {
+                            throw new \DomainException('Agency name "' . $data['name'][$i] . '" already exists. Agency name must be unique.');
+                        }
     
                         $agencyData = [
                             'name'              => $data['name'][$i],
@@ -100,6 +106,12 @@ class AgencyService
 
                 for ($i = 0; $i < $count; $i++) {
                     if (!empty($data['name'][$i]) && !empty($data['type'][$i])) {
+                        
+                        // Check if agency name already exists (excluding current agency)
+                        if (Agency::where('name', $data['name'][$i])->where('id', '!=', $id)->exists()) {
+                            throw new \DomainException('Agency name "' . $data['name'][$i] . '" already exists. Agency name must be unique.');
+                        }
+                        
                         $agencyData = [
                             'name' => $data['name'][$i],
                             'agency_type' => $data['type'][$i],

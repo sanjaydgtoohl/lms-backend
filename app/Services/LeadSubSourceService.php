@@ -108,6 +108,18 @@ class LeadSubSourceService
     }
 
     /**
+     * Get lead sub-sources by source ID
+     */
+    public function getLeadSubSourcesBySourceId($sourceId)
+    {
+        try {
+            return $this->leadSubSourceRepository->getLeadSubSourcesBySourceId($sourceId);
+        } catch (Exception $e) {
+            throw new Exception('An unexpected error occurred while fetching lead sub-sources by source ID: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Generate a unique slug for the lead sub-source name
      */
     private function createUniqueSlug(string $name, $excludeId = null): string

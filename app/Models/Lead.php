@@ -31,6 +31,7 @@ class Lead extends Model
         'priority_id',
         'call_status',
         'lead_status',
+        'call_attempt',
         'name',
         'slug',
         'profile_url',
