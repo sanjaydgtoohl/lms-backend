@@ -239,7 +239,7 @@ class UserService
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'password' => 'sometimes|required|string|min:8',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|integer|digits:10',
             'role_id' => 'sometimes|array',
             'role_id.*' => 'integer|exists:roles,id',
             'role' => 'sometimes|array',

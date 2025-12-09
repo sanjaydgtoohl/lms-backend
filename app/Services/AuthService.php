@@ -251,7 +251,7 @@ class AuthService
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|integer|digits:10',
         ]);
 
         if ($validator->fails()) {
