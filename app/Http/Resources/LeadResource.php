@@ -46,6 +46,7 @@ class LeadResource extends JsonResource
 
             // Special Fields
             'call_status' => $this->call_status,
+            'call_attempt' => $this->call_attempt,
 
             // Relationship Objects
             'call_status_relation' => $this->whenLoaded('callStatusRelation', function () {
