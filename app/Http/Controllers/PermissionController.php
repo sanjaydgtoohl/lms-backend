@@ -94,6 +94,7 @@ class PermissionController extends Controller
                 'icon_text' => 'nullable|string|max:255',
                 'is_parent' => 'nullable|integer|min:1',
                 'status' => 'nullable|in:1,2,15',
+                'order' => 'nullable|integer|min:0',
             ];
             $validatedData = $this->validate($request, $rules);
 
@@ -165,6 +166,7 @@ class PermissionController extends Controller
                 'icon_text' => 'sometimes|nullable|string|max:255',
                 'is_parent' => 'sometimes|nullable|integer|min:1',
                 'status' => 'sometimes|nullable|in:1,2,15',
+                'order' => 'sometimes|nullable|integer|min:0',
             ];
 
             $validatedData = $this->validate($request, $rules);
