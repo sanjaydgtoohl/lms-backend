@@ -248,6 +248,48 @@ class PermissionService
 	}
 
 	/**
+	 * Get sidebar permissions in hierarchical format (parent -> children)
+	 * Returns only the necessary fields for sidebar display
+	 *
+	 * @return \Illuminate\Support\Collection
+	 */
+	public function getSidebarPermissions(): \Illuminate\Support\Collection
+	{
+		$permissions = $this->getAllPermissionTree();
+		
+		return $permissions->map(function ($permission) {
+			// Recursively format permission with children
+			$format = function ($perm) use (&$format) {
+				$formatted = [
+					'id' => $perm->id,
+					'name' => $perm->name,
+					'display_name' => $perm->display_name,
+					'slug' => $perm->slug,
+					'url' => $perm->url,
+					'icon_text' => $perm->icon_text,
+					'icon_file' => $perm->icon_file,
+					'is_parent' => $perm->is_parent,
+					'order' => $perm->order,
+				];
+
+				// Add children recursively if they exist
+				if ($perm->children && $perm->children->isNotEmpty()) {
+					$formatted['children'] = $perm->children->map(function ($child) use ($format) {
+						return $format($child);
+					})->values()->toArray();
+				} else {
+					$formatted['children'] = [];
+				}
+
+				return $formatted;
+			};
+
+			return $format($permission);
+		});
+	}
+
+
+	/**
 	 * Upload icon file for permission
 	 *
 	 * @param UploadedFile $file

@@ -168,7 +168,12 @@ class AuthService
     public function getCurrentUser(): ?User
     {
         try {
-            return JWTAuth::parseToken()->authenticate();
+            $user = JWTAuth::parseToken()->authenticate();
+            // Eager load roles to include role_id and role_name in response
+            if ($user) {
+                $user->load('roles');
+            }
+            return $user;
         } catch (JWTException $e) {
             return null;
         }
