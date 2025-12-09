@@ -25,9 +25,6 @@ class Permission extends BaseModel
     ];
 
     protected $casts = [
-        // ❌ REMOVE boolean cast
-        // 'is_parent' => 'boolean',
-
         // correct timestamps
         'deleted_at' => 'datetime',
         'created_at' => 'datetime',
