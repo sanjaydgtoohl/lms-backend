@@ -129,7 +129,7 @@ class UserController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|max:255|unique:users,email',
                 'password' => 'required|string|min:8',
-                'phone' => 'nullable|string|max:20',
+                'phone' => 'nullable|integer|digits:10',
                 'role_id' => 'required|array',
                 'role_id.*' => 'integer|exists:roles,id',
                 'status' => 'sometimes|in:1,2,3',
