@@ -21,6 +21,7 @@ class Permission extends BaseModel
         'icon_text',
         'is_parent',   // will now store parent permission ID
         'status',
+        'order',
         'uuid',
     ];
 
