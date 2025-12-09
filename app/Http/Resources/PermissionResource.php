@@ -26,6 +26,7 @@ class PermissionResource extends JsonResource
             'description' => $this->description,
             'is_parent' => $this->is_parent,
             'status' => $this->status,
+            'order' => $this->order,
             'children' => $this->when(
                 $this->relationLoaded('children') && $this->children->isNotEmpty(),
                 fn() => PermissionResource::collection($this->children)
