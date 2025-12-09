@@ -234,9 +234,9 @@ trait HandlesFileUploads
             return $options['filename'] . '.' . $extension;
         }
 
-        // Generate unique filename
+        // Generate unique filename with prefix, keeping the original name format
         $filename = $options['prefix'] ?? '';
-        $filename .= Str::slug($originalName) . '_' . time() . '_' . Str::random(8);
+        $filename .= $originalName . '_' . time() . '_' . Str::random(8);
         $filename .= '.' . $extension;
 
         return $filename;
@@ -306,6 +306,10 @@ trait HandlesFileUploads
         $driver = $diskConfig['driver'] ?? 'local';
         $baseUrl = config('app.url', 'http://localhost');
         $baseUrl = rtrim($baseUrl, '/');
+        
+        // Replace lms.dgtoohl.com with apislms.dgtoohl.com for file URLs
+        $baseUrl = str_replace('https://lms.dgtoohl.com', 'https://apislms.dgtoohl.com', $baseUrl);
+        $baseUrl = str_replace('http://lms.dgtoohl.com', 'http://apislms.dgtoohl.com', $baseUrl);
 
         // For S3 and cloud storage, try to get URL from config or generate it
         if ($driver === 's3') {

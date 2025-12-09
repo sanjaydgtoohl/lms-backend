@@ -468,4 +468,20 @@ class PermissionController extends Controller
             return $this->responseService->handleException($e);
         }
     }
+
+    /**
+     * Get sidebar permissions in hierarchical format
+     * Returns parent -> children structure for sidebar navigation
+     *
+     * @return JsonResponse
+     */
+    public function sidebar(): JsonResponse
+    {
+        try {
+            $permissions = $this->permissionService->getSidebarPermissions();
+            return $this->responseService->success($permissions, 'Sidebar permissions retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
 }

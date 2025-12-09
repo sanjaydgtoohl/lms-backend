@@ -191,7 +191,7 @@ class AuthController extends Controller
                 return $this->responseService->unauthorized('User not authenticated');
             }
             
-            return $this->responseService->success($user, 'User profile retrieved successfully');
+            return $this->responseService->success(new \App\Http\Resources\UserResource($user), 'User profile retrieved successfully');
         } catch (\Exception $e) {
             return $this->responseService->serverError('Failed to retrieve user profile: ' . $e->getMessage());
         }

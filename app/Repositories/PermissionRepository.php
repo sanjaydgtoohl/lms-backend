@@ -177,7 +177,7 @@ class PermissionRepository implements PermissionRepositoryInterface
             ->with($this->getRecursiveChildrenRelation())
             ->where('status', 1)
             ->whereNull('is_parent')
-            ->orderBy('id', 'asc')
+            ->orderBy('order', 'asc')
             ->get();
     }
 
