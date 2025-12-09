@@ -298,7 +298,7 @@ class PermissionService
 	protected function validatePermissionData(array $data, ?int $ignoreId = null): void
 	{
 		$rules = [
-			'name' => 'required|string|max:255|unique:permissions,name' . ($ignoreId ? ",{$ignoreId}" : ''),
+			'name' => 'required|string|max:255',
 			'display_name' => 'nullable|string|max:255',
 			'description' => 'nullable|string|max:1000',
 			'slug' => 'nullable|string|max:255|unique:permissions,slug' . ($ignoreId ? ",{$ignoreId}" : ''),
