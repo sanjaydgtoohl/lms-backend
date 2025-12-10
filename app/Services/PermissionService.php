@@ -375,5 +375,83 @@ class PermissionService
 			throw new ValidationException($validator);
 		}
 	}
-}
 
+	/**
+	 * Get sidebar permissions filtered by user's roles and direct permissions
+	 * Returns only menu items the user has access to
+	 *
+	 * @param \App\Models\User $user
+	 * @return \Illuminate\Support\Collection
+	 */
+	public function getSidebarPermissionsByUser(\App\Models\User $user): \Illuminate\Support\Collection
+	{
+		// Get all sidebar permissions in tree structure
+		$allPermissions = $this->getSidebarPermissions();
+
+		// Get user's permission IDs (both direct and through roles)
+		$userPermissionIds = $this->getUserAccessiblePermissionIds($user);
+
+		// Filter the permissions tree based on user's accessible permissions
+		return $allPermissions->filter(function ($permission) use ($userPermissionIds) {
+			return $this->filterPermissionTree($permission, $userPermissionIds);
+		})->values();
+	}
+
+	/**
+	 * Get all permission IDs accessible to a user (through roles and direct permissions)
+	 *
+	 * @param \App\Models\User $user
+	 * @return \Illuminate\Support\Collection
+	 */
+	private function getUserAccessiblePermissionIds(\App\Models\User $user): \Illuminate\Support\Collection
+	{
+		// Get direct user permissions
+		$directPermissionIds = $user->permissions()
+			->where('status', '1') // Only active permissions
+			->pluck('permissions.id');
+
+		// Get permissions through roles
+		$rolePermissionIds = $user->roles()
+			->with('permissions')
+			->get()
+			->flatMap(function ($role) {
+				return $role->permissions()
+					->where('status', '1') // Only active permissions
+					->pluck('permissions.id');
+			});
+
+		// Merge and get unique IDs
+		return $directPermissionIds->merge($rolePermissionIds)->unique();
+	}
+
+	/**
+	 * Recursively filter permission tree by accessible permission IDs
+	 * Keeps parent permissions if they have any accessible children
+	 *
+	 * @param array $permission
+	 * @param \Illuminate\Support\Collection $accessibleIds
+	 * @return bool
+	 */
+	private function filterPermissionTree(array $permission, \Illuminate\Support\Collection $accessibleIds): bool
+	{
+		// Check if the current permission is accessible
+		$isAccessible = $accessibleIds->contains($permission['id']);
+
+		// Filter children recursively if they exist
+		if (!empty($permission['children'])) {
+			$filteredChildren = array_filter(
+				$permission['children'],
+				fn($child) => $this->filterPermissionTree($child, $accessibleIds)
+			);
+
+			// If this is a parent permission and has accessible children, keep it
+			if (!empty($filteredChildren)) {
+				$permission['children'] = array_values($filteredChildren);
+				return true;
+			}
+		}
+
+		// Return whether this permission itself is accessible
+		return $isAccessible;
+	}
+}

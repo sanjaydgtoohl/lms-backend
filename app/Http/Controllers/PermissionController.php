@@ -472,13 +472,21 @@ class PermissionController extends Controller
     /**
      * Get sidebar permissions in hierarchical format
      * Returns parent -> children structure for sidebar navigation
+     * Filters permissions based on logged-in user's roles and assigned permissions
      *
+     * @param Request $request
      * @return JsonResponse
      */
-    public function sidebar(): JsonResponse
+    public function sidebar(Request $request): JsonResponse
     {
         try {
-            $permissions = $this->permissionService->getSidebarPermissions();
+            $user = auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->error('Unauthorized', statusCode: 401);
+            }
+            
+            $permissions = $this->permissionService->getSidebarPermissionsByUser($user);
             return $this->responseService->success($permissions, 'Sidebar permissions retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

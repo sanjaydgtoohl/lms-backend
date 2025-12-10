@@ -239,4 +239,24 @@ class BriefStatusService
             throw new DomainException('Unexpected error while deleting brief status.');
         }
     }
+
+    /**
+     * Get priorities filtered by brief status ID.
+     *
+     * @param int $briefStatusId
+     * @return array
+     * @throws DomainException
+     */
+    public function getPrioritiesByBriefStatusId(int $briefStatusId): array
+    {
+        try {
+            return $this->repository->getPrioritiesByBriefStatusId($briefStatusId);
+        } catch (QueryException $e) {
+            Log::error('Database error fetching priorities by brief status', ['brief_status_id' => $briefStatusId, 'exception' => $e]);
+            throw new DomainException('Database error while fetching priorities.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching priorities by brief status', ['brief_status_id' => $briefStatusId, 'exception' => $e]);
+            throw new DomainException('Unexpected error while fetching priorities.');
+        }
+    }
 }

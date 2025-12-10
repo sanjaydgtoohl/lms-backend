@@ -134,18 +134,18 @@ class BriefController extends Controller
         try {
             $rules = [
                 'name' => 'required|string|max:255',
-                'product_name' => 'nullable|string|max:255',
+                'product_name' => 'required|string|max:255',
                 'contact_person_id' => 'required|integer|exists:leads,id',
                 'brand_id' => 'nullable|integer|exists:brands,id',
                 'agency_id' => 'nullable|integer|exists:agency,id',
                 'mode_of_campaign' => 'nullable|in:programmatic,non_programmatic',
                 'media_type' => 'nullable|string|max:255',
-                'budget' => 'nullable|numeric|min:0',
+                'budget' => 'required|numeric|min:0',
                 'assign_user_id' => 'nullable|integer|exists:users,id',
                 'brief_status_id' => 'nullable|integer|exists:brief_statuses,id',
                 'priority_id' => 'nullable|integer|exists:priorities,id',
                 'comment' => 'nullable|string',
-                'submission_date' => 'nullable|date_format:Y-m-d H:i:s',
+                'submission_date' => 'required|date_format:Y-m-d H:i:s',
                 'status' => 'nullable|in:1,2,15',
             ];
 
@@ -205,18 +205,18 @@ class BriefController extends Controller
         try {
             $rules = [
                 'name' => 'sometimes|required|string|max:255',
-                'product_name' => 'nullable|string|max:255',
+                'product_name' => 'sometimes|required|string|max:255',
                 'contact_person_id' => 'sometimes|required|integer|exists:leads,id',
                 'brand_id' => 'nullable|integer|exists:brands,id',
                 'agency_id' => 'nullable|integer|exists:agency,id',
                 'mode_of_campaign' => 'nullable|in:programmatic,non_programmatic',
                 'media_type' => 'nullable|string|max:255',
-                'budget' => 'nullable|numeric|min:0',
+                'budget' => 'sometimes|required|numeric|min:0',
                 'assign_user_id' => 'nullable|integer|exists:users,id',
                 'brief_status_id' => 'nullable|integer|exists:brief_statuses,id',
                 'priority_id' => 'nullable|integer|exists:priorities,id',
                 'comment' => 'nullable|string',
-                'submission_date' => 'nullable|date_format:Y-m-d H:i:s',
+                'submission_date' => 'sometimes|required|date_format:Y-m-d H:i:s',
                 'status' => 'nullable|in:1,2,15',
             ];
 
@@ -378,9 +378,19 @@ class BriefController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
-            $brief = $this->briefService->updateBrief($id, [
+            // Get the brief status to fetch its associated priority
+            $briefStatus = \App\Models\BriefStatus::find($request->input('brief_status_id'));
+
+            $updateData = [
                 'brief_status_id' => $request->input('brief_status_id'),
-            ]);
+            ];
+
+            // Auto-update priority_id from brief status if it exists
+            if ($briefStatus && $briefStatus->priority_id) {
+                $updateData['priority_id'] = $briefStatus->priority_id;
+            }
+
+            $brief = $this->briefService->updateBrief($id, $updateData);
 
             return $this->responseService->success(
                 new BriefResource($brief),

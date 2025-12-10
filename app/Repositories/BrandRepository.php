@@ -64,7 +64,21 @@ class BrandRepository implements BrandRepositoryInterface
         if ($searchTerm) {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('slug', 'LIKE', "%{$searchTerm}%");
+                  ->orWhereHas('agency', function ($agencyQuery) use ($searchTerm) {
+                      $agencyQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('brandType', function ($brandTypeQuery) use ($searchTerm) {
+                      $brandTypeQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('industry', function ($industryQuery) use ($searchTerm) {
+                      $industryQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('city', function ($cityQuery) use ($searchTerm) {
+                      $cityQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('zone', function ($zoneQuery) use ($searchTerm) {
+                      $zoneQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  });
             });
         }
 
