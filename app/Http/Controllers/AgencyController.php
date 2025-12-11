@@ -63,7 +63,10 @@ class AgencyController extends Controller
             if ($searchTerm) {
                 $query->where(function ($q) use ($searchTerm) {
                     $q->where('name', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('slug', 'LIKE', "%{$searchTerm}%");
+                      ->orWhere('slug', 'LIKE', "%{$searchTerm}%")
+                      ->orWhereHas('agencyType', function ($agencyTypeQuery) use ($searchTerm) {
+                          $agencyTypeQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      });
                 });
             }
 

@@ -37,7 +37,16 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
         if ($searchTerm) {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('slug', 'LIKE', "%{$searchTerm}%");
+                  ->orWhere('slug', 'LIKE', "%{$searchTerm}%")
+                  ->orWhereHas('brand', function ($brandQuery) use ($searchTerm) {
+                      $brandQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('leadSource', function ($sourceQuery) use ($searchTerm) {
+                      $sourceQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('leadSubSource', function ($subSourceQuery) use ($searchTerm) {
+                      $subSourceQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  });
             });
         }
 
