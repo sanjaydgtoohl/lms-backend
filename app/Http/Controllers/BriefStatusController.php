@@ -45,6 +45,7 @@ class BriefStatusController extends Controller
      * Display a listing of brief statuses.
      *
      * GET /brief-statuses
+     * GET /brief-statuses?brief_status_id={id}
      *
      * @param Request $request
      * @return JsonResponse
@@ -55,11 +56,31 @@ class BriefStatusController extends Controller
             $this->validate($request, [
                 'per_page' => 'nullable|integer|min:1',
                 'search' => 'nullable|string|max:255',
+                'brief_status_id' => 'nullable|integer|exists:brief_statuses,id',
             ]);
 
             $perPage = (int) $request->input('per_page', 15);
             $searchTerm = $request->input('search', null);
+            $briefStatusId = $request->input('brief_status_id', null);
 
+            // If brief_status_id is provided, get the priorities for that status
+            if ($briefStatusId) {
+                $briefStatus = $this->briefStatusService->getBriefStatus($briefStatusId);
+
+                if (!$briefStatus) {
+                    return $this->responseService->notFound('Brief status not found');
+                }
+
+                // Get the priority associated with this brief status
+                $priorities = $this->briefStatusService->getPrioritiesByBriefStatusId($briefStatusId);
+
+                return $this->responseService->success(
+                    $priorities,
+                    'Priorities retrieved successfully'
+                );
+            }
+
+            // Otherwise, get all brief statuses
             $briefStatuses = $this->briefStatusService->getAllBriefStatuses($perPage, $searchTerm);
 
             return $this->responseService->paginated(
@@ -96,6 +117,46 @@ class BriefStatusController extends Controller
             return $this->responseService->success(
                 new BriefStatusResource($briefStatus),
                 'Brief status retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get priorities filtered by brief status ID via query parameter.
+     *
+     * GET /brief-statuses?brief_status_id={id}
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getPrioritiesByBriefStatus(Request $request): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'brief_status_id' => 'required|integer|exists:brief_statuses,id',
+            ]);
+
+            $briefStatusId = (int) $request->input('brief_status_id');
+
+            // Verify that the brief status exists
+            $briefStatus = $this->briefStatusService->getBriefStatus($briefStatusId);
+            if (!$briefStatus) {
+                return $this->responseService->notFound('Brief status not found');
+            }
+
+            // Get the priority associated with this brief status
+            $priorities = $this->briefStatusService->getPrioritiesByBriefStatusId($briefStatusId);
+
+            return $this->responseService->success(
+                $priorities,
+                'Priorities retrieved successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

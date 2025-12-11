@@ -60,7 +60,18 @@ class BriefRepository implements BriefRepositoryInterface
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('product_name', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('uuid', 'LIKE', "%{$searchTerm}%");
+                  ->orWhereHas('brand', function ($brandQuery) use ($searchTerm) {
+                      $brandQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('contactPerson', function ($contactQuery) use ($searchTerm) {
+                      $contactQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('priority', function ($priorityQuery) use ($searchTerm) {
+                      $priorityQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('assignedUser', function ($userQuery) use ($searchTerm) {
+                      $userQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  });
             });
         }
 

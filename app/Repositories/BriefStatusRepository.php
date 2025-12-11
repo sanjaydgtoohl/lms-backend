@@ -101,6 +101,34 @@ class BriefStatusRepository implements BriefStatusRepositoryInterface
             ->paginate($perPage);
     }
 
+    /**
+     * Get priorities filtered by brief status ID.
+     *
+     * @param int $briefStatusId The brief status ID.
+     * @return array
+     */
+    public function getPrioritiesByBriefStatusId(int $briefStatusId): array
+    {
+        $briefStatus = $this->model->find($briefStatusId);
+
+        if (!$briefStatus) {
+            return [];
+        }
+
+        // Get the priority associated with this brief status
+        if ($briefStatus->priority) {
+            return [
+                'id' => $briefStatus->priority->id,
+                'uuid' => $briefStatus->priority->uuid,
+                'name' => $briefStatus->priority->name,
+                'slug' => $briefStatus->priority->slug,
+                'status' => $briefStatus->priority->status,
+            ];
+        }
+
+        return [];
+    }
+
     // ============================================================================
     // WRITE OPERATIONS
     // ============================================================================

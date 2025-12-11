@@ -77,7 +77,15 @@ class LeadRepository implements LeadRepositoryInterface
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('email', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('profile_url', 'LIKE', "%{$searchTerm}%");
+                  ->orWhereHas('brand', function ($brandQuery) use ($searchTerm) {
+                      $brandQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('assignedUser', function ($userQuery) use ($searchTerm) {
+                      $userQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('leadStatusRelation', function ($statusQuery) use ($searchTerm) {
+                      $statusQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  });
             });
         }
 

@@ -224,16 +224,43 @@ class BrandController extends Controller
 
     /**
      * Get list of brands (for dropdowns)
+     * If brand_id is provided, return the agency for that brand
      *
+     * @param Request $request
      * @return JsonResponse
      */
-    public function list(): JsonResponse
+    public function list(Request $request): JsonResponse
     {
         try {
-            // 2. Call the service method to get the list
+            $brandId = $request->query('brand_id');
+
+            // If brand_id is provided, return the agency for that brand
+            if ($brandId) {
+                $brand = $this->brandService->getBrand($brandId);
+
+                if (!$brand) {
+                    throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+                }
+
+                $agency = $brand->agency;
+
+                if (!$agency) {
+                    return $this->responseService->error(
+                        'No agency found for this brand',
+                        null,
+                        404
+                    );
+                }
+
+                return $this->responseService->success(
+                    $agency,
+                    'Agency retrieved successfully'
+                );
+            }
+
+            // Otherwise, return the full brand list
             $brandsList = $this->brandService->getBrandList();
 
-            // 3. Return success response with data using ResponseService
             return $this->responseService->success(
                 $brandsList,
                 'Brand list retrieved successfully'
