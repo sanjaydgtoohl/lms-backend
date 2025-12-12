@@ -67,6 +67,15 @@ interface BriefStatusRepositoryInterface
      */
     public function getPrioritiesByBriefStatusId(int $briefStatusId): array;
 
+    /**
+     * Get brief statuses filtered by priority ID.
+     *
+     * @param int $priorityId The priority ID.
+     * @param int $perPage The number of items per page.
+     * @return LengthAwarePaginator
+     */
+    public function getBriefStatusesByPriorityId(int $priorityId, int $perPage = 10): LengthAwarePaginator;
+
     // ============================================================================
     // WRITE OPERATIONS
     // ============================================================================

@@ -129,6 +129,20 @@ class BriefStatusRepository implements BriefStatusRepositoryInterface
         return [];
     }
 
+    /**
+     * Get brief statuses filtered by priority ID.
+     *
+     * @param int $priorityId The priority ID.
+     * @param int $perPage The number of items per page.
+     * @return LengthAwarePaginator
+     */
+    public function getBriefStatusesByPriorityId(int $priorityId, int $perPage = 10): LengthAwarePaginator
+    {
+        return $this->model
+            ->where('priority_id', $priorityId)
+            ->paginate($perPage);
+    }
+
     // ============================================================================
     // WRITE OPERATIONS
     // ============================================================================
