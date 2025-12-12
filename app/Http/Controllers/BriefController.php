@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\BriefResource;
 use App\Models\Brief;
+use App\Models\BriefStatus;
 use App\Services\BriefService;
 use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
@@ -173,6 +174,18 @@ class BriefController extends Controller
             if (!isset($data['status'])) {
                 $data['status'] = '2';
             }
+            // Handle brief_status_id and priority_id logic
+            if ((!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) && (!isset($data['priority_id']) || is_null($data['priority_id']))) {
+                // Both not provided: set defaults
+                $data['brief_status_id'] = 1;
+                $data['priority_id'] = 3;
+            } elseif (isset($data['brief_status_id']) && !is_null($data['brief_status_id']) && (!isset($data['priority_id']) || is_null($data['priority_id']))) {
+                // Only brief_status_id provided: fetch priority_id from brief status
+                $briefStatus = BriefStatus::find($data['brief_status_id']);
+                if ($briefStatus && $briefStatus->priority_id) {
+                    $data['priority_id'] = $briefStatus->priority_id;
+                }
+            }
 
             $brief = $this->briefService->createBrief($data);
 
@@ -236,7 +249,21 @@ class BriefController extends Controller
                 }
             }
 
-            $brief = $this->briefService->updateBrief($id, $request->all());
+            $data = $request->all();
+            // Handle brief_status_id and priority_id logic
+            if ((!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) && (!isset($data['priority_id']) || is_null($data['priority_id']))) {
+                // Both not provided: set defaults
+                $data['brief_status_id'] = 1;
+                $data['priority_id'] = 3;
+            } elseif (isset($data['brief_status_id']) && !is_null($data['brief_status_id']) && (!isset($data['priority_id']) || is_null($data['priority_id']))) {
+                // Only brief_status_id provided: fetch priority_id from brief status
+                $briefStatus = BriefStatus::find($data['brief_status_id']);
+                if ($briefStatus && $briefStatus->priority_id) {
+                    $data['priority_id'] = $briefStatus->priority_id;
+                }
+            }
+
+            $brief = $this->briefService->updateBrief($id, $data);
 
             if (!$brief) {
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
@@ -401,6 +428,61 @@ class BriefController extends Controller
                 $e->errors(),
                 'Validation failed'
             );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Update assigned user for a brief.
+     *
+     * PUT /briefs/{id}/update-assign-user
+     *
+     * @param int $id
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function updateAssignUser(int $id, Request $request): JsonResponse
+    {
+        try {
+            $rules = [
+                'assign_user_id' => 'required|integer|exists:users,id',
+            ];
+
+            $this->validate($request, $rules);
+
+            $brief = $this->briefService->getBrief($id);
+
+            if (!$brief) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            $updateData = [
+                'assign_user_id' => $request->input('assign_user_id'),
+            ];
+
+            $brief = $this->briefService->updateBrief($id, $updateData);
+
+            return $this->responseService->success(
+                new BriefResource($brief),
+                'Brief assigned user updated successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    public function achal()
+    {
+        try {
+        $rules = [     
+            'assign_user_id' => 'required|integer|exists:users,id',
+        ];
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

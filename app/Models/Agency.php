@@ -6,10 +6,25 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\BrandAgencyRelationship;
 
 class Agency extends Model
 {
     use HasFactory, SoftDeletes;
+
+    /**
+     * The "booting" method of the model.
+     * Register model events.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($agency) {
+            // Delete all brand agency relationships when agency is deleted
+            BrandAgencyRelationship::where('agency_id', $agency->id)->delete();
+        });
+    }
 
     /**
      * The table associated with the model.

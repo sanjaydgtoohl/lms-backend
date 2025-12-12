@@ -45,52 +45,17 @@ class BriefStatusController extends Controller
      * Display a listing of brief statuses.
      *
      * GET /brief-statuses
-     * GET /brief-statuses?brief_status_id={id}
      *
-     * @param Request $request
      * @return JsonResponse
      */
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
         try {
-            $this->validate($request, [
-                'per_page' => 'nullable|integer|min:1',
-                'search' => 'nullable|string|max:255',
-                'brief_status_id' => 'nullable|integer|exists:brief_statuses,id',
-            ]);
+            $briefStatuses = $this->briefStatusService->getAllBriefStatuses();
 
-            $perPage = (int) $request->input('per_page', 15);
-            $searchTerm = $request->input('search', null);
-            $briefStatusId = $request->input('brief_status_id', null);
-
-            // If brief_status_id is provided, get the priorities for that status
-            if ($briefStatusId) {
-                $briefStatus = $this->briefStatusService->getBriefStatus($briefStatusId);
-
-                if (!$briefStatus) {
-                    return $this->responseService->notFound('Brief status not found');
-                }
-
-                // Get the priority associated with this brief status
-                $priorities = $this->briefStatusService->getPrioritiesByBriefStatusId($briefStatusId);
-
-                return $this->responseService->success(
-                    $priorities,
-                    'Priorities retrieved successfully'
-                );
-            }
-
-            // Otherwise, get all brief statuses
-            $briefStatuses = $this->briefStatusService->getAllBriefStatuses($perPage, $searchTerm);
-
-            return $this->responseService->paginated(
+            return $this->responseService->success(
                 BriefStatusResource::collection($briefStatuses),
                 'Brief statuses retrieved successfully'
-            );
-        } catch (ValidationException $e) {
-            return $this->responseService->validationError(
-                $e->errors(),
-                'Validation failed'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

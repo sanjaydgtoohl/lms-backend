@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\AgencyResource;
 use App\Models\Agency;
+use App\Models\BrandAgencyRelationship;
 use App\Services\AgencyService;
 use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -212,6 +214,49 @@ class AgencyController extends Controller
             $agency->delete(); // Soft Delete
 
             return $this->responseService->deleted('Agency deleted successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get brands for a specific agency using only BrandAgencyRelationship table
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function getBrands(int $id): JsonResponse
+    {
+        try {
+            // Verify agency exists
+            $agency = Agency::where('status', '1')->find($id);
+
+            if (!$agency) {
+                return $this->responseService->error('Agency not found', []);
+            }
+
+            // Get all brands for this agency from brand_agency_relationships table using relationship
+            $brandRelationships = BrandAgencyRelationship::where('agency_id', $id)
+                ->whereNull('deleted_at')
+                ->with('brand:id,name')
+                ->get();
+
+            // Format brands data to return only id and name
+            $brands = $brandRelationships->map(function ($relationship) {
+                return [
+                    'id' => $relationship->brand->id ?? null,
+                    'name' => $relationship->brand->name ?? null,
+                ];
+            })->filter(function ($brand) {
+                return $brand['id'] !== null; // Remove null entries
+            })->values()->toArray();
+
+            return $this->responseService->success([
+                'agency_id' => $agency->id,
+                'agency_name' => $agency->name,
+                'brands' => $brands,
+                'total_brands' => count($brands),
+            ], 'Agency brands retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

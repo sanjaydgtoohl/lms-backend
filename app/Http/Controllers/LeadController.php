@@ -356,6 +356,37 @@ class LeadController extends Controller
     }
 
     /**
+     * Update assigned user for a lead.
+     *
+     * PUT /leads/{id}/assign-user
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function updateAssignedUser(Request $request, int $id): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'user_id' => 'required|integer|exists:users,id',
+            ]);
+
+            $this->leadService->assignLeadToUser($id, $request->input('user_id'));
+
+            $lead = $this->leadService->getLead($id);
+
+            return $this->responseService->updated(
+                new LeadResource($lead),
+                'Lead assigned user updated successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
      * Update lead priority.
      *
      * POST /leads/{id}/priority

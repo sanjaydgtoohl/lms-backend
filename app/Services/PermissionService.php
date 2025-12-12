@@ -391,10 +391,63 @@ class PermissionService
 		// Get user's permission IDs (both direct and through roles)
 		$userPermissionIds = $this->getUserAccessiblePermissionIds($user);
 
-		// Filter the permissions tree based on user's accessible permissions
+		// Filter to show ONLY permissions the user has (strictly)
 		return $allPermissions->filter(function ($permission) use ($userPermissionIds) {
-			return $this->filterPermissionTree($permission, $userPermissionIds);
+			return $this->hasUserPermission($permission, $userPermissionIds);
+		})->map(function ($permission) use ($userPermissionIds) {
+			return $this->filterToUserPermissionsOnly($permission, $userPermissionIds);
 		})->values();
+	}
+
+	/**
+	 * Get sidebar permissions with detailed role information for debugging
+	 * Shows which permissions come from which roles
+	 *
+	 * @param \App\Models\User $user
+	 * @return array
+	 */
+	public function getSidebarPermissionsByUserWithRoleInfo(\App\Models\User $user): array
+	{
+		$allPermissions = $this->getSidebarPermissions();
+
+		// Get direct user permissions
+		$directPermissionIds = $user->permissions()
+			->where('permissions.status', '1')
+			->pluck('permissions.id')
+			->toArray();
+
+		// Get permissions grouped by role
+		$rolePermissions = [];
+		foreach ($user->roles as $role) {
+			$role->load('permissions');
+			$permissionIds = $role->permissions
+				->where('status', '1')
+				->pluck('id')
+				->toArray();
+			
+			if (!empty($permissionIds)) {
+				$rolePermissions[$role->name] = $permissionIds;
+			}
+		}
+
+		// Build combined accessible permissions
+		$userPermissionIds = collect($directPermissionIds)
+			->merge(collect($rolePermissions)->flatten())
+			->unique();
+
+		// Filter to show only selected permissions
+		$filteredPermissions = $allPermissions->filter(function ($permission) use ($userPermissionIds) {
+			return $this->hasUserPermission($permission, $userPermissionIds);
+		})->map(function ($permission) use ($userPermissionIds) {
+			return $this->filterToUserPermissionsOnly($permission, $userPermissionIds);
+		})->values();
+
+		return [
+			'permissions' => $filteredPermissions,
+			'direct_permissions' => $directPermissionIds,
+			'role_permissions' => $rolePermissions,
+			'total_accessible' => $userPermissionIds->count(),
+		];
 	}
 
 	/**
@@ -407,18 +460,21 @@ class PermissionService
 	{
 		// Get direct user permissions
 		$directPermissionIds = $user->permissions()
-			->where('status', '1') // Only active permissions
+			->where('permissions.status', '1') // Only active permissions
 			->pluck('permissions.id');
 
-		// Get permissions through roles
-		$rolePermissionIds = $user->roles()
-			->with('permissions')
-			->get()
-			->flatMap(function ($role) {
-				return $role->permissions()
-					->where('status', '1') // Only active permissions
-					->pluck('permissions.id');
-			});
+		// Get permissions through roles - improved method
+		$rolePermissionIds = collect();
+		
+		foreach ($user->roles as $role) {
+			// Get all permissions for this role
+			$role->load('permissions');
+			$permissions = $role->permissions
+				->where('status', '1') // Only active permissions
+				->pluck('id');
+			
+			$rolePermissionIds = $rolePermissionIds->merge($permissions);
+		}
 
 		// Merge and get unique IDs
 		return $directPermissionIds->merge($rolePermissionIds)->unique();
@@ -432,26 +488,62 @@ class PermissionService
 	 * @param \Illuminate\Support\Collection $accessibleIds
 	 * @return bool
 	 */
-	private function filterPermissionTree(array $permission, \Illuminate\Support\Collection $accessibleIds): bool
+	/**
+	 * Check if permission or any of its children belong to user
+	 * Used for filtering at root level
+	 *
+	 * @param array $permission
+	 * @param \Illuminate\Support\Collection $accessibleIds
+	 * @return bool
+	 */
+	private function hasUserPermission(array $permission, \Illuminate\Support\Collection $accessibleIds): bool
 	{
-		// Check if the current permission is accessible
-		$isAccessible = $accessibleIds->contains($permission['id']);
+		// Check if this permission itself is accessible
+		if ($accessibleIds->contains($permission['id'])) {
+			return true;
+		}
 
-		// Filter children recursively if they exist
+		// Check if any children are accessible
 		if (!empty($permission['children'])) {
-			$filteredChildren = array_filter(
-				$permission['children'],
-				fn($child) => $this->filterPermissionTree($child, $accessibleIds)
-			);
-
-			// If this is a parent permission and has accessible children, keep it
-			if (!empty($filteredChildren)) {
-				$permission['children'] = array_values($filteredChildren);
-				return true;
+			foreach ($permission['children'] as $child) {
+				if ($this->hasUserPermission($child, $accessibleIds)) {
+					return true;
+				}
 			}
 		}
 
-		// Return whether this permission itself is accessible
-		return $isAccessible;
+		return false;
+	}
+
+	/**
+	 * Filter permission tree to show ONLY permissions user has access to
+	 * Removes all unselected permissions and parents without direct access
+	 *
+	 * @param array $permission
+	 * @param \Illuminate\Support\Collection $accessibleIds
+	 * @return array
+	 */
+	private function filterToUserPermissionsOnly(array $permission, \Illuminate\Support\Collection $accessibleIds): array
+	{
+		// Filter children first - only keep children user has access to
+		if (!empty($permission['children'])) {
+			$filteredChildren = [];
+			foreach ($permission['children'] as $child) {
+				// Recursively filter and keep only if child or its descendants are accessible
+				if ($accessibleIds->contains($child['id'])) {
+					// If child is accessible, include it with its filtered children
+					$filteredChildren[] = $this->filterToUserPermissionsOnly($child, $accessibleIds);
+				} elseif (!empty($child['children'])) {
+					// If child itself isn't accessible but has children, recursively filter children
+					$filteredChild = $this->filterToUserPermissionsOnly($child, $accessibleIds);
+					if (!empty($filteredChild['children'])) {
+						$filteredChildren[] = $filteredChild;
+					}
+				}
+			}
+			$permission['children'] = $filteredChildren;
+		}
+
+		return $permission;
 	}
 }

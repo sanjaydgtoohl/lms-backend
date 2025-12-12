@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class Brief extends Model
 {
@@ -19,6 +23,9 @@ class Brief extends Model
     const TYPE_PROGRAMMATIC_CTV = 'ctv';
     const TYPE_NON_PROGRAMMATIC_DOOH = 'dooh';
     const TYPE_NON_PROGRAMMATIC_OOH = 'ooh';
+
+    // Fields to track for history
+    const TRACKED_FIELDS = ['assign_user_id', 'brief_status_id', 'submission_date'];
 
     /**
      * The table associated with the model.
@@ -61,6 +68,29 @@ class Brief extends Model
         'submission_date' => 'datetime',
         'budget' => 'decimal:2',
     ];
+
+    /**
+     * The "booted" method of the model.
+     * Register model event listeners.
+     */
+    protected static function booted()
+    {
+        static::updated(function ($brief) {
+            $brief->saveHistoryIfFieldsChanged();
+        });
+    }
+
+    // ===================================================================
+    // RELATIONSHIPS
+    // ===================================================================
+
+    /**
+     * Get the brief assign histories for this brief.
+     */
+    public function assignHistories()
+    {
+        return $this->hasMany(BriefAssignHistory::class, 'brief_id');
+    }
 
     /**
      * Get the contact person (lead) associated with this brief.
@@ -117,6 +147,79 @@ class Brief extends Model
     {
         return $this->belongsTo(Priority::class, 'priority_id');
     }
+
+    // ===================================================================
+    // HISTORY TRACKING METHODS
+    // ===================================================================
+
+    /**
+     * Check if any tracked fields have changed and save history if needed.
+     */
+    private function saveHistoryIfFieldsChanged(): void
+    {
+        $changeData = $this->getTrackedFieldChanges();
+        
+        if (empty($changeData)) {
+            return;
+        }
+
+        try {
+            $this->createAssignHistory($changeData);
+        } catch (\Exception $e) {
+            Log::error('Failed to create BriefAssignHistory', [
+                'brief_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Get the changes for tracked fields.
+     */
+    private function getTrackedFieldChanges(): array
+    {
+        $changeData = [];
+
+        foreach (self::TRACKED_FIELDS as $field) {
+            if ($this->isDirty($field)) {
+                $changeData[$field] = [
+                    'old' => $this->getOriginal($field),
+                    'new' => $this->getAttribute($field),
+                ];
+            }
+        }
+
+        return $changeData;
+    }
+
+    /**
+     * Create a brief assign history record.
+     */
+    private function createAssignHistory(array $changeData): void
+    {
+        BriefAssignHistory::create([
+            'uuid' => Str::uuid(),
+            'brief_id' => $this->id,
+            'assign_by_id' => $this->getCurrentUserId(),
+            'assign_to_id' => $changeData['assign_user_id']['new'] ?? $this->assign_user_id,
+            'brief_status_id' => $changeData['brief_status_id']['new'] ?? $this->brief_status_id,
+            'brief_status_time' => now(),
+            'submission_date' => $changeData['submission_date']['new'] ?? $this->submission_date,
+            'comment' => $this->comment,
+            'status' => '2',
+        ]);
+    }
+
+    /**
+     * Get the current authenticated user ID.
+     */
+    private function getCurrentUserId(): ?int
+    {
+        return Auth::id() ?? $this->created_by;
+    }
+    // ===================================================================
+    // STATIC HELPER METHODS
+    // ===================================================================
 
     /**
      * Get valid campaign types for a given campaign mode.

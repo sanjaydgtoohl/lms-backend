@@ -168,7 +168,7 @@ class AuthController extends Controller
             $result = $this->authService->refresh();
             
             return $this->responseService->success(
-                new AuthResource($result['user'], $result['token'], $result['token_type'], $result['expires_in']),
+                new AuthResource($result['user'], $result['token'], $result['token_type'], $result['expires_in'], $result['refresh_token'] ?? null),
                 'Token refreshed successfully'
             );
         } catch (\Exception $e) {

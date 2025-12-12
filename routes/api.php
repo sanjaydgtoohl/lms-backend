@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuthController;
 $router->options('{any:.*}', function () {
     return response('', 200);
 });
+
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\IndustryController;
 use App\Http\Controllers\DesignationController;
@@ -167,6 +168,9 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('create-data', 'AgencyController@create');
         $router->post('batch', 'AgencyController@storeBatch');
         $router->post('/', 'AgencyController@store');
+        // Get brands for a specific agency
+        $router->get('{id:[0-9]+}/brands', 'AgencyController@getBrands');
+
         $router->get('{id:[0-9]+}', 'AgencyController@show');
         $router->put('{id:[0-9]+}', 'AgencyController@update');
         $router->patch('{id:[0-9]+}', 'AgencyController@update');
@@ -177,6 +181,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('/', 'BrandController@index');
         $router->post('/', 'BrandController@store');
         $router->get('/list', 'BrandController@list');
+        $router->get('/{id:[0-9]+}/agencies', 'BrandController@agencies');
         $router->get('/{id:[0-9]+}', 'BrandController@show');      
         $router->put('/{id:[0-9]+}', 'BrandController@update');     
         $router->patch('/{id:[0-9]+}', 'BrandController@update'); 
@@ -321,6 +326,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         
         // Additional Lead routes (specific routes after generic CRUD)
         $router->post('{id:[0-9]+}/assign', 'LeadController@assign');
+        $router->put('{id:[0-9]+}/assign-user', 'LeadController@updateAssignedUser');
         $router->post('{id:[0-9]+}/priority', 'LeadController@updatePriority');
         $router->post('{id:[0-9]+}/status', 'LeadController@updateStatus');
         $router->put('{id:[0-9]+}/call-status', 'LeadController@addCallStatus');
@@ -364,9 +370,33 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         
         // Additional Brief routes
         $router->put('{id:[0-9]+}/update-status', 'BriefController@updateStatus');
+        $router->put('{id:[0-9]+}/update-assign-user', 'BriefController@updateAssignUser');
         $router->get('brand/{brandId:[0-9]+}', 'BriefController@getByBrand');
         $router->get('agency/{agencyId:[0-9]+}', 'BriefController@getByAgency');
         $router->get('user/{userId:[0-9]+}', 'BriefController@getByAssignedUser');
+    });
+
+
+
+    // // Brief Assign Histories by Brief
+    // $router->group(['prefix' => 'briefs'], function () use ($router) {
+    //     $router->get('{briefId:[0-9]+}/assign-histories', 'Api\BriefAssignHistoryController@getByBriefId');
+    // });
+
+    // // Brief Assign Histories by User
+    // $router->group(['prefix' => 'users'], function () use ($router) {
+    //     $router->get('{userId:[0-9]+}/assigned-briefs', 'Api\BriefAssignHistoryController@getByAssignBy');
+    //     $router->get('{userId:[0-9]+}/assigned-to-me', 'Api\BriefAssignHistoryController@getByAssignTo');
+    // });
+
+    // Brief Assign Histories CRUD routes
+    $router->group(['prefix' => 'brief-assign-histories'], function () use ($router) {
+        $router->get('/', 'BriefAssignHistoryController@index');
+        // $router->post('/', 'BriefAssignHistoryController@store');
+        // $router->get('{id:[0-9]+}', 'BriefAssignHistoryController@show');
+        // $router->put('{id:[0-9]+}', 'BriefAssignHistoryController@update');
+        // $router->patch('{id:[0-9]+}', 'BriefAssignHistoryController@patch');
+        // $router->delete('{id:[0-9]+}', 'BriefAssignHistoryController@destroy');
     });
 
     // Meetings routes
