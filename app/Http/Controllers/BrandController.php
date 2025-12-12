@@ -6,6 +6,7 @@ use App\Http\Resources\BrandResource;
 use App\Services\BrandService;
 use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
+use App\Models\Agency;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -232,38 +233,35 @@ class BrandController extends Controller
     public function list(Request $request): JsonResponse
     {
         try {
-            $brandId = $request->query('brand_id');
+            $brands = $this->brandService->getBrandList();
+            return $this->responseService->success($brands, 'Brand list retrieved successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
 
-            // If brand_id is provided, return the agency for that brand
-            if ($brandId) {
-                $brand = $this->brandService->getBrand($brandId);
+    /**
+     * Get agency for a specific brand
+     *
+     * GET /brands/{id}/agencies
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function agencies(int $id): JsonResponse
+    {
+        try {
+            $brand = $this->brandService->getBrand($id);
 
-                if (!$brand) {
-                    throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
-                }
-
-                $agency = $brand->agency;
-
-                if (!$agency) {
-                    return $this->responseService->error(
-                        'No agency found for this brand',
-                        null,
-                        404
-                    );
-                }
-
-                return $this->responseService->success(
-                    $agency,
-                    'Agency retrieved successfully'
-                );
+            if (!$brand) {
+                return $this->responseService->notFound('Brand not found');
             }
 
-            // Otherwise, return the full brand list
-            $brandsList = $this->brandService->getBrandList();
+            $agency = Agency::where('id', $brand->agency_id)->select('id', 'name')->first();
 
             return $this->responseService->success(
-                $brandsList,
-                'Brand list retrieved successfully'
+                $agency,
+                'Agency retrieved successfully'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

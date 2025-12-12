@@ -151,10 +151,16 @@ class AuthService
         
         // Refresh the token
         $token = JWTAuth::refresh(JWTAuth::getToken());
+        
+        // Generate new refresh token
+        $refreshToken = Str::random(64);
+        $user->refresh_token = $refreshToken;
+        $user->save();
 
         return [
             'user' => $user,
             'token' => $token,
+            'refresh_token' => $refreshToken,
             'token_type' => 'bearer',
             'expires_in' => JWTAuth::factory()->getTTL() * 60
         ];

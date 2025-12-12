@@ -85,6 +85,9 @@ use App\Repositories\BriefStatusRepository;
 use App\Contracts\Repositories\BriefRepositoryInterface;
 use App\Repositories\BriefRepository;
 
+use App\Contracts\Repositories\BriefAssignHistoryRepositoryInterface;
+use App\Repositories\BriefAssignHistoryRepository;
+
 use App\Contracts\Repositories\MeetingRepositoryInterface;
 use App\Repositories\EloquentMeetingRepository;
 
@@ -221,6 +224,11 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             BriefRepositoryInterface::class,
             BriefRepository::class
+        );
+
+        $this->app->bind(
+            BriefAssignHistoryRepositoryInterface::class,
+            BriefAssignHistoryRepository::class
         );
 
         $this->app->bind(
