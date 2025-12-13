@@ -230,4 +230,41 @@ class BriefStatusController extends Controller
             return $this->responseService->handleException($e);
         }
     }
+
+    /**
+     * Get brief statuses by priority ID via query parameter.
+     *
+     * GET /brief-statuses/by-priority?priority_id={id}
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getBriefStatusesByPriority(Request $request): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'priority_id' => 'required|integer|exists:priorities,id',
+                'per_page' => 'nullable|integer|min:1',
+            ]);
+
+            $priorityId = (int) $request->input('priority_id');
+            $perPage = (int) $request->input('per_page', 10);
+
+            // Get brief statuses associated with this priority
+            $briefStatuses = $this->briefStatusService->getBriefStatusesByPriorityId($priorityId, $perPage);
+
+            return $this->responseService->paginated(
+                BriefStatusResource::collection($briefStatuses),
+                'Brief statuses retrieved successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
 }
+

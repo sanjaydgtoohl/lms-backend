@@ -22,7 +22,7 @@ class BriefAssignHistoryResource extends JsonResource
             'status' => $this->status,
 
             // Brief Information
-            'brief' => new BriefResource($this->whenLoaded('brief')),
+            'brief' => $this->when($this->brief, new BriefResource($this->brief)),
             'brief_id' => $this->brief_id,
 
             // Assignment Information

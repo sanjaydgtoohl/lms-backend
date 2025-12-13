@@ -259,4 +259,26 @@ class BriefStatusService
             throw new DomainException('Unexpected error while fetching priorities.');
         }
     }
+
+    /**
+     * Get brief statuses by priority ID.
+     *
+     * @param int $priorityId
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     * @throws DomainException
+     */
+    public function getBriefStatusesByPriorityId(int $priorityId, int $perPage = 10): LengthAwarePaginator
+    {
+        try {
+            return $this->repository->getBriefStatusesByPriorityId($priorityId, $perPage);
+        } catch (QueryException $e) {
+            Log::error('Database error fetching brief statuses by priority', ['priority_id' => $priorityId, 'exception' => $e]);
+            throw new DomainException('Database error while fetching brief statuses.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching brief statuses by priority', ['priority_id' => $priorityId, 'exception' => $e]);
+            throw new DomainException('Unexpected error while fetching brief statuses.');
+        }
+    }
 }
+

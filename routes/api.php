@@ -348,6 +348,8 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     $router->group(['prefix' => 'brief-statuses'], function () use ($router) {
         $router->get('/', 'BriefStatusController@index');
         $router->post('/', 'BriefStatusController@store');
+        $router->get('priorities', 'BriefStatusController@getPrioritiesByBriefStatus');
+        $router->get('by-priority', 'BriefStatusController@getBriefStatusesByPriority');
         $router->get('{id:[0-9]+}', 'BriefStatusController@show');
         $router->put('{id:[0-9]+}', 'BriefStatusController@update');
         $router->patch('{id:[0-9]+}', 'BriefStatusController@update');
@@ -371,6 +373,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         // Additional Brief routes
         $router->put('{id:[0-9]+}/update-status', 'BriefController@updateStatus');
         $router->put('{id:[0-9]+}/update-assign-user', 'BriefController@updateAssignUser');
+        $router->get('{briefId:[0-9]+}/assign-histories', 'BriefAssignHistoryController@getByBriefId');
         $router->get('brand/{brandId:[0-9]+}', 'BriefController@getByBrand');
         $router->get('agency/{agencyId:[0-9]+}', 'BriefController@getByAgency');
         $router->get('user/{userId:[0-9]+}', 'BriefController@getByAssignedUser');
