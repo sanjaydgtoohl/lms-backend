@@ -86,6 +86,14 @@ interface LeadRepositoryInterface
      */
     public function getLeadsWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator;
 
+    /**
+     * Fetch pending leads (leads with pending status).
+     *
+     * @param int $perPage The number of items per page.
+     * @return LengthAwarePaginator
+     */
+    public function getPendingLeads(int $perPage = 10): LengthAwarePaginator;
+
     // ============================================================================
     // WRITE OPERATIONS
     // ============================================================================
