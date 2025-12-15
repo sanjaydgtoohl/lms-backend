@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Throwable;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 
 class PriorityController extends Controller
 {
@@ -97,6 +98,49 @@ class PriorityController extends Controller
             return $this->responseService->success(
                 new PriorityResource($priority),
                 'Priority retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get call statuses for a specific priority.
+     *
+     * GET /priorities/{id}/call-statuses
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function getCallStatuses(int $id): JsonResponse
+    {
+        try {
+            $priority = $this->priorityService->getPriority($id);
+
+            if (!$priority) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            // Get call_status from priority (stored as array/JSON)
+            $callStatusIds = $priority->call_status ?? [];
+            
+            if (empty($callStatusIds)) {
+                return $this->responseService->success(
+                    [],
+                    'No call statuses associated with this priority'
+                );
+            }
+
+            // Fetch actual call status records (only id and name)
+            $callStatuses = DB::table('call_statuses')
+                ->whereIn('id', $callStatusIds)
+                ->where('status', '1')
+                ->select('id', 'name')
+                ->get();
+
+            return $this->responseService->success(
+                $callStatuses,
+                'Call statuses retrieved successfully'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

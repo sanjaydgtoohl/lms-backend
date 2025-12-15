@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Contracts\Repositories\LeadRepositoryInterface;
 use App\Models\Lead;
 use App\Models\LeadAssignHistory;
+use App\Models\Meeting;
 use App\Models\Priority;
 use App\Models\Status;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -718,6 +719,25 @@ class LeadRepository implements LeadRepositoryInterface
     }
 
     /**
+     * Fetch pending leads (leads with pending status).
+     *
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     */
+    public function getPendingLeads(int $perPage = 10): LengthAwarePaginator
+    {
+        return $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->whereHas('leadStatusRelation', function ($query) {
+                $query->where('statuses.slug', 'pending');
+            }, '>=', 1)
+            ->where('leads.status', '1')
+            ->orderBy('leads.created_at', 'desc')
+            ->paginate($perPage)
+            ->appends(request()->query());
+    }
+
+    /**
      * Save lead update history to lead_assign_histories table.
      *
      * @param Lead $lead
@@ -729,6 +749,57 @@ class LeadRepository implements LeadRepositoryInterface
             // Get current authenticated user
             $currentUserId = Auth::check() ? Auth::id() : null;
 
+            // First, let's check ALL meetings for this lead (for debugging)
+            $allMeetings = Meeting::where('lead_id', $lead->id)->get();
+            
+            Log::info('Lead history - All meetings for lead', [
+                'lead_id' => $lead->id,
+                'total_meetings' => $allMeetings->count(),
+                'meetings' => $allMeetings->map(fn($m) => [
+                    'id' => $m->id,
+                    'status' => $m->status,
+                    'deleted_at' => $m->deleted_at,
+                    'meeting_date' => $m->meeting_date,
+                    'meeting_time' => $m->meeting_time,
+                ])->toArray(),
+            ]);
+
+            // Fetch meeting information for this lead - get the latest non-deleted meeting
+            // Initially try to get active (status='1') meetings only
+            $meeting = Meeting::where('lead_id', $lead->id)
+                ->where('status', '1')
+                ->whereNull('deleted_at')
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            // If no active meeting found, try to get any non-deleted meeting
+            if (!$meeting) {
+                $meeting = Meeting::where('lead_id', $lead->id)
+                    ->whereNull('deleted_at')
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+            }
+            
+            $meetingDateTime = null;
+            
+            Log::info('Lead history - Filtered meeting query', [
+                'lead_id' => $lead->id,
+                'meeting_found' => $meeting ? 'Yes' : 'No',
+                'meeting_data' => $meeting ? [
+                    'id' => $meeting->id,
+                    'lead_id' => $meeting->lead_id,
+                    'meeting_date' => $meeting->meeting_date,
+                    'meeting_time' => $meeting->meeting_time,
+                    'status' => $meeting->status,
+                    'deleted_at' => $meeting->deleted_at,
+                ] : null,
+            ]);
+            
+            if ($meeting && $meeting->meeting_date) {
+                // Store only the meeting date
+                $meetingDateTime = $meeting->meeting_date;
+            }
+
             // Create history record
             LeadAssignHistory::create([
                 'uuid' => Str::uuid(),
@@ -738,13 +809,23 @@ class LeadRepository implements LeadRepositoryInterface
                 'priority_id' => $lead->priority_id,
                 'lead_status_id' => $lead->lead_status,
                 'call_status_id' => $lead->call_status,
+                'last_call_status_date_time' => now(),
+                'lead_comment' => $lead->comment,
+                'meeting_date' => $meeting?->meeting_date,
+                'meeting_time' => $meeting?->meeting_time,
                 'status' => $lead->status,
+            ]);
+            
+            Log::info('Lead assign history created', [
+                'lead_id' => $lead->id,
+                'meeting_date_time' => $meetingDateTime,
             ]);
         } catch (Exception $e) {
             // Log error but don't throw to prevent breaking the update operation
             Log::warning('Failed to record lead history', [
                 'lead_id' => $lead->id,
                 'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }

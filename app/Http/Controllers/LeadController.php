@@ -564,10 +564,30 @@ class LeadController extends Controller
                 return $this->responseService->notFound('Brand not found');
             }
 
-            $leads = $this->leadService->getLeadsByBrand($brandId, perPage: 10000);
+            // Get all leads without status filter to include all contact persons
+            $leads = \App\Models\Lead::with([
+                'brand',
+                'agency',
+                'assignedUser',
+                'createdByUser',
+                'priority',
+                'designation',
+                'department',
+                'subSource',
+                'country',
+                'state',
+                'city',
+                'zone',
+                'statusRelation',
+                'callStatusRelation',
+                'leadStatusRelation',
+            ])
+            ->where('brand_id', $brandId)
+            ->orderBy('created_at', 'desc')
+            ->get();
             
             return $this->responseService->success(
-                LeadResource::collection($leads->items()),
+                LeadResource::collection($leads),
                 'Contact persons retrieved successfully'
             );
         } catch (Throwable $e) {
@@ -592,11 +612,98 @@ class LeadController extends Controller
                 return $this->responseService->notFound('Agency not found');
             }
 
-            $leads = $this->leadService->getLeadsByAgency($agencyId, perPage: 10000);
+            // Get all leads without status filter to include all contact persons
+            $leads = \App\Models\Lead::with([
+                'brand',
+                'agency',
+                'assignedUser',
+                'createdByUser',
+                'priority',
+                'designation',
+                'department',
+                'subSource',
+                'country',
+                'state',
+                'city',
+                'zone',
+                'statusRelation',
+                'callStatusRelation',
+                'leadStatusRelation',
+            ])
+            ->where('agency_id', $agencyId)
+            ->orderBy('created_at', 'desc')
+            ->get();
             
             return $this->responseService->success(
-                LeadResource::collection($leads->items()),
+                LeadResource::collection($leads),
                 'Contact persons retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get lead assignment history by lead ID.
+     *
+     * GET /leads/{id}/history
+     *
+     * @param int $id
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getHistory(int $id, Request $request): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1|max:100',
+            ]);
+
+            $perPage = (int) $request->input('per_page', 15);
+            $history = $this->leadService->getLeadHistory($id, $perPage);
+
+            return $this->responseService->paginated(
+                $history,
+                'Lead history retrieved successfully'
+            );
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), ['status' => 404]);
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get all pending leads.
+     *
+     * GET /leads/pending
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function pendingLeads(Request $request): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1',
+            ]);
+
+            $perPage = (int) $request->input('per_page', 3);
+            $pendingLeads = $this->leadService->getPendingLeads($perPage);
+
+            return $this->responseService->paginated(
+                LeadResource::collection($pendingLeads),
+                'Pending leads retrieved successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

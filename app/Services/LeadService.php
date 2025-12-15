@@ -409,4 +409,57 @@ class LeadService
             throw new DomainException('Unexpected error while force deleting lead.');
         }
     }
+
+    /**
+     * Get all pending leads.
+     *
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     * @throws DomainException
+     */
+    public function getPendingLeads(int $perPage = 10): LengthAwarePaginator
+    {
+        try {
+            return $this->leadRepository->getPendingLeads($perPage);
+        } catch (QueryException $e) {
+            Log::error('Database error fetching pending leads', ['exception' => $e]);
+            throw new DomainException('Database error while fetching pending leads.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching pending leads', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching pending leads.');
+        }
+    }
+
+    /**
+     * Get lead assignment history by lead ID.
+     *
+     * @param int $leadId
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     * @throws DomainException
+     */
+    public function getLeadHistory(int $leadId, int $perPage = 10): LengthAwarePaginator
+    {
+        try {
+            // Verify the lead exists
+            $lead = $this->leadRepository->getLeadById($leadId);
+            if (!$lead) {
+                throw new DomainException('Lead not found');
+            }
+
+            // Get the lead assign history
+            return \App\Models\LeadAssignHistory::where('lead_id', $leadId)
+                ->with(['assignedUser', 'currentUser', 'priority', 'status', 'callStatus'])
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
+        } catch (QueryException $e) {
+            Log::error('Database error fetching lead history', ['lead_id' => $leadId, 'exception' => $e]);
+            throw new DomainException('Database error while fetching lead history.');
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching lead history', ['lead_id' => $leadId, 'exception' => $e]);
+            throw new DomainException('Unexpected error while fetching lead history.');
+        }
+    }
 }

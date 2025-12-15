@@ -30,6 +30,10 @@ class LeadAssignHistory extends Model
         'priority_id',
         'lead_status_id',
         'call_status_id',
+        'last_call_status_date_time',
+        'lead_comment',
+        'meeting_date',
+        'meeting_time',
         'status',
     ];
 
@@ -42,6 +46,8 @@ class LeadAssignHistory extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'meeting_date' => 'date',
+        'last_call_status_date_time' => 'datetime',
     ];
 
     /**

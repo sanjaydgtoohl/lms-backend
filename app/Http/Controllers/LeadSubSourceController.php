@@ -122,9 +122,11 @@ class LeadSubSourceController extends Controller
         try {
             $this->validate($request, [
                 'lead_source_id' => 'required|integer|exists:lead_source,id',
-                'name' => 'required|string|max:255|unique:lead_sub_source,name,NULL,id,lead_source_id,' . $request->input('lead_source_id'),
+                'name' => 'required|string|max:255|unique:lead_sub_source,name',
                 'description' => 'nullable|string',
                 'status' => 'nullable|in:1,2,15',
+            ], [
+                'name.unique' => 'This sub source name already exists.'
             ]);
 
             $leadSubSource = $this->leadSubSourceService->createNewLeadSubSource($request->all());
@@ -181,9 +183,11 @@ class LeadSubSourceController extends Controller
             
             $this->validate($request, [
                 'lead_source_id' => 'sometimes|required|integer|exists:lead_source,id',
-                'name' => 'sometimes|required|string|max:255|unique:lead_sub_source,name,' . $id . ',id,lead_source_id,' . $leadSourceId,
+                'name' => 'sometimes|required|string|max:255|unique:lead_sub_source,name,' . $id,
                 'description' => 'nullable|string',
                 'status' => 'sometimes|required|in:1,2,15',
+            ], [
+                'name.unique' => 'This sub source name already exists. Each sub source must have a unique name across all lead sources.'
             ]);
 
             $leadSubSource = $this->leadSubSourceService->updateLeadSubSource($id, $request->all());

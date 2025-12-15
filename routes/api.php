@@ -306,6 +306,9 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('{id:[0-9]+}', 'PriorityController@update');
         $router->patch('{id:[0-9]+}', 'PriorityController@update');
         $router->delete('{id:[0-9]+}', 'PriorityController@destroy');
+        
+        // Get call statuses for a specific priority
+        $router->get('{id:[0-9]+}/call-statuses', 'PriorityController@getCallStatuses');
     });
 
     // Lead routes
@@ -313,6 +316,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         // List and filter routes first (specific routes before generic {id})
         $router->get('/list', 'LeadController@list');
         $router->get('/filter', 'LeadController@filter');
+        $router->get('/pending', 'LeadController@pendingLeads');
         $router->get('/contact-persons/by-brand/{brandId:[0-9]+}', 'LeadController@getContactPersonsByBrand');
         $router->get('/contact-persons/by-agency/{agencyId:[0-9]+}', 'LeadController@getContactPersonsByAgency');
         
@@ -325,6 +329,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->delete('{id:[0-9]+}', 'LeadController@destroy');
         
         // Additional Lead routes (specific routes after generic CRUD)
+        $router->get('{id:[0-9]+}/history', 'LeadController@getHistory');
         $router->post('{id:[0-9]+}/assign', 'LeadController@assign');
         $router->put('{id:[0-9]+}/assign-user', 'LeadController@updateAssignedUser');
         $router->post('{id:[0-9]+}/priority', 'LeadController@updatePriority');
@@ -423,6 +428,11 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Meetings by attendee (e.g., /api/v1/users/1/meetings)
     $router->group(['prefix' => 'users'], function () use ($router) {
         $router->get('{attendeeId:[0-9]+}/meetings', 'MeetingController@getMeetingsByAttendee');
+    });
+
+    // Dashboard routes
+    $router->group(['prefix' => 'dashboard'], function () use ($router) {
+        $router->get('/', 'Api\DashboardController@getDashboard');
     });
 });
 
