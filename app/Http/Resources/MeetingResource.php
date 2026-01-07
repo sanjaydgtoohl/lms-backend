@@ -36,14 +36,15 @@ class MeetingResource extends JsonResource
             'meeting_date' => $this->meeting_date,
             'meeting_time' => $this->meeting_time,
             'status' => $this->status,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-            'deleted_at' => $this->deleted_at,
+            
+            'created_at' => $this->created_at->toIso8601String(),
+            'updated_at' => $this->updated_at->toIso8601String(),
+            //'deleted_at' => $this->deleted_at->toIso8601String(),
             
             // Relationships - Lead with only id and name
             'lead' => $this->when($this->lead, [
-                'id' => $this->lead?->id,
-                'name' => $this->lead?->name,
+                'id' => $this->lead->id,
+                'name' => $this->lead->name,
             ]),
             
             // Convenience fields

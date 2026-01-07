@@ -238,10 +238,16 @@ class LeadSubSourceController extends Controller
         try {
             $leadSubSources = $this->leadSubSourceService->getLeadSubSourcesBySourceId($sourceId);
 
-            return $this->responseService->success(
+            $response = $this->responseService->success(
                 LeadSubSourceResource::collection($leadSubSources),
                 'Lead sub-sources fetched successfully by source ID.'
             );
+
+            // Add total to meta
+            $responseData = $response->getData(true);
+            $responseData['meta']['total'] = $leadSubSources->count();
+            
+            return response()->json($responseData, 200);
         } catch (Exception $e) {
             return $this->responseService->error('Failed to fetch lead sub-sources.', [$e->getMessage()], 500);
         }

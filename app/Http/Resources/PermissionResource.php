@@ -31,6 +31,9 @@ class PermissionResource extends JsonResource
                 $this->relationLoaded('children') && $this->children->isNotEmpty(),
                 fn() => PermissionResource::collection($this->children)
             ),
+            'created_at' => $this->created_at->toIso8601String(),
+            'updated_at' => $this->updated_at->toIso8601String(),
+            //'deleted_at' => $this->deleted_at->toIso8601String(),
         ];
     }
 }

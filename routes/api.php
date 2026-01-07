@@ -119,6 +119,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
 
     $router->group(['prefix' => 'lead-sources'], function () use ($router) {
         $router->get('/', 'LeadSourceController@index');
+        $router->get('list', 'LeadSourceController@list');
         $router->post('/', 'LeadSourceController@store');
         $router->get('{id}', 'LeadSourceController@show');
         $router->put('{id}', 'LeadSourceController@update');
@@ -283,6 +284,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('/', 'CallStatusController@index');
         //$router->post('/', 'CallStatusController@store');
         $router->get('{id:[0-9]+}', 'CallStatusController@show');
+        $router->get('{id:[0-9]+}/priorities', 'CallStatusController@getPriorities');
         //$router->put('{id:[0-9]+}', 'CallStatusController@update');
         //$router->patch('{id:[0-9]+}', 'CallStatusController@update');
         //$router->delete('{id:[0-9]+}', 'CallStatusController@destroy');

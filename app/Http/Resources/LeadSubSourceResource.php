@@ -16,9 +16,13 @@ class LeadSubSourceResource extends JsonResource
             'name' => $this->name,
             //'slug' => $this->slug,
             //'description' => $this->description,
-            'status' => $this->status,
+            //'status' => $this->status,
             'lead_source' => optional($this->leadSource)->name,
-            'created_at' => $this->created_at->format('d-m-Y H:i:s'),
+            // 'created_at' => $this->created_at->format('d-m-Y H:i:s'),
+            
+            'created_at' => $this->created_at->toIso8601String(),
+            'updated_at' => $this->updated_at->toIso8601String(),
+            //'deleted_at' => $this->deleted_at?->toIso8601String(),
             
         ];
     }

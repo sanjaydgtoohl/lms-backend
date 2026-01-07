@@ -103,6 +103,35 @@ class CallStatusController extends Controller
         }
     }
 
+    public function getPriorities(int $id): JsonResponse
+{
+    try {
+        // Ensure call status exists
+        $callStatus = $this->callStatusService->getCallStatus($id);
+        if (!$callStatus) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+        }
+
+        $priorities = \App\Models\Priority::all()
+            ->filter(fn ($priority) =>
+                in_array($id, (array) $priority->call_status)
+            )
+            ->map(fn ($priority) => [
+                'id'   => $priority->id,
+                'name' => $priority->name,
+            ])
+            ->values();
+
+        return $this->responseService->success(
+            $priorities,
+            'Priorities retrieved successfully for call status'
+        );
+    } catch (Throwable $e) {
+        return $this->responseService->handleException($e);
+    }
+}
+
+
     // ============================================================================
     // WRITE OPERATIONS
     // ============================================================================

@@ -67,7 +67,10 @@ class BrandResource extends JsonResource
                 ];
             }),
             'contact_person_count' => $this->getContactPersonCount(),
-            'created_at' => $this->created_at,
+            //'created_at' => $this->created_at,
+            'created_at' => $this->created_at->toIso8601String(),
+            'updated_at' => $this->updated_at->toIso8601String(),   
+            //'deleted_at' => $this->deleted_at->toIso8601String(),
         ];
     }
 }

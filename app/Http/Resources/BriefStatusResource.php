@@ -18,14 +18,13 @@ class BriefStatusResource extends JsonResource
         return [
             // Basic Information
             'id' => $this->id,
-            'uuid' => $this->uuid,
+            //'uuid' => $this->uuid,
             'name' => $this->name,
-            'slug' => $this->slug,
+            //'slug' => $this->slug,
             'status' => $this->status,
-
             // Timestamps
-            'created_at' => $this->created_at ? $this->created_at->format('d-m-Y H:i:s') : null,
-            'updated_at' => $this->updated_at ? $this->updated_at->format('d-m-Y H:i:s') : null,
+            'created_at' => $this->created_at->toIso8601String(),
+            'updated_at' => $this->updated_at->toIso8601String(),
         ];
     }
 }

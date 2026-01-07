@@ -21,9 +21,9 @@ class AgencyResource extends JsonResource
             'agency_type' => new AgencyTypeResource($this->whenLoaded('agencyType')),
             'status' => $this->status,
             'contact_person_count' => $this->getContactPersonCount(),
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-            'deleted_at' => $this->deleted_at,
+            'created_at' => $this->created_at->toIso8601String(),
+            'updated_at' => $this->updated_at->toIso8601String(),
+            //'deleted_at' => $this->deleted_at->toIso8601String(),
             'brand' => $brandData,
         ];
     }
