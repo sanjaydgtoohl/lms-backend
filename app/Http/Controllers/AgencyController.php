@@ -118,7 +118,7 @@ class AgencyController extends Controller
         try {
             $rules = [
                 'name' => 'required|array',
-                'name.*' => 'string|max:255|distinct|unique:agency,name',
+                'name.*' => 'string|max:255|distinct|unique:agency,name,NULL,id,deleted_at,NULL',
                 'type' => 'required|array', 
                 'type.*' => 'integer|exists:agency_type,id', 
                 'client'  => 'required|array',
@@ -176,7 +176,7 @@ class AgencyController extends Controller
             
             $rules = [
                 'name' => 'nullable|array',
-                'name.*' => 'string|max:255|distinct|unique:agency,name,' . $id,
+                'name.*' => 'string|max:255|distinct|unique:agency,name,' . $id . ',id,deleted_at,NULL',
                 'type' => 'nullable|array',
                 'type.*' => 'integer|exists:agency_type,id',
                 'client' => 'nullable|array',

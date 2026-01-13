@@ -41,8 +41,8 @@ class UserResource extends BaseResource
                 });
             }),
             'status' => $this->status,
-            'email_verified_at' => $this->email_verified_at?->toISOString(),
-            'last_login_at' => $this->last_login_at?->toISOString(),
+            'email_verified_at' => $this->email_verified_at ? $this->email_verified_at->format('Y-m-d H:i:s A') : null,
+            'last_login_at' => $this->last_login_at ? $this->last_login_at->format('Y-m-d H:i:s A') : null,
             'full_name' => $this->full_name,
             'is_active' => $this->isActive(),
             'is_admin' => $this->isAdmin(),

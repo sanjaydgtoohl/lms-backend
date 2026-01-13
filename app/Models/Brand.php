@@ -24,7 +24,6 @@ class Brand extends Model
         'country_id',
         'state_id',
         'city_id',
-        'agency_id',
         'zone_id',
         'created_by',
         'website',
@@ -44,11 +43,7 @@ class Brand extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
-
-    // ============================================================================
-    // RELATIONSHIPS
-    // ============================================================================
-
+    
     /**
      * Get the brand type that owns the brand.
      *
@@ -136,7 +131,8 @@ class Brand extends Model
      */
     public function agencies()
     {
-        return $this->belongsToMany(Agency::class, 'brand_agency_relationships', 'brand_id', 'agency_id');
+        return $this->belongsToMany(Agency::class, 'brand_agency_relationships', 'brand_id', 'agency_id')
+                    ->withTimestamps();
     }
 
     /**

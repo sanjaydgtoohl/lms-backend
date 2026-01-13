@@ -69,7 +69,8 @@ class Agency extends Model
      */
     public function brand()
     {
-        return $this->belongsToMany(Brand::class, 'brand_agency_relationships', 'agency_id', 'brand_id');
+        return $this->belongsToMany(Brand::class, 'brand_agency_relationships', 'agency_id', 'brand_id')
+                    ->withTimestamps();
     }
 
     /**

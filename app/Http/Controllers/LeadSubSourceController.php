@@ -33,7 +33,7 @@ class LeadSubSourceController extends Controller
      * @param ResponseService $responseService
      */
     public function __construct(
-        LeadSubSourceService $leadSubSourceService, 
+        LeadSubSourceService $leadSubSourceService,
         ResponseService $responseService
     ) {
         $this->leadSubSourceService = $leadSubSourceService;
@@ -47,10 +47,6 @@ class LeadSubSourceController extends Controller
      * 
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
-     * 
-     * @queryParam lead_source_id int ID of the parent lead source to filter by. Example: 1
-     * @queryParam per_page int Number of items per page. Example: 5
-     * @queryParam search string Search term to filter results. Example: "marketing"
      */
     public function index(Request $request)
     {
@@ -60,7 +56,7 @@ class LeadSubSourceController extends Controller
                 'lead_source_id' => 'nullable|integer|exists:lead_source,id',
                 'search'         => 'nullable|string|max:100' // Add validation for search parameter
             ]);
-            
+
             // 1. Get pagination parameter
             $perPage = (int) $request->get('per_page', 10);
 
@@ -69,7 +65,7 @@ class LeadSubSourceController extends Controller
                 'lead_source_id' => $request->input('lead_source_id'),
                 'search'         => $request->input('search', null) // Include search parameter in filters
             ];
-            
+
             // 3. Pass only filters and perPage to service
             // Repository will handle the search filter internally
             $leadSubSources = $this->leadSubSourceService->getAllLeadSubSources($filters, $perPage);
@@ -96,7 +92,7 @@ class LeadSubSourceController extends Controller
     public function list()
     {
         try {
-            $leadSubSources = $this->leadSubSourceService->getAllLeadSubSources(filters: [], perPage: 10000);
+            $leadSubSources = $this->leadSubSourceService->getAllLeadSubSources([], 10000);
             $data = $leadSubSources->items() ? collect($leadSubSources->items())->map(function ($subSource) {
                 return [
                     'id' => $subSource->id,
@@ -122,13 +118,12 @@ class LeadSubSourceController extends Controller
         try {
             $this->validate($request, [
                 'lead_source_id' => 'required|integer|exists:lead_source,id',
-                'name' => 'required|string|max:255|unique:lead_sub_source,name',
+                'name' => 'required|string|max:255|unique:lead_sub_source,name,NULL,id,lead_source_id,' . $request->lead_source_id . ',deleted_at,NULL',
                 'description' => 'nullable|string',
                 'status' => 'nullable|in:1,2,15',
             ], [
-                'name.unique' => 'This sub source name already exists.'
+                'name.unique' => 'This sub source already exists for the selected lead source.'
             ]);
-
             $leadSubSource = $this->leadSubSourceService->createNewLeadSubSource($request->all());
 
             return $this->responseService->created(
@@ -180,14 +175,14 @@ class LeadSubSourceController extends Controller
         try {
             $leadSubSource = $this->leadSubSourceService->getLeadSubSource($id);
             $leadSourceId = $request->input('lead_source_id', $leadSubSource->lead_source_id);
-            
+
             $this->validate($request, [
                 'lead_source_id' => 'sometimes|required|integer|exists:lead_source,id',
-                'name' => 'sometimes|required|string|max:255|unique:lead_sub_source,name,' . $id,
+                'name' => 'sometimes|required|string|max:255|unique:lead_sub_source,name,' . $id . ',id,lead_source_id,' . ($request->lead_source_id ?? $leadSubSource->lead_source_id) . ',deleted_at,NULL',
                 'description' => 'nullable|string',
                 'status' => 'sometimes|required|in:1,2,15',
             ], [
-                'name.unique' => 'This sub source name already exists. Each sub source must have a unique name across all lead sources.'
+                'name.unique' => 'This sub source already exists for the selected lead source.'
             ]);
 
             $leadSubSource = $this->leadSubSourceService->updateLeadSubSource($id, $request->all());
@@ -238,10 +233,16 @@ class LeadSubSourceController extends Controller
         try {
             $leadSubSources = $this->leadSubSourceService->getLeadSubSourcesBySourceId($sourceId);
 
-            return $this->responseService->success(
+            $response = $this->responseService->success(
                 LeadSubSourceResource::collection($leadSubSources),
                 'Lead sub-sources fetched successfully by source ID.'
             );
+
+            // Add total to meta
+            $responseData = $response->getData(true);
+            $responseData['meta']['total'] = $leadSubSources->count();
+
+            return response()->json($responseData, 200);
         } catch (Exception $e) {
             return $this->responseService->error('Failed to fetch lead sub-sources.', [$e->getMessage()], 500);
         }

@@ -24,8 +24,8 @@ class ZoneResource extends JsonResource
             'status' => $this->status, // Raw value (1, 2, 15)
             //'status_label' => $this->getStatusLabel(), // Readable text
             
-            'created_at' => $this->created_at->format('d-m-Y H:i:s'),
-            //'updated_at' => $this->updated_at->format('d-m-Y H:i:s'),
+            'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
         ];
     }
 

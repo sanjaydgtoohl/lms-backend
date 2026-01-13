@@ -114,7 +114,7 @@ class BrandController extends Controller
     {
         try {
             $rules = [
-                'name' => 'required|unique:brands,name|string|max:255',
+                'name' => 'required|unique:brands,name,NULL,id,deleted_at,NULL|string|max:255',
                 'brand_type_id' => 'required|integer|exists:brand_types,id',
                 'industry_id' => 'required|integer|exists:industries,id',
                 'country_id' => 'required|integer|exists:countries,id',
@@ -124,12 +124,16 @@ class BrandController extends Controller
                 'city_id' => 'required|integer|exists:cities,id',
                 'zone_id' => 'required|integer|exists:zones,id',
                 'agency_id' => 'nullable|integer|exists:agency,id',
+                'agency_ids' => 'nullable|array',
+                'agency_ids.*' => 'integer|exists:agency,id',
             ];
 
             $validatedData = $this->validate($request, $rules);
 
             // Add system-generated fields
-            $validatedData['slug'] = Str::slug($request->name);
+            // Generate a temporary unique slug to avoid constraint violations
+            // The actual slug will be finalized in the repository with the brand ID
+            $validatedData['slug'] = Str::slug($request->name) . '-temp-' . Str::random(6);
             $validatedData['created_by'] = Auth::id();
             $validatedData['status'] = '1';
 
@@ -159,7 +163,7 @@ class BrandController extends Controller
     {
         try {
             $rules = [
-                'name' => 'sometimes|required|string|max:255',
+                'name' => "sometimes|required|unique:brands,name,{$id},id,deleted_at,NULL|string|max:255",
                 'brand_type_id' => 'sometimes|required|integer|exists:brand_types,id',
                 'industry_id' => 'sometimes|required|integer|exists:industries,id',
                 'country_id' => 'sometimes|required|integer|exists:countries,id',
@@ -169,6 +173,8 @@ class BrandController extends Controller
                 'city_id' => 'sometimes|required|integer|exists:cities,id',
                 'zone_id' => 'sometimes|required|integer|exists:zones,id',
                 'agency_id' => 'sometimes|nullable|integer|exists:agency,id',
+                'agency_ids' => 'nullable|array',
+                'agency_ids.*' => 'integer|exists:agency,id',
                 'status' => 'sometimes|required|in:1,2,15',
             ];
 
@@ -176,7 +182,7 @@ class BrandController extends Controller
 
             // Update slug if name changed
             if ($request->has('name')) {
-                $validatedData['slug'] = Str::slug($request->name) . '-' . $id;
+                $validatedData['slug'] = Str::slug($request->name);
             }
 
             $this->brandService->updateBrand($id, $validatedData);
@@ -241,7 +247,7 @@ class BrandController extends Controller
     }
 
     /**
-     * Get agency for a specific brand
+     * Get all agencies for a specific brand
      *
      * GET /brands/{id}/agencies
      *
@@ -257,11 +263,19 @@ class BrandController extends Controller
                 return $this->responseService->notFound('Brand not found');
             }
 
-            $agency = Agency::where('id', $brand->agency_id)->select('id', 'name')->first();
+            // Get all agencies related to this brand through the pivot table
+            $agencies = $brand->agencies()
+                ->get()
+                ->map(function ($agency) {
+                    return [
+                        'id' => $agency->id,
+                        'name' => $agency->name,
+                    ];
+                });
 
             return $this->responseService->success(
-                $agency,
-                'Agency retrieved successfully'
+                $agencies,
+                'Agencies retrieved successfully'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

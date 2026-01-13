@@ -20,6 +20,7 @@ class BrandRepository implements BrandRepositoryInterface
      */
     protected const DEFAULT_RELATIONSHIPS = [
         'agency',
+        'agencies',
         'zone',
         'brandType',
         'industry',
@@ -141,9 +142,30 @@ class BrandRepository implements BrandRepositoryInterface
      */
     public function createBrand(array $data): Brand
     {
-        try{
-            return $this->model->create($data);
-        }catch (DomainException $e) {
+        try {
+            // Create the brand with the temporary slug
+            $brand = $this->model->create($data);
+            
+            // Now update with the final unique slug using the brand ID
+            $slugBase = \Illuminate\Support\Str::slug($data['name'] ?? '');
+            $finalSlug = $slugBase . '-' . $brand->id;
+            
+            // Check if this final slug already exists (accounting for soft deletes)
+            $existingSlug = $this->model->withTrashed()
+                ->where('slug', $finalSlug)
+                ->where('id', '!=', $brand->id)
+                ->first();
+            
+            if ($existingSlug) {
+                // If it exists, append a random string
+                $finalSlug = $slugBase . '-' . $brand->id . '-' . \Illuminate\Support\Str::random(4);
+            }
+            
+            // Update with the final slug
+            $brand->update(['slug' => $finalSlug]);
+            
+            return $brand;
+        } catch (DomainException $e) {
             throw $e;
         } catch (QueryException $e) {
             Log::error('Database error creating brand', ['data' => $data, 'exception' => $e]);
@@ -164,6 +186,26 @@ class BrandRepository implements BrandRepositoryInterface
     public function updateBrand(int $id, array $data): bool
     {
         $brand = $this->model->findOrFail($id);
+        
+        // If slug is being updated, ensure it's unique
+        if (isset($data['slug'])) {
+            $slugBase = $data['slug'];
+            $finalSlug = $slugBase . '-' . $id;
+            
+            // Check if this final slug already exists (accounting for soft deletes)
+            $existingSlug = $this->model->withTrashed()
+                ->where('slug', $finalSlug)
+                ->where('id', '!=', $id)
+                ->first();
+            
+            if ($existingSlug) {
+                // If it exists, append a random string
+                $finalSlug = $slugBase . '-' . $id . '-' . \Illuminate\Support\Str::random(4);
+            }
+            
+            $data['slug'] = $finalSlug;
+        }
+        
         return $brand->update($data);
     }
 

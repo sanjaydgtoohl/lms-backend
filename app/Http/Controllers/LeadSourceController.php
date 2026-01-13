@@ -46,6 +46,22 @@ class LeadSourceController extends Controller
         }
     }
 
+    public function list()
+    {
+        try {
+            $leadSources = $this->leadSourceService->getAllLeadSources(10000);
+            $data = $leadSources->items() ? collect($leadSources->items())->map(function ($source) {
+                return [
+                    'id' => $source->id,
+                    'name' => $source->name,
+                ];
+            }) : collect([]);
+            return $this->responseService->success($data, 'Lead sources list retrieved');
+        } catch (Exception $e) {
+            return $this->responseService->error('Failed to fetch lead sources list.', [$e->getMessage()], 500);
+        }
+    }
+
     public function store(Request $request)
     {
         try {

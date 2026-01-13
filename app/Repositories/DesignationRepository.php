@@ -36,7 +36,7 @@ class DesignationRepository implements DesignationRepositoryInterface
 
     public function slugExists(string $slug, $excludeId = null): bool
     {
-        $query = $this->model->where('slug', $slug);
+        $query = $this->model->where('slug', $slug)->whereNull('deleted_at');
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
@@ -46,6 +46,11 @@ class DesignationRepository implements DesignationRepositoryInterface
     public function findBySlug(string $slug)
     {
         return $this->model->where('slug', $slug)->first();
+    }
+
+    public function getModel()
+    {
+        return $this->model;
     }
 
     public function updateDesignation($id, array $data) 
