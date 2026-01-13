@@ -19,15 +19,15 @@ class RoleResource extends JsonResource
 			//'uuid' => $this->uuid,
 			'name' => $this->name,
 			'slug' => $this->slug ?? null,
-			'display_name' => $this->display_name,
+			//'display_name' => $this->display_name,
 			'description' => $this->description,
 			'status' => $this->status ?? null,
 			'permissions' => $this->when(
 				$this->relationLoaded('permissions'),
 				fn() => $this->permissions->pluck('id')->toArray()
 			),
-			'created_at' => optional($this->created_at)->toDateTimeString(),
-			'updated_at' => optional($this->updated_at)->toDateTimeString(),
+			'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
 		];
 	}
 }

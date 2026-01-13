@@ -20,8 +20,9 @@ class DesignationResource extends JsonResource
             //'slug' => $this->slug,
             //'description' => $this->description,
             //'status' => $this->status,
-            'created_at' => $this->created_at ? $this->created_at->format('d-m-Y H:i:s') : null,
-            //'updated_at' => $this->updated_at ? $this->updated_at->format('d-m-Y H:i:s') : null,
+            'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),   
+            //'deleted_at' => $this->deleted_at->toIso8601String(),
         ];
     }
 }

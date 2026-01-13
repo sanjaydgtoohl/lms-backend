@@ -128,11 +128,36 @@ class BrandService
                 throw new DomainException('Zone is required.');
             }
 
-            // Attach to default "Direct" agency if none provided
-            if (empty($data['agency_id'])) {
-                $data['agency_id'] = $this->getOrCreateDirectAgency();
+            // Extract agency_ids if provided, otherwise use default
+            $agencyIds = [];
+            if (!empty($data['agency_ids']) && is_array($data['agency_ids'])) {
+                $agencyIds = $data['agency_ids'];
+                unset($data['agency_ids']);
+            } elseif (!empty($data['agency_id'])) {
+                $agencyIds = [$data['agency_id']];
+                unset($data['agency_id']);
+            } else {
+                // Attach to default "Direct" agency if none provided
+                $agencyIds = [$this->getOrCreateDirectAgency()];
             }
-            return $this->brandRepository->createBrand($data);
+
+            // Create the brand
+            $brand = $this->brandRepository->createBrand($data);
+
+            // Attach agencies to brand with timestamps
+            if (!empty($agencyIds)) {
+                $attachData = [];
+                $now = \Carbon\Carbon::now();
+                foreach ($agencyIds as $agencyId) {
+                    $attachData[$agencyId] = [
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                $brand->agencies()->attach($attachData);
+            }
+
+            return $brand;
         } catch (DomainException $e) {
             throw $e;
         } catch (QueryException $e) {
@@ -186,7 +211,43 @@ class BrandService
                 throw new DomainException('Zone is required.');
             }
 
-            return $this->brandRepository->updateBrand($id, $data);
+            // Extract agency_ids if provided
+            $agencyIds = null;
+            if (isset($data['agency_ids'])) {
+                $agencyIds = $data['agency_ids'];
+                unset($data['agency_ids']);
+            } elseif (isset($data['agency_id'])) {
+                $agencyIds = [$data['agency_id']];
+                unset($data['agency_id']);
+            }
+
+            // Update the brand
+            $updated = $this->brandRepository->updateBrand($id, $data);
+
+            // Sync agencies if provided (with timestamps)
+            if ($agencyIds !== null && !empty($agencyIds)) {
+                // Get Direct agency ID
+                $directAgencyId = $this->getOrCreateDirectAgency();
+                
+                // Filter out Direct agency from the new agency list
+                $validAgencyIds = array_filter($agencyIds, fn($id) => $id != $directAgencyId);
+                
+                // If there are valid agencies (other than Direct), sync them
+                if (!empty($validAgencyIds)) {
+                    $syncData = [];
+                    $now = \Carbon\Carbon::now();
+                    foreach ($validAgencyIds as $agencyId) {
+                        $syncData[$agencyId] = [
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+                    // sync() replaces all relationships - removes old ones and adds new ones
+                    $currentBrand->agencies()->sync($syncData);
+                }
+            }
+
+            return $updated;
         } catch (QueryException $e) {
             Log::error('Database error updating brand', ['id' => $id, 'data' => $data, 'exception' => $e]);
             throw new DomainException('Database error while updating brand.');

@@ -133,8 +133,8 @@ class LeadController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'nullable|email|max:255',
                 'profile_url' => 'nullable|string|max:255',
-                'mobile_number' => 'required|array',
-                'mobile_number.*' => 'regex:/^[0-9]+$/|max:10',
+                'mobile_number' => 'sometimes|required|array',
+                'mobile_number.*' => 'regex:/^[0-9]{10}$/|distinct|unique:leads,mobile_number',
                 'brand_id' => 'nullable|integer|exists:brands,id',
                 'agency_id' => 'nullable|integer|exists:agency,id',
                 'current_assign_user' => 'nullable|integer|exists:users,id',
@@ -162,6 +162,17 @@ class LeadController extends Controller
                 if (count($mobileNumbers) !== count($uniqueMobileNumbers)) {
                     return $this->responseService->validationError(
                         ['mobile_number' => ['Mobile numbers must be unique. Duplicate numbers are not allowed.']],
+                        'Validation failed'
+                    );
+                }
+
+                // Check if any mobile number already exists in the database (excluding soft-deleted)
+                $existingLeads = \App\Models\Lead::whereIn('mobile_number', $mobileNumbers)
+                    ->whereNull('deleted_at')
+                    ->exists();
+                if ($existingLeads) {
+                    return $this->responseService->validationError(
+                        ['mobile_number' => ['One or more mobile numbers already exist in the database. Mobile numbers must be unique across all leads.']],
                         'Validation failed'
                     );
                 }
@@ -212,8 +223,9 @@ class LeadController extends Controller
                 'name' => 'sometimes|required|string|max:255',
                 'email' => 'sometimes|nullable|email|max:255',
                 'profile_url' => 'sometimes|nullable|string|max:255',
-                'mobile_number' => 'sometimes|nullable|array',
-                'mobile_number.*' => 'string|max:20',
+                'mobile_number' => 'sometimes|required|array',
+                'mobile_number.*' => 'regex:/^[0-9]{10}$/|distinct|unique:leads,mobile_number',
+
                 'brand_id' => 'sometimes|nullable|integer|exists:brands,id',
                 'agency_id' => 'sometimes|nullable|integer|exists:agency,id',
                 'current_assign_user' => 'sometimes|nullable|integer|exists:users,id',
@@ -241,6 +253,18 @@ class LeadController extends Controller
                 if (count($mobileNumbers) !== count($uniqueMobileNumbers)) {
                     return $this->responseService->validationError(
                         ['mobile_number' => ['Mobile numbers must be unique. Duplicate numbers are not allowed.']],
+                        'Validation failed'
+                    );
+                }
+
+                // Check if any mobile number already exists in the database (excluding current lead and soft-deleted)
+                $existingLeads = \App\Models\Lead::whereIn('mobile_number', $mobileNumbers)
+                    ->where('id', '!=', $id)
+                    ->whereNull('deleted_at')
+                    ->exists();
+                if ($existingLeads) {
+                    return $this->responseService->validationError(
+                        ['mobile_number' => ['One or more mobile numbers already exist in another lead. Mobile numbers must be unique across all leads.']],
                         'Validation failed'
                     );
                 }
