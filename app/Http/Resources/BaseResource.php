@@ -20,8 +20,8 @@ abstract class BaseResource extends JsonResource
             //'uuid' => $this->uuid ?? null,
             // 'created_at' => $this->created_at?->setTimezone('Asia/Kolkata')->toISOString(),
             // 'updated_at' => $this->updated_at?->setTimezone('Asia/Kolkata')->toISOString(),
-            'created_at_formatted' => $this->created_at_formatted ?? null,
-            'updated_at_formatted' => $this->updated_at_formatted ?? null,
+            'created_at_formatted' => $this->created_at ? $this->created_at->format('Y-m-d h:i:s A') : null,
+            'updated_at_formatted' => $this->updated_at ? $this->updated_at->format('Y-m-d h:i:s A') : null,
             'created_at_human' => $this->created_at_human ?? null,
             'updated_at_human' => $this->updated_at_human ?? null,
         ];
@@ -38,7 +38,7 @@ abstract class BaseResource extends JsonResource
         return [
             'meta' => [
                 'version' => '1.0',
-                'timestamp' => Carbon::now()->setTimezone('Asia/Kolkata')->toISOString(),
+                'timestamp' => Carbon::now('Asia/Kolkata')->format('Y-m-d h:i:s A'),
             ]
         ];
     }

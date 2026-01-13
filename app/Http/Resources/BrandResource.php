@@ -25,7 +25,6 @@ class BrandResource extends JsonResource
             // Relationships (IDs)
             'brand_type_id' => $this->brand_type_id,
             'industry_id' => $this->industry_id,
-            'agency_id' => $this->agency_id,
             'zone_id' => $this->zone_id,
             'country_id' => $this->country_id,
             'state_id' => $this->state_id,
@@ -48,6 +47,14 @@ class BrandResource extends JsonResource
                     'name' => $this->agency->name,
                 ];
             }),
+            'agencies' => $this->whenLoaded('agencies', function () {
+                return $this->agencies->map(function ($agency) {
+                    return [
+                        'id' => $agency->id,
+                        'name' => $agency->name,
+                    ];
+                });
+            }),
             'zone' => $this->whenLoaded('zone', function () {
                 return $this->zone->name ?? null;
             }),
@@ -67,9 +74,8 @@ class BrandResource extends JsonResource
                 ];
             }),
             'contact_person_count' => $this->getContactPersonCount(),
-            //'created_at' => $this->created_at,
-            'created_at' => $this->created_at->toIso8601String(),
-            'updated_at' => $this->updated_at->toIso8601String(),   
+            'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),   
             //'deleted_at' => $this->deleted_at->toIso8601String(),
         ];
     }

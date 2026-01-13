@@ -134,7 +134,7 @@ class BriefController extends Controller
     {
         try {
             $rules = [
-                'name' => 'required|string|max:255',
+                'name' => 'required|string|max:255|unique:briefs,name,NULL,id,deleted_at,NULL',
                 'product_name' => 'required|string|max:255',
                 'contact_person_id' => 'required|integer|exists:leads,id',
                 'brand_id' => 'nullable|integer|exists:brands,id',
@@ -217,7 +217,7 @@ class BriefController extends Controller
     {
         try {
             $rules = [
-                'name' => 'sometimes|required|string|max:255',
+                'name' => 'required|string|max:255|unique:briefs,name,' . $id . ',id,deleted_at,NULL',
                 'product_name' => 'sometimes|required|string|max:255',
                 'contact_person_id' => 'sometimes|required|integer|exists:leads,id',
                 'brand_id' => 'nullable|integer|exists:brands,id',

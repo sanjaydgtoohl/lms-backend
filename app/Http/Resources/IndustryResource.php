@@ -11,9 +11,8 @@ class IndustryResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            //'created_at' => $this->created_at ? $this->created_at->format('d-m-Y H:i:s') : null,
-            'created_at' => $this->created_at->toIso8601String(),
-            'updated_at' => $this->updated_at->toIso8601String(),   
+            'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),   
             //'deleted_at' => $this->deleted_at?->toIso8601String(),
         ];
     }

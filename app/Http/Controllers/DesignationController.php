@@ -68,7 +68,7 @@ class DesignationController extends Controller
     {
         try {
             $rules = [
-                'title' => 'required|string|max:255|unique:designations,title',
+                'title' => 'required|string|max:255|unique:designations,title,NULL,id,deleted_at,NULL',
             ];
 
             $validatedData = $this->validate($request, $rules);
@@ -96,7 +96,7 @@ class DesignationController extends Controller
     {
         try {
             $rules = [
-                'title' => 'required|string|max:255|unique:designations,title,' . $id,
+                'title' => 'required|string|max:255|unique:designations,title,' . $id . ',id,deleted_at,NULL',
             ];
 
             $validatedData = $this->validate($request, $rules);

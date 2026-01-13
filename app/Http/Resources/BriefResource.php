@@ -28,14 +28,14 @@ class BriefResource extends JsonResource
             'submission_date' => $this->formatSubmissionDate(),
             'status' => $this->status,
 
-            // Foreign Key IDs
-            // 'contact_person_id' => $this->contact_person_id,
-            // 'brand_id' => $this->brand_id,
-            // 'agency_id' => $this->agency_id,
-            // 'assign_user_id' => $this->assign_user_id,
-            // 'created_by' => $this->created_by,
-            // 'brief_status_id' => $this->brief_status_id,
-            // 'priority_id' => $this->priority_id,
+            //Foreign Key IDs
+            'contact_person_id' => $this->contact_person_id,
+            'brand_id' => $this->brand_id,
+            'agency_id' => $this->agency_id,
+            'assign_user_id' => $this->assign_user_id,
+            'created_by' => $this->created_by,
+            'brief_status_id' => $this->brief_status_id,
+            'priority_id' => $this->priority_id,
 
             // Relationships (Objects)
             'contact_person' => $this->whenLoaded('contactPerson', function () {
@@ -85,8 +85,8 @@ class BriefResource extends JsonResource
             }),
 
             // Timestamps
-            'created_at' => $this->created_at->toIso8601String(),
-            'updated_at' => $this->updated_at->toIso8601String(),
+            'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
             //'deleted_at' => $this->deleted_at?->toIso8601String(),
         ];
     }

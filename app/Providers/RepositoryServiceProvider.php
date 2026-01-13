@@ -91,6 +91,9 @@ use App\Repositories\BriefAssignHistoryRepository;
 use App\Contracts\Repositories\MeetingRepositoryInterface;
 use App\Repositories\EloquentMeetingRepository;
 
+use App\Contracts\Repositories\ActivityLogRepositoryInterface;
+use App\Repositories\ActivityLogRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -234,6 +237,11 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             MeetingRepositoryInterface::class,
             EloquentMeetingRepository::class
+        );
+
+        $this->app->bind(
+            ActivityLogRepositoryInterface::class,
+            ActivityLogRepository::class
         );
     }
     /**

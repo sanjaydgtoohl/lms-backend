@@ -26,8 +26,8 @@ class RoleResource extends JsonResource
 				$this->relationLoaded('permissions'),
 				fn() => $this->permissions->pluck('id')->toArray()
 			),
-			'created_at' => optional($this->created_at)->toDateTimeString(),
-			'updated_at' => optional($this->updated_at)->toDateTimeString(),
+			'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
 		];
 	}
 }

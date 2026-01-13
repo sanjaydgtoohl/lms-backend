@@ -41,12 +41,13 @@ class DesignationService
                 $slug = $baseSlug;
                 $attempt = 0;
 
-                while ($this->designationRepository->slugExists($slug) && $attempt < 50) {
+                // Generate unique slug that doesn't exist (including soft-deleted records)
+                while ($this->slugExistsIncludingDeleted($slug) && $attempt < 50) {
                     $attempt++;
                     $slug = $baseSlug . '-' . $attempt;
                 }
 
-                if ($this->designationRepository->slugExists($slug)) {
+                if ($this->slugExistsIncludingDeleted($slug)) {
                     throw new DomainException('Unable to generate a unique slug for the designation.');
                 }
 
@@ -65,6 +66,12 @@ class DesignationService
         } catch (Exception $e) {
             throw new DomainException('Unexpected error while creating designation: ' . $e->getMessage());
         }
+    }
+
+    private function slugExistsIncludingDeleted($slug)
+    {
+        // Check all records including soft-deleted ones to avoid database constraint violation
+        return \App\Models\Designation::withTrashed()->where('slug', $slug)->exists();
     }
 
     public function getDesignation($id)
@@ -91,12 +98,13 @@ class DesignationService
                 $slug = $baseSlug;
                 $attempt = 0;
 
-                while ($this->designationRepository->slugExists($slug, $id) && $attempt < 50) {
+                // Generate unique slug that doesn't exist (including soft-deleted records), except for current ID
+                while ($this->slugExistsIncludingDeletedExcept($slug, $id) && $attempt < 50) {
                     $attempt++;
                     $slug = $baseSlug . '-' . $attempt;
                 }
 
-                if ($this->designationRepository->slugExists($slug, $id)) {
+                if ($this->slugExistsIncludingDeletedExcept($slug, $id)) {
                     throw new DomainException('Unable to generate a unique slug for the designation.');
                 }
 
@@ -111,6 +119,12 @@ class DesignationService
         } catch (Exception $e) {
             throw new DomainException('Unexpected error while updating designation: ' . $e->getMessage());
         }
+    }
+
+    private function slugExistsIncludingDeletedExcept($slug, $excludeId)
+    {
+        // Check all records including soft-deleted ones (except current ID) to avoid database constraint violation
+        return \App\Models\Designation::withTrashed()->where('slug', $slug)->where('id', '!=', $excludeId)->exists();
     }
 
     public function deleteDesignation($id)

@@ -36,6 +36,7 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\BriefStatusController;
 use App\Http\Controllers\BriefController;
 use App\Http\Controllers\MeetingController;
+use App\Http\Controllers\ActivityLogController;
 
 use Carbon\Carbon;
 
@@ -436,11 +437,19 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     $router->group(['prefix' => 'dashboard'], function () use ($router) {
         $router->get('/', 'Api\DashboardController@getDashboard');
     });
-});
 
-// -------------------------------------------------------
-// Admin routes (admin role required)
-// -------------------------------------------------------
+    // Activity Log routes
+    $router->group(['prefix' => 'activity-logs'], function () use ($router) {
+        $router->get('/', 'ActivityLogController@index');
+        $router->get('recent', 'ActivityLogController@getRecentActivities');
+        $router->get('by-action/{action}', 'ActivityLogController@getActivityLogsByAction');
+        $router->get('model/{model}/{modelId:[0-9]+}', 'ActivityLogController@getModelActivityLogs');
+        $router->get('user/{userId:[0-9]+}', 'ActivityLogController@getUserActivityLogs');
+        $router->get('{id:[0-9]+}', 'ActivityLogController@show');
+        $router->delete('old-logs', 'ActivityLogController@deleteOldActivityLogs');
+        $router->delete('{id:[0-9]+}', 'ActivityLogController@destroy');
+    });
+});
 
 $router->group(['prefix' => 'v1/admin', 'middleware' => ['jwt.auth', 'role:admin']], function () use ($router) {
     $router->get('dashboard', function () {
