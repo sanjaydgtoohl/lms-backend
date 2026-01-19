@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Throwable;
 use DomainException;
 use Illuminate\Validation\ValidationException;
+use App\Http\Resources\PendingLeadResource;
 
 class LeadController extends Controller
 {
@@ -109,6 +110,9 @@ class LeadController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
+            // Authorize the user to view this lead
+            $this->authorize('view', $lead);
+
             return $this->responseService->success(
                 new LeadResource($lead),
                 'Lead retrieved successfully'
@@ -134,7 +138,7 @@ class LeadController extends Controller
                 'email' => 'nullable|email|max:255',
                 'profile_url' => 'nullable|string|max:255',
                 'mobile_number' => 'sometimes|required|array',
-                'mobile_number.*' => 'regex:/^[0-9]{10}$/|distinct|unique:leads,mobile_number',
+                'mobile_number.*' => 'regex:/^[0-9]{10}$/|distinct|unique:lead_mobile_numbers,mobile_number',
                 'brand_id' => 'nullable|integer|exists:brands,id',
                 'agency_id' => 'nullable|integer|exists:agency,id',
                 'current_assign_user' => 'nullable|integer|exists:users,id',
@@ -167,10 +171,9 @@ class LeadController extends Controller
                 }
 
                 // Check if any mobile number already exists in the database (excluding soft-deleted)
-                $existingLeads = \App\Models\Lead::whereIn('mobile_number', $mobileNumbers)
-                    ->whereNull('deleted_at')
+                $existingMobileNumbers = \App\Models\LeadMobileNumber::whereIn('mobile_number', $mobileNumbers)
                     ->exists();
-                if ($existingLeads) {
+                if ($existingMobileNumbers) {
                     return $this->responseService->validationError(
                         ['mobile_number' => ['One or more mobile numbers already exist in the database. Mobile numbers must be unique across all leads.']],
                         'Validation failed'
@@ -191,7 +194,7 @@ class LeadController extends Controller
 
             // Set default status to deactivated if not provided
             if (!isset($validatedData['status'])) {
-                $validatedData['status'] = '2';
+                $validatedData['status'] = '1';
             }
 
             $lead = $this->leadService->createLead($validatedData);
@@ -224,8 +227,7 @@ class LeadController extends Controller
                 'email' => 'sometimes|nullable|email|max:255',
                 'profile_url' => 'sometimes|nullable|string|max:255',
                 'mobile_number' => 'sometimes|required|array',
-                'mobile_number.*' => 'regex:/^[0-9]{10}$/|distinct|unique:leads,mobile_number',
-
+                'mobile_number.*' => 'regex:/^[0-9]{10}$/|distinct|unique:lead_mobile_numbers,mobile_number',
                 'brand_id' => 'sometimes|nullable|integer|exists:brands,id',
                 'agency_id' => 'sometimes|nullable|integer|exists:agency,id',
                 'current_assign_user' => 'sometimes|nullable|integer|exists:users,id',
@@ -257,12 +259,11 @@ class LeadController extends Controller
                     );
                 }
 
-                // Check if any mobile number already exists in the database (excluding current lead and soft-deleted)
-                $existingLeads = \App\Models\Lead::whereIn('mobile_number', $mobileNumbers)
-                    ->where('id', '!=', $id)
-                    ->whereNull('deleted_at')
+                // Check if any mobile number already exists in the database (excluding current lead)
+                $existingMobileNumbers = \App\Models\LeadMobileNumber::whereIn('mobile_number', $mobileNumbers)
+                    ->where('lead_id', '!=', $id)
                     ->exists();
-                if ($existingLeads) {
+                if ($existingMobileNumbers) {
                     return $this->responseService->validationError(
                         ['mobile_number' => ['One or more mobile numbers already exist in another lead. Mobile numbers must be unique across all leads.']],
                         'Validation failed'
@@ -297,6 +298,9 @@ class LeadController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
+            // Authorize the user to update this lead
+            $this->authorize('update', $lead);
+
             return $this->responseService->updated(
                 new LeadResource($lead),
                 'Lead updated successfully'
@@ -319,6 +323,15 @@ class LeadController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
+            $lead = $this->leadService->getLead($id);
+
+            if (!$lead) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            // Authorize the user to delete this lead
+            $this->authorize('delete', $lead);
+
             $this->leadService->deleteLead($id);
 
             return $this->responseService->deleted('Lead deleted successfully');
@@ -520,7 +533,6 @@ class LeadController extends Controller
             $this->leadService->removeCallStatus($id, $callStatusId);
 
             $lead = $this->leadService->getLead($id);
-
             return $this->responseService->updated(
                 new LeadResource($lead),
                 'Call status removed successfully'
@@ -577,18 +589,27 @@ class LeadController extends Controller
      * GET /leads/contact-persons/by-brand/{brandId}
      *
      * @param int $brandId
+     * @param Request $request
      * @return JsonResponse
      */
-    public function getContactPersonsByBrand(int $brandId): JsonResponse
+    public function getContactPersonsByBrand(int $brandId, Request $request): JsonResponse
     {
         try {
+            // Validate request parameters
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1|max:100',
+                'page' => 'nullable|integer|min:1',
+            ]);
+
             // Validate that the brand exists
             $brand = \App\Models\Brand::find($brandId);
             if (!$brand) {
                 return $this->responseService->notFound('Brand not found');
             }
 
-            // Get all leads without status filter to include all contact persons
+            $perPage = (int) $request->input('per_page', 10);
+
+            // Get paginated leads
             $leads = \App\Models\Lead::with([
                 'brand',
                 'agency',
@@ -608,11 +629,16 @@ class LeadController extends Controller
             ])
             ->where('brand_id', $brandId)
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate($perPage);
             
-            return $this->responseService->success(
+            return $this->responseService->paginated(
                 LeadResource::collection($leads),
                 'Contact persons retrieved successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
@@ -625,18 +651,27 @@ class LeadController extends Controller
      * GET /leads/contact-persons/by-agency/{agencyId}
      *
      * @param int $agencyId
+     * @param Request $request
      * @return JsonResponse
      */
-    public function getContactPersonsByAgency(int $agencyId): JsonResponse
+    public function getContactPersonsByAgency(int $agencyId, Request $request): JsonResponse
     {
         try {
+            // Validate request parameters
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1|max:100',
+                'page' => 'nullable|integer|min:1',
+            ]);
+
             // Validate that the agency exists
             $agency = \App\Models\Agency::find($agencyId);
             if (!$agency) {
                 return $this->responseService->notFound('Agency not found');
             }
 
-            // Get all leads without status filter to include all contact persons
+            $perPage = (int) $request->input('per_page', 10);
+
+            // Get paginated leads
             $leads = \App\Models\Lead::with([
                 'brand',
                 'agency',
@@ -656,11 +691,16 @@ class LeadController extends Controller
             ])
             ->where('agency_id', $agencyId)
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate($perPage);
             
-            return $this->responseService->success(
+            return $this->responseService->paginated(
                 LeadResource::collection($leads),
                 'Contact persons retrieved successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
@@ -683,7 +723,7 @@ class LeadController extends Controller
                 'per_page' => 'nullable|integer|min:1|max:100',
             ]);
 
-            $perPage = (int) $request->input('per_page', 15);
+            $perPage = (int) $request->input('per_page', 10);
             $history = $this->leadService->getLeadHistory($id, $perPage);
 
             return $this->responseService->paginated(
@@ -721,7 +761,7 @@ class LeadController extends Controller
             $pendingLeads = $this->leadService->getPendingLeads($perPage);
 
             return $this->responseService->paginated(
-                LeadResource::collection($pendingLeads),
+                PendingLeadResource::collection($pendingLeads),
                 'Pending leads retrieved successfully'
             );
         } catch (ValidationException $e) {

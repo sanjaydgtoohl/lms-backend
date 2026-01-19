@@ -29,13 +29,13 @@ class BriefResource extends JsonResource
             'status' => $this->status,
 
             //Foreign Key IDs
-            'contact_person_id' => $this->contact_person_id,
-            'brand_id' => $this->brand_id,
-            'agency_id' => $this->agency_id,
-            'assign_user_id' => $this->assign_user_id,
-            'created_by' => $this->created_by,
-            'brief_status_id' => $this->brief_status_id,
-            'priority_id' => $this->priority_id,
+            // 'contact_person_id' => $this->contact_person_id,
+            // 'brand_id' => $this->brand_id,
+            // 'agency_id' => $this->agency_id,
+            // 'assign_user_id' => $this->assign_user_id,
+            // 'created_by' => $this->created_by,
+            // 'brief_status_id' => $this->brief_status_id,
+            // 'priority_id' => $this->priority_id,
 
             // Relationships (Objects)
             'contact_person' => $this->whenLoaded('contactPerson', function () {
@@ -87,7 +87,6 @@ class BriefResource extends JsonResource
             // Timestamps
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
-            //'deleted_at' => $this->deleted_at?->toIso8601String(),
         ];
     }
 
@@ -102,13 +101,13 @@ class BriefResource extends JsonResource
 
         // If it's already a Carbon instance, convert to simple format
         if ($this->submission_date instanceof \Carbon\Carbon) {
-            return $this->submission_date->format('Y-m-d H:i');
+            return $this->submission_date->format('Y-m-d H:i:s A');
         }
 
         // If it's a string, try to parse and convert it
         if (is_string($this->submission_date)) {
             try {
-                return \Carbon\Carbon::parse($this->submission_date)->format('Y-m-d H:i');
+                return \Carbon\Carbon::parse($this->submission_date)->format('Y-m-d H:i:s A');
             } catch (\Exception $e) {
                 return null;
             }

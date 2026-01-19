@@ -18,7 +18,10 @@ class AgencyResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'is_parent' => $this->parentAgency ? new AgencyResource($this->parentAgency) : null,
-            'agency_type' => new AgencyTypeResource($this->whenLoaded('agencyType')),
+            'agency_type' => $this->whenLoaded('agencyType', fn () => [
+                'id' => $this->agencyType->id,
+                'name' => $this->agencyType->name,
+            ]),
             'status' => $this->status,
             'contact_person_count' => $this->getContactPersonCount(),
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),

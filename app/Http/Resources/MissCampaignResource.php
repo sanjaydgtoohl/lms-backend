@@ -29,9 +29,9 @@ class MissCampaignResource extends JsonResource
             }),
 
             // Relationships (IDs)
-            'brand_id' => $this->brand_id,
-            'lead_source_id' => $this->lead_source_id,
-            'lead_sub_source_id' => $this->lead_sub_source_id,
+            // 'brand_id' => $this->brand_id,
+            // 'lead_source_id' => $this->lead_source_id,
+            // 'lead_sub_source_id' => $this->lead_sub_source_id,
 
             // Relationships (Objects)
             'brand' => $this->whenLoaded('brand', function () {

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -77,6 +78,35 @@ class Brief extends Model
     {
         static::updated(function ($brief) {
             $brief->saveHistoryIfFieldsChanged();
+        });
+    }
+
+    /**
+     * Scope to filter briefs accessible to the given user.
+     * Super Admin (role_id = 8) sees all. Others see only briefs where they are creator or assigned user.
+     *
+     * @param Builder $query
+     * @param mixed $user
+     * @return Builder
+     */
+    public function scopeAccessibleToUser(Builder $query, $user = null): Builder
+    {
+        $user = $user ?? auth()->user();
+
+        // If no user is authenticated, return empty query
+        if (!$user) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        // Super Admin (role_id = 8) can view all briefs
+        if ($user->roles()->where('id', 8)->exists()) {
+            return $query;
+        }
+
+        // Others can see briefs where they are the creator (created_by) or assigned user (assign_user_id)
+        return $query->where(function (Builder $q) use ($user) {
+            $q->where('created_by', $user->id)
+              ->orWhere('assign_user_id', $user->id);
         });
     }
 

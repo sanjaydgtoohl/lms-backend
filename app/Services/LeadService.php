@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\Repositories\LeadRepositoryInterface;
 use App\Models\Lead;
+use App\Models\LeadMobileNumber;
 use DomainException;
 use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -462,4 +463,73 @@ class LeadService
             throw new DomainException('Unexpected error while fetching lead history.');
         }
     }
+
+    /**
+     * Add mobile numbers to a lead.
+     *
+     * @param int $leadId
+     * @param array $mobileNumbers
+     * @return bool
+     * @throws DomainException
+     */
+    public function addMobileNumbers(int $leadId, array $mobileNumbers): bool
+    {
+        try {
+            // Verify the lead exists
+            $lead = $this->leadRepository->getLeadById($leadId);
+            if (!$lead) {
+                throw new DomainException('Lead not found');
+            }
+
+            // Delete existing mobile numbers for this lead
+            LeadMobileNumber::where('lead_id', $leadId)->delete();
+
+            // Add new mobile numbers
+            $isFirst = true;
+            foreach ($mobileNumbers as $number) {
+                LeadMobileNumber::create([
+                    'lead_id' => $leadId,
+                    'mobile_number' => $number,
+                    'is_primary' => $isFirst,
+                    'is_verified' => false,
+                ]);
+                $isFirst = false;
+            }
+
+            return true;
+        } catch (QueryException $e) {
+            Log::error('Database error adding mobile numbers', ['lead_id' => $leadId, 'exception' => $e]);
+            throw new DomainException('Database error while adding mobile numbers.');
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('Unexpected error adding mobile numbers', ['lead_id' => $leadId, 'exception' => $e]);
+            throw new DomainException('Unexpected error while adding mobile numbers.');
+        }
+    }
+
+    /**
+     * Get mobile numbers for a lead.
+     *
+     * @param int $leadId
+     * @return Collection
+     * @throws DomainException
+     */
+    public function getMobileNumbers(int $leadId): Collection
+    {
+        try {
+            return LeadMobileNumber::where('lead_id', $leadId)
+                ->orderBy('is_primary', 'desc')
+                ->orderBy('created_at', 'asc')
+                ->get()
+                ->pluck('mobile_number');
+        } catch (QueryException $e) {
+            Log::error('Database error fetching mobile numbers', ['lead_id' => $leadId, 'exception' => $e]);
+            throw new DomainException('Database error while fetching mobile numbers.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching mobile numbers', ['lead_id' => $leadId, 'exception' => $e]);
+            throw new DomainException('Unexpected error while fetching mobile numbers.');
+        }
+    }
 }
+

@@ -317,11 +317,11 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Lead routes
     $router->group(['prefix' => 'leads'], function () use ($router) {
         // List and filter routes first (specific routes before generic {id})
-        $router->get('/list', 'LeadController@list');
-        $router->get('/filter', 'LeadController@filter');
-        $router->get('/pending', 'LeadController@pendingLeads');
-        $router->get('/contact-persons/by-brand/{brandId:[0-9]+}', 'LeadController@getContactPersonsByBrand');
-        $router->get('/contact-persons/by-agency/{agencyId:[0-9]+}', 'LeadController@getContactPersonsByAgency');
+        $router->get('list', 'LeadController@list');
+        $router->get('filter', 'LeadController@filter');
+        $router->get('pending', 'LeadController@pendingLeads');
+        $router->get('contact-persons/by-brand/{brandId:[0-9]+}', 'LeadController@getContactPersonsByBrand');
+        $router->get('contact-persons/by-agency/{agencyId:[0-9]+}', 'LeadController@getContactPersonsByAgency');
         
         // Generic CRUD operations
         $router->get('/', 'LeadController@index');

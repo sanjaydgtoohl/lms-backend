@@ -3,6 +3,10 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Models\Lead;
+use App\Models\Brief;
+use App\Policies\LeadPolicy;
+use App\Policies\BriefPolicy;
 use App\Contracts\Repositories\UserRepositoryInterface;
 use App\Repositories\UserRepository;
 use Illuminate\Support\Facades\Gate;
@@ -10,6 +14,16 @@ use Illuminate\Support\ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
 {
+    /**
+     * The policy mappings for the application.
+     *
+     * @var array
+     */
+    protected $policies = [
+        Lead::class => LeadPolicy::class,
+        Brief::class => BriefPolicy::class,
+    ];
+
     /**
      * Register any application services.
      *

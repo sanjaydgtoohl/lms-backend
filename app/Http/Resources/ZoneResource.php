@@ -19,11 +19,7 @@ class ZoneResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             //'slug' => $this->slug,
-            
-            // Convert status to a readable format
-            'status' => $this->status, // Raw value (1, 2, 15)
-            //'status_label' => $this->getStatusLabel(), // Readable text
-            
+            'status' => $this->status,
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
         ];

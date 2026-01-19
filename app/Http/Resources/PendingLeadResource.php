@@ -5,29 +5,23 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class PriorityResource extends JsonResource
+class PendingLeadResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @param Request $request
-     * @return array<string, mixed>
-     */
     public function toArray($request): array
     {
         return [
-            // Basic Information
             'id' => $this->id,
-            //'uuid' => $this->uuid,
             'name' => $this->name,
-            //'slug' => $this->slug,
-            'call_status' => $this->call_status,
-            'status' => $this->status,
-
-            // Timestamps
-            
+            'priority' => $this->whenLoaded('priority', function () {
+                return [
+                    'id' => $this->priority->id ?? null,
+                    'name' => $this->priority->name ?? null,
+                ];
+            }),
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
         ];
     }
 }
+
+?>
