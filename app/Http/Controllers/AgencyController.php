@@ -92,7 +92,7 @@ class AgencyController extends Controller
     {
         try {
             $agencies = Agency::where('status', '1')
-                              ->orderBy('created_at', 'desc')
+                              ->orderBy('id', 'desc')
                               ->limit(10000)
                               ->get()
                               ->map(function ($agency) {
