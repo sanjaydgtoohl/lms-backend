@@ -40,6 +40,7 @@ class LeadRepository implements LeadRepositoryInterface
         'statusRelation',
         'callStatusRelation',
         'leadStatusRelation',
+        'mobileNumbers',
     ];
 
     /**
@@ -63,6 +64,7 @@ class LeadRepository implements LeadRepositoryInterface
 
     /**
      * Fetch paginated list of leads with relationships.
+     * Filtered by user access: Super Admin sees all, others see only their leads.
      *
      * @param int $perPage
      * @param string|null $searchTerm
@@ -71,7 +73,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getAllLeads(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
         $query = $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS);
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->accessibleToUser(Auth::user());
 
         // Apply search filter if search term is provided
         if ($searchTerm) {
@@ -98,6 +101,7 @@ class LeadRepository implements LeadRepositoryInterface
 
     /**
      * Fetch a single lead by its primary ID.
+     * The caller should verify authorization using LeadPolicy.
      *
      * @param int $id
      * @return Lead|null
@@ -309,15 +313,16 @@ class LeadRepository implements LeadRepositoryInterface
                 }
             }
             
-            // Initialize array fields if not provided
-            if (!isset($data['mobile_number'])) {
-                $data['mobile_number'] = [];
-            }
+            // Extract mobile numbers before creating the lead
+            $mobileNumbers = $data['mobile_number'] ?? [];
             
             // Ensure mobile_number is an array
-            if (is_string($data['mobile_number'])) {
-                $data['mobile_number'] = [$data['mobile_number']];
+            if (is_string($mobileNumbers)) {
+                $mobileNumbers = [$mobileNumbers];
             }
+            
+            // Remove mobile_number from data as it will be stored separately
+            unset($data['mobile_number']);
             
             // Handle call_status_id: convert to call_status and lead_status
             if (isset($data['call_status_id']) && !empty($data['call_status_id'])) {
@@ -375,7 +380,24 @@ class LeadRepository implements LeadRepositoryInterface
                 return $value !== null && $value !== '';
             });
             
-            return $this->model->create($data);
+            // Create the lead
+            $lead = $this->model->create($data);
+            
+            // Add mobile numbers if provided
+            if (!empty($mobileNumbers)) {
+                $isFirst = true;
+                foreach ($mobileNumbers as $number) {
+                    \App\Models\LeadMobileNumber::create([
+                        'lead_id' => $lead->id,
+                        'mobile_number' => $number,
+                        'is_primary' => $isFirst,
+                        'is_verified' => false,
+                    ]);
+                    $isFirst = false;
+                }
+            }
+            
+            return $lead;
         } catch (DomainException $e) {
             throw $e;
         } catch (QueryException $e) {
@@ -413,6 +435,17 @@ class LeadRepository implements LeadRepositoryInterface
             // If agency_id is being set, clear brand_id
             if (isset($data['agency_id']) && !empty($data['agency_id'])) {
                 $data['brand_id'] = null;
+            }
+            
+            // Extract mobile numbers before updating
+            $mobileNumbers = null;
+            if (isset($data['mobile_number'])) {
+                $mobileNumbers = $data['mobile_number'];
+                if (is_string($mobileNumbers)) {
+                    $mobileNumbers = [$mobileNumbers];
+                }
+                // Remove from data as it will be updated separately
+                unset($data['mobile_number']);
             }
             
             // Handle call_status_id: convert to call_status, lead_status, and priority_id
@@ -470,6 +503,21 @@ class LeadRepository implements LeadRepositoryInterface
             $this->saveLeadHistory($lead);
             
             $result = $lead->update($data);
+            
+            // Update mobile numbers if provided
+            if ($mobileNumbers !== null && !empty($mobileNumbers)) {
+                \App\Models\LeadMobileNumber::where('lead_id', $id)->delete();
+                $isFirst = true;
+                foreach ($mobileNumbers as $number) {
+                    \App\Models\LeadMobileNumber::create([
+                        'lead_id' => $id,
+                        'mobile_number' => $number,
+                        'is_primary' => $isFirst,
+                        'is_verified' => false,
+                    ]);
+                    $isFirst = false;
+                }
+            }
             
             return $result;
         } catch (QueryException $e) {

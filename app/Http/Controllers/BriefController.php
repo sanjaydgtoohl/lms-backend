@@ -113,6 +113,9 @@ class BriefController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
+            // Authorize the user to view this brief
+            $this->authorize('view', $brief);
+
             return $this->responseService->success(
                 new BriefResource($brief),
                 'Brief retrieved successfully'
@@ -269,6 +272,9 @@ class BriefController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
+            // Authorize the user to update this brief
+            $this->authorize('update', $brief);
+
             return $this->responseService->success(
                 new BriefResource($brief),
                 'Brief updated successfully'
@@ -294,6 +300,15 @@ class BriefController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
+            $brief = $this->briefService->getBrief($id);
+
+            if (!$brief) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            // Authorize the user to delete this brief
+            $this->authorize('delete', $brief);
+
             $deleted = $this->briefService->deleteBrief($id);
 
             if (!$deleted) {

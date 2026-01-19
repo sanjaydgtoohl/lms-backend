@@ -18,34 +18,43 @@ class LeadResource extends JsonResource
         return [
             // Basic Information
              'id' => $this->id,
-            'uuid' => $this->uuid,
+            //'uuid' => $this->uuid,
             'name' => $this->name,
-            'slug' => $this->slug,
+            //'slug' => $this->slug,
             'email' => $this->email,
             'profile_url' => $this->profile_url,
-            'mobile_number' => $this->mobile_number,
+            'mobile_number' => $this->whenLoaded('mobileNumbers', function () {
+                return $this->mobileNumbers->map(function ($mobile) {
+                    return [
+                        'id' => $mobile->id,
+                        'number' => $mobile->mobile_number,
+                        //'is_primary' => $mobile->is_primary,
+                        //'is_verified' => $mobile->is_verified,
+                    ];
+                })->toArray();
+            }),
             'type' => $this->type,
             'status' => $this->status,
             'comment' => $this->comment,
 
             // Foreign Key IDs
-            'brand_id' => $this->brand_id,
-            'created_by' => $this->created_by,
-            'agency_id' => $this->agency_id,
-            'current_assign_user' => $this->current_assign_user,
-            'priority_id' => $this->priority_id,
-            'lead_status' => $this->lead_status,
-            'designation_id' => $this->designation_id,
-            'department_id' => $this->department_id,
-            'sub_source_id' => $this->sub_source_id,
-            'country_id' => $this->country_id,
-            'state_id' => $this->state_id,
-            'city_id' => $this->city_id,
-            'zone_id' => $this->zone_id,
-            'postal_code' => $this->postal_code,
+            //'brand_id' => $this->brand_id,
+            //'created_by' => $this->created_by,
+            // 'agency_id' => $this->agency_id,
+            // 'current_assign_user' => $this->current_assign_user,
+            // 'priority_id' => $this->priority_id,
+            // 'lead_status' => $this->lead_status,
+            // 'designation_id' => $this->designation_id,
+            // 'department_id' => $this->department_id,
+            // 'sub_source_id' => $this->sub_source_id,
+            // 'country_id' => $this->country_id,
+            // 'state_id' => $this->state_id,
+            // 'city_id' => $this->city_id,
+            // 'zone_id' => $this->zone_id,
+            // 'postal_code' => $this->postal_code,
 
             // Special Fields
-            'call_status' => $this->call_status,
+            //'call_status' => $this->call_status,
             'call_attempt' => $this->call_attempt,
 
             // Relationship Objects
@@ -150,17 +159,16 @@ class LeadResource extends JsonResource
                 ];
             }),
 
-            'status_relation' => $this->whenLoaded('statusRelation', function () {
-                return [
-                    'id' => $this->statusRelation->id ?? null,
-                    'name' => $this->statusRelation->name ?? null,
-                ];
-            }),
+            // 'status_relation' => $this->whenLoaded('statusRelation', function () {
+            //     return [
+            //         'id' => $this->statusRelation->id ?? null,
+            //         'name' => $this->statusRelation->name ?? null,
+            //     ];
+            // }),
 
             // // Timestamps
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
-            //'deleted_at' => $this->deleted_at->toIso8601String(),
         ];
     }
 }

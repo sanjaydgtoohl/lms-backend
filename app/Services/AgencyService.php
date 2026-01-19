@@ -158,8 +158,8 @@ class AgencyService
                     }
                 }
 
-                // Delete existing relationships for this agency
-                BrandAgencyRelationship::where('agency_id', $id)->delete();
+                // Permanently delete existing relationships for this agency
+                BrandAgencyRelationship::where('agency_id', $id)->forceDelete();
                 
                 // Create new relationships and remove Direct from brands
                 foreach ($flatClients as $brandId) {

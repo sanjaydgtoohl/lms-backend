@@ -7,6 +7,7 @@ use App\Models\Brief;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class BriefRepository implements BriefRepositoryInterface
 {
@@ -46,6 +47,7 @@ class BriefRepository implements BriefRepositoryInterface
 
     /**
      * Fetch paginated list of briefs with relationships.
+     * Filtered by user access: Only creator and assigned user can see.
      *
      * @param int $perPage The number of items per page.
      * @param string|null $searchTerm Optional search term to filter briefs.
@@ -53,7 +55,9 @@ class BriefRepository implements BriefRepositoryInterface
      */
     public function getAllBriefs(int $perPage = 15, ?string $searchTerm = null): LengthAwarePaginator
     {
-        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS);
+        $query = $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->accessibleToUser(Auth::user());
 
         // Apply search filter if search term is provided
         if ($searchTerm) {

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 
 class Lead extends Model
 {
@@ -36,7 +37,6 @@ class Lead extends Model
         'slug',
         'profile_url',
         'email',
-        'mobile_number',
         'type',
         'designation_id',
         'department_id',
@@ -57,7 +57,6 @@ class Lead extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'mobile_number' => 'array',
     ];
 
     /**
@@ -68,6 +67,35 @@ class Lead extends Model
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    /**
+     * Scope to filter leads accessible to the given user.
+     * Super Admin (role_id = 8) sees all. Others see only leads where they are creator or assigned user.
+     *
+     * @param Builder $query
+     * @param mixed $user
+     * @return Builder
+     */
+    public function scopeAccessibleToUser(Builder $query, $user = null): Builder
+    {
+        $user = $user ?? auth()->user();
+
+        // If no user is authenticated, return empty query
+        if (!$user) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        // Super Admin (role_id = 8) can view all leads
+        if ($user->roles()->where('id', 8)->exists()) {
+            return $query;
+        }
+
+        // Others can see leads where they are the creator (assigned_by) or assigned user (assigned_to)
+        return $query->where(function (Builder $q) use ($user) {
+            $q->where('created_by', $user->id)
+              ->orWhere('current_assign_user', $user->id);
+        });
     }
 
     public function brand()
@@ -149,5 +177,13 @@ class Lead extends Model
     public function leadStatusRelation()
     {
         return $this->belongsTo(Status::class, 'lead_status');
+    }
+
+    /**
+     * Get the mobile numbers associated with this lead.
+     */
+    public function mobileNumbers()
+    {
+        return $this->hasMany(LeadMobileNumber::class, 'lead_id');
     }
 }
