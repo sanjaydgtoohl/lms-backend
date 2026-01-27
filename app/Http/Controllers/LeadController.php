@@ -315,8 +315,15 @@ class LeadController extends Controller
                 'name' => 'sometimes|required|string|max:255',
                 'email' => 'sometimes|nullable|email|max:255',
                 'profile_url' => 'sometimes|nullable|string|max:255',
+
                 'mobile_number' => 'sometimes|required|array',
-                'mobile_number.*' => 'regex:/^[0-9]{10}$/|distinct|unique:lead_mobile_numbers,mobile_number',Rule::unique('lead_mobile_numbers', 'mobile_number')->ignore($id),
+
+                'mobile_number.*' => [
+                    'regex:/^[0-9]{10}$/',
+                    'distinct',
+                    Rule::unique('lead_mobile_numbers', 'mobile_number')->ignore($id),
+                ],
+
                 'brand_id' => 'sometimes|nullable|integer|exists:brands,id',
                 'agency_id' => 'sometimes|nullable|integer|exists:agency,id',
                 'current_assign_user' => 'sometimes|nullable|integer|exists:users,id',
