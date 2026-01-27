@@ -147,7 +147,87 @@ class PriorityController extends Controller
         }
     }
 
-    // ============================================================================
+    /**
+     * Get lead count for a specific priority.
+     *
+     * GET /priorities/{id}/lead-count
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function getLeadCount(int $id): JsonResponse
+    {
+        try {
+            $priority = $this->priorityService->getPriority($id);
+
+            if (!$priority) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            // Get total lead count (accessible to user)
+            $totalLeadCount = \App\Models\Lead::accessibleToUser()->count();
+
+            // Get lead count for this specific priority (accessible to user)
+            $priorityLeadCount = \App\Models\Lead::accessibleToUser()
+                ->where('priority_id', $id)
+                ->count();
+
+            $data = [
+                'total_leads' => $totalLeadCount,
+                'priority_lead_count' => $priorityLeadCount,
+                'priority_id' => $priority->id,
+                'priority_name' => $priority->name,
+            ];
+
+            return $this->responseService->success(
+                $data,
+                'Lead count for priority retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get brief count for a specific priority.
+     *
+     * GET /priorities/{id}/brief-count
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function getBriefCount(int $id): JsonResponse
+    {
+        try {
+            $priority = $this->priorityService->getPriority($id);
+
+            if (!$priority) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            // Get total brief count (accessible to user)
+            $totalBriefCount = \App\Models\Brief::accessibleToUser()->count();
+
+            // Get brief count for this specific priority (accessible to user)
+            $priorityBriefCount = \App\Models\Brief::accessibleToUser()
+                ->where('priority_id', $id)
+                ->count();
+
+            $data = [
+                'total_briefs' => $totalBriefCount,
+                'priority_brief_count' => $priorityBriefCount,
+                'priority_id' => $priority->id,
+                'priority_name' => $priority->name,
+            ];
+
+            return $this->responseService->success(
+                $data,
+                'Brief count for priority retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }    // ============================================================================
     // WRITE OPERATIONS
     // ============================================================================
 

@@ -19,9 +19,9 @@ class ZoneResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             //'slug' => $this->slug,
-            'status' => $this->status,
-            'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
+            // 'status' => $this->status,
+            // 'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
+            // 'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
         ];
     }
 

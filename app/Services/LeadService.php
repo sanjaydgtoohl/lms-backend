@@ -531,5 +531,44 @@ class LeadService
             throw new DomainException('Unexpected error while fetching mobile numbers.');
         }
     }
+
+    /**
+     * Get the latest two follow-up leads.
+     *
+     * @return Collection
+     * @throws DomainException
+     */
+    public function getLatestTwoFollowUpLeads()
+    {
+        try {
+            return $this->leadRepository->getLatestTwoFollowUpLeads();
+        } catch (QueryException $e) {
+            Log::error('Database error fetching latest two follow-up leads', ['exception' => $e]);
+            throw new DomainException('Database error while fetching latest follow-up leads.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching latest two follow-up leads', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching latest follow-up leads.');
+        }
+    }
+
+    /**
+     * Get the latest two meeting-scheduled leads.
+     *
+     * @return Collection
+     * @throws DomainException
+     */
+
+    public function getLatestTwoMeetingScheduledLeads()
+    {
+        try {
+            return $this->leadRepository->getLatestTwoMeetingScheduledLeads();
+        } catch (QueryException $e) {
+            Log::error('Database error fetching latest two  meeting scheduled leads', ['exception' => $e]);
+            throw new DomainException('Database error while fetching latest meeting scheduled leads.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching latest two meeting scheduled leads', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching latest meeting scheduled leads.');
+        }
+    }
 }
 

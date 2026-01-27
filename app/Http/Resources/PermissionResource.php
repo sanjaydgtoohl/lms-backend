@@ -17,7 +17,7 @@ class PermissionResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'uuid' => $this->uuid,
+            //'uuid' => $this->uuid,
             'name' => $this->name,
             'display_name' => $this->display_name,
             'url' => $this->url ?? null,
@@ -25,14 +25,14 @@ class PermissionResource extends JsonResource
             'icon_text' => $this->icon_text ?? null,
             'description' => $this->description,
             'is_parent' => $this->is_parent,
-            'status' => $this->status,
+            //'status' => $this->status,
             'order' => $this->order,
             'children' => $this->when(
                 $this->relationLoaded('children') && $this->children->isNotEmpty(),
                 fn() => PermissionResource::collection($this->children)
             ),
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
+            //'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
             //'deleted_at' => $this->deleted_at->toIso8601String(),
         ];
     }

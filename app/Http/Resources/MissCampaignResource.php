@@ -20,8 +20,8 @@ class MissCampaignResource extends JsonResource
             'id' => $this->id,
             //'uuid' => $this->uuid,
             'name' => $this->name,
-            'slug' => $this->slug,
-            'status' => $this->status,
+            //'slug' => $this->slug,
+            //'status' => $this->status,
             'image_path' => $this->image_path,
             'image_url' => $this->when($this->image_path, function() {
                 // use HandlesFileUploads trait helper on the underlying model

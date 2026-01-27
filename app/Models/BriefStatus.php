@@ -26,6 +26,7 @@ class BriefStatus extends Model
         'uuid',
         'name',
         'slug',
+        'percentage',
         'priority_id',
         'status',
     ];

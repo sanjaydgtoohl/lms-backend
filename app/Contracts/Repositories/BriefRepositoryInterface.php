@@ -120,4 +120,39 @@ interface BriefRepositoryInterface
      * @return LengthAwarePaginator
      */
     public function filterBriefs(array $filters, int $perPage = 15): LengthAwarePaginator;
+
+    /**
+     * Get the latest two briefs.
+     *
+     * @return Collection
+     */
+    public function getLatestTwoBriefs();
+
+    /**
+     * Get the latest two briefs.
+     *
+     * @return Collection
+     */
+    public function getLatestFiveBriefs();
+
+    /**
+     * Get recent briefs with all related information.
+     *
+     * @param int $limit The number of briefs to retrieve.
+     * @return Collection
+     */
+    public function getRecentBriefs(int $limit = 5);
+
+
+    public function getPlannerDashboardCardData();
+
+    /**
+     * Get brief logs with pagination.
+     *
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     */
+    public function getBriefLogs(int $perPage = 10): LengthAwarePaginator;
+
+    
 }

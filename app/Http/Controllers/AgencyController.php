@@ -131,14 +131,16 @@ class AgencyController extends Controller
             $agency = $this->agencyService->create($validatedData);
             
             // Eager load relationships before returning the resource
-            if ($agency) {
+            if ($agency instanceof Agency) {
                 $agency->load(['agencyType', 'brand', 'parentAgency']);
+                return $this->responseService->created(
+                    new AgencyResource($agency),
+                    'Agency created successfully'
+                );
             }
-
-            return $this->responseService->created(
-                new AgencyResource($agency),
-                'Agency created successfully'
-            );
+            
+            // If service returns a response (error case)
+            return $agency;
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
