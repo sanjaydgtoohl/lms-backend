@@ -510,7 +510,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     });
 
     // Super Admin Dashboard routes
-    $router->group(['prefix' => 'super-admin-dashboard'], function () use ($router) {
+    $router->group(['prefix' => 'dashboard'], function () use ($router) {
         $router->get('/', 'Api\DashboardController@getDashboard');
     });
 
