@@ -319,9 +319,11 @@ class LeadController extends Controller
                 'mobile_number' => 'sometimes|required|array',
 
                 'mobile_number.*' => [
+                    'required',
                     'regex:/^[0-9]{10}$/',
                     'distinct',
-                    Rule::unique('lead_mobile_numbers', 'mobile_number')->ignore($id),
+                    Rule::unique('lead_mobile_numbers', 'mobile_number')
+                        ->where(fn ($q) => $q->where('lead_id', '!=', $id)),
                 ],
 
                 'brand_id' => 'sometimes|nullable|integer|exists:brands,id',
