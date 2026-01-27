@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->uuid()->unique();
             $table->string('name')->unique();
             $table->string('slug')->unique();
-             $table->enum('status', ['1', '2', '15'])
+            $table->enum('status', ['1', '2', '15'])
                 ->default('1')
                 ->comment('1 = active, 2 = deactivated, 15 = soft deleted');
             $table->timestamps();

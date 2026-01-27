@@ -415,7 +415,7 @@ class BriefRepository implements BriefRepositoryInterface
         return [
             'active_briefs' => $activeBriefs,
             'closed_briefs' => $closedBriefs,
-            'total_left_time_days' => $totalLeftTime ? (int)$totalLeftTime : 0,
+            'total_left_time_days' => $totalLeftTime ? max((int)$totalLeftTime, 0) : 0,
             'average_planning_time_days' => $averagePlanningTime ? round($averagePlanningTime, 2) : 0,
         ];
     }
