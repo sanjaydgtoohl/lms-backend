@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Services\PlannerHistoryService;
 use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
+use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Throwable;
+use Illuminate\Validation\ValidationException;
 
 class PlannerHistoryController extends Controller
 {
@@ -64,6 +66,10 @@ class PlannerHistoryController extends Controller
             $histories = $this->plannerHistoryService->getAllPlannerHistories($perPage, array_filter($filters));
 
             return $this->responseService->paginated($histories, 'Planner histories retrieved successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -88,6 +94,10 @@ class PlannerHistoryController extends Controller
             $histories = $this->plannerHistoryService->getPlannerHistories($plannerId, $perPage);
 
             return $this->responseService->paginated($histories, 'Planner histories retrieved successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -112,6 +122,10 @@ class PlannerHistoryController extends Controller
             $histories = $this->plannerHistoryService->getBriefPlannerHistories($briefId, $perPage);
 
             return $this->responseService->paginated($histories, 'Brief planner histories retrieved successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -141,6 +155,10 @@ class PlannerHistoryController extends Controller
             $histories = $this->plannerHistoryService->getByStatus($status, $perPage);
 
             return $this->responseService->paginated($histories, "Planner histories with status '{$status}' retrieved successfully");
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -164,6 +182,10 @@ class PlannerHistoryController extends Controller
             $histories = $this->plannerHistoryService->getRecentHistories($limit);
 
             return $this->responseService->success($histories, 'Recent planner histories retrieved successfully');
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
