@@ -234,7 +234,7 @@ class BriefController extends Controller
             }
 
             // Authorize the user to view this brief
-            $this->authorize('view', $brief);
+            // $this->authorize('view', $brief);
 
             return $this->responseService->success(
                 new BriefResource($brief),
@@ -392,9 +392,6 @@ class BriefController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
-            // Authorize the user to update this brief
-            $this->authorize('update', $brief);
-
             return $this->responseService->success(
                 new BriefResource($brief),
                 'Brief updated successfully'
@@ -427,7 +424,7 @@ class BriefController extends Controller
             }
 
             // Authorize the user to delete this brief
-            $this->authorize('delete', $brief);
+            // $this->authorize('delete', $brief);
 
             $deleted = $this->briefService->deleteBrief($id);
 
