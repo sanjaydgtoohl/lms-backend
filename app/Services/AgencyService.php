@@ -67,9 +67,11 @@ class AgencyService
                         $agency = $this->repo->createAgency($agencyData);
     
                         // Set the first created agency as parent
+                        /*
                         if ($i == 0) {
                             $is_parent = $agency->id;
                         }
+                         */
 
                         if(!empty($clients) && is_array($clients)){
                             // Get Direct agency ID

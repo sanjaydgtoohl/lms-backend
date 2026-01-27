@@ -32,7 +32,7 @@ class AgencyResource extends JsonResource
     private function getParentAgencyData()
     {
         if (!$this->parentAgency) {
-            return null;
+            return  null;
         }
 
         // Ensure relationships are loaded
