@@ -44,6 +44,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
         'status',
         'email_verified_at',
         'last_login_at',
+        'is_parent',
     ];
 
     /**
@@ -193,6 +194,23 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     {
         return $this->hasOne(Profile::class);
     }
+
+    /**
+     * Get the parent user
+     */
+    public function parent()
+    {
+        return $this->belongsTo(User::class, 'is_parent');
+    }
+
+    /**
+     * Get the child users
+     */
+    public function children()
+    {
+        return $this->hasMany(User::class, 'is_parent');
+    }
+
     /**
      * Get the login logs for the user.
      */

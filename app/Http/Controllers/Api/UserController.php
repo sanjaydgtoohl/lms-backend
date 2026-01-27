@@ -133,6 +133,7 @@ class UserController extends Controller
                 'role_id' => 'required|array',
                 'role_id.*' => 'integer|exists:roles,id',
                 'status' => 'sometimes|in:1,2,3',
+                'is_parent' => 'nullable|integer|exists:users,id',
             ];
 
             $validated = \Illuminate\Support\Facades\Validator::make($request->all(), $rules);
