@@ -36,6 +36,9 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\BriefStatusController;
 use App\Http\Controllers\BriefController;
 use App\Http\Controllers\MeetingController;
+use App\Http\Controllers\PlannerController;
+use App\Http\Controllers\PlannerHistoryController;
+use App\Http\Controllers\PlannerStatusController;
 use App\Http\Controllers\ActivityLogController;
 
 use Carbon\Carbon;
@@ -312,14 +315,24 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         
         // Get call statuses for a specific priority
         $router->get('{id:[0-9]+}/call-statuses', 'PriorityController@getCallStatuses');
+        
+        // Get lead count for a specific priority
+        $router->get('{id:[0-9]+}/lead-count', 'PriorityController@getLeadCount');
+        
+        // Get brief count for a specific priority
+        $router->get('{id:[0-9]+}/brief-count', 'PriorityController@getBriefCount');
     });
 
     // Lead routes
     $router->group(['prefix' => 'leads'], function () use ($router) {
         // List and filter routes first (specific routes before generic {id})
         $router->get('list', 'LeadController@list');
+        $router->get('latest/two-leads', 'LeadController@latestTwo');
+        $router->get('latest/follow-up-two', 'LeadController@latestTwoFollowUp');
+        $router->get('latest/meeting-scheduled-two', 'LeadController@latestTwoMeetingScheduled');
         $router->get('filter', 'LeadController@filter');
         $router->get('pending', 'LeadController@pendingLeads');
+        $router->get('activity-leads', 'LeadController@activity');
         $router->get('contact-persons/by-brand/{brandId:[0-9]+}', 'LeadController@getContactPersonsByBrand');
         $router->get('contact-persons/by-agency/{agencyId:[0-9]+}', 'LeadController@getContactPersonsByAgency');
         
@@ -367,9 +380,15 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Brief routes
     $router->group(['prefix' => 'briefs'], function () use ($router) {
         // List and filter routes first (specific routes before generic {id})
-        $router->get('/list', 'BriefController@index');
-        $router->get('/filter', 'BriefController@index');
+        $router->get('latest/two-briefs', 'BriefController@getLatestTwo');
+        $router->get('recent', 'BriefController@getRecentBriefs');
+        $router->get('list', 'BriefController@index');
+        $router->get('filter', 'BriefController@index');
+        $router->get('latest/five', 'BriefController@getLatestFive');
+        $router->get('planner-dashboard-card', 'BriefController@getPlannerDashboardCardData');
+        $router->get('brief-logs', 'BriefController@getBriefLogs');
         
+
         // Generic CRUD operations
         $router->get('/', 'BriefController@index');
         $router->post('/', 'BriefController@store');
@@ -386,8 +405,6 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('agency/{agencyId:[0-9]+}', 'BriefController@getByAgency');
         $router->get('user/{userId:[0-9]+}', 'BriefController@getByAssignedUser');
     });
-
-
 
     // // Brief Assign Histories by Brief
     // $router->group(['prefix' => 'briefs'], function () use ($router) {
@@ -433,8 +450,67 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('{attendeeId:[0-9]+}/meetings', 'MeetingController@getMeetingsByAttendee');
     });
 
-    // Dashboard routes
-    $router->group(['prefix' => 'dashboard'], function () use ($router) {
+    // Planners routes
+    $router->group(['prefix' => 'planners'], function () use ($router) {
+        // List and filter routes first (specific routes before generic {id})
+        $router->get('/', 'PlannerController@index');
+        $router->post('/', 'PlannerController@store');
+        
+        // Additional Planner routes (specific routes BEFORE generic CRUD)
+        $router->post('{id:[0-9]+}/upload-submitted-plans', 'PlannerController@uploadSubmittedPlans');
+        $router->post('{id:[0-9]+}/upload-backup-plan', 'PlannerController@uploadBackupPlan');
+        $router->put('{id:[0-9]+}/update-status', 'PlannerController@updateStatus');
+        
+        // Generic CRUD operations
+        $router->get('{id:[0-9]+}', 'PlannerController@show');
+        $router->put('{id:[0-9]+}', 'PlannerController@update');
+        $router->patch('{id:[0-9]+}', 'PlannerController@update');
+        $router->delete('{id:[0-9]+}', 'PlannerController@destroy');
+    });
+
+    // Planners by brief (e.g., /api/v1/briefs/1/planners)
+    $router->group(['prefix' => 'briefs'], function () use ($router) {
+        $router->post('{briefId:[0-9]+}/planners', 'PlannerController@createForBrief');
+        $router->get('{briefId:[0-9]+}/planners', 'PlannerController@getPlannersByBrief');
+        $router->get('{briefId:[0-9]+}/planners/{id:[0-9]+}', 'PlannerController@showForBrief');
+        $router->put('{briefId:[0-9]+}/planners/{id:[0-9]+}', 'PlannerController@updateForBrief');
+        $router->patch('{briefId:[0-9]+}/planners/{id:[0-9]+}', 'PlannerController@updateForBrief');
+        $router->delete('{briefId:[0-9]+}/planners/{id:[0-9]+}', 'PlannerController@destroyForBrief');
+    });
+
+    // Planner Histories routes
+    $router->group(['prefix' => 'planner-histories'], function () use ($router) {
+        // List and filter routes
+        $router->get('/', 'PlannerHistoryController@index');
+        $router->get('recent', 'PlannerHistoryController@getRecentHistories');
+        
+        // Get histories for a specific planner
+        $router->get('planner/{plannerId:[0-9]+}', 'PlannerHistoryController@getPlannerHistories');
+        
+        // Get histories by status
+        $router->get('status/{status}', 'PlannerHistoryController@getByStatus');
+    });
+
+    // Planner Statuses routes
+    $router->group(['prefix' => 'planner-statuses'], function () use ($router) {
+        // List and filter routes first (specific routes before generic {id})
+        $router->get('/', 'PlannerStatusController@index');
+        $router->post('/', 'PlannerStatusController@store');
+        
+        // Generic CRUD operations
+        // $router->get('{id:[0-9]+}', 'PlannerStatusController@show');
+        // $router->put('{id:[0-9]+}', 'PlannerStatusController@update');
+        // $router->patch('{id:[0-9]+}', 'PlannerStatusController@update');
+        // $router->delete('{id:[0-9]+}', 'PlannerStatusController@destroy');
+    });
+
+    // Planner Histories by brief (e.g., /api/v1/briefs/1/planner-histories)
+    $router->group(['prefix' => 'briefs'], function () use ($router) {
+        $router->get('{briefId:[0-9]+}/planner-histories', 'PlannerHistoryController@getBriefPlannerHistories');
+    });
+
+    // Super Admin Dashboard routes
+    $router->group(['prefix' => 'super-admin-dashboard'], function () use ($router) {
         $router->get('/', 'Api\DashboardController@getDashboard');
     });
 

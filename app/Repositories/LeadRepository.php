@@ -877,4 +877,38 @@ class LeadRepository implements LeadRepositoryInterface
             ]);
         }
     }
+
+    /**
+     * Get the latest two follow-up leads.
+     *
+     * @return Collection
+     */
+    public function getLatestTwoFollowUpLeads()
+    {
+        return $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->whereHas('callStatusRelation', function ($query) {
+                $query->where('slug', 'follow-up');
+            })
+            ->orderBy('created_at', 'desc')
+            ->limit(2)
+            ->get();
+    }
+
+    /**
+     * Get the latest two meeting scheduled leads.
+     *
+     * @return Collection
+     */
+    public function getLatestTwoMeetingScheduledLeads()
+    {
+        return $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->whereHas('callStatusRelation', function ($query) {
+                $query->where('slug', 'meeting-schedule');
+            })
+            ->orderBy('created_at', 'desc')
+            ->limit(2)
+            ->get();
+    }
 }

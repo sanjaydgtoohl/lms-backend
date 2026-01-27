@@ -22,8 +22,8 @@ class CityResource extends JsonResource
             'name' => $this->name,
             'country_id' => $this->country_id,
             'state_id' => $this->state_id,
-            'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
+            // 'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
+            // 'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
 
             // Relationships
             'country' => new CountryResource($this->whenLoaded('country')),

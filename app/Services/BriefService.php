@@ -8,6 +8,7 @@ use DomainException;
 use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class BriefService
@@ -198,6 +199,79 @@ class BriefService
         }
     }
 
+    /**
+     * Get the latest two briefs.
+     *
+     * @return Collection
+     * @throws DomainException
+     */
+    public function getLatestTwoBriefs()
+    {
+        try {
+            return $this->briefRepository->getLatestTwoBriefs();
+        } catch (QueryException $e) {
+            Log::error('Database error fetching latest two briefs', ['exception' => $e]);
+            throw new DomainException('Database error while fetching latest briefs.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching latest two briefs', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching latest briefs.');
+        }
+    }
+
+    /**
+     * Get the latest five briefs.
+     *
+     * @return Collection
+     * @throws DomainException
+     */
+    public function getLatestFiveBriefs()
+    {
+        try {
+            return $this->briefRepository->getLatestFiveBriefs();
+        } catch (QueryException $e) {
+            Log::error('Database error fetching latest five briefs', ['exception' => $e]);
+            throw new DomainException('Database error while fetching latest briefs.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching latest five briefs', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching latest briefs.');
+        }
+    }
+
+    public function getPlannerDashboardCardData(): array
+    {
+        try {
+            return $this->briefRepository->getPlannerDashboardCardData();
+        } catch (QueryException $e) {
+            Log::error('Database error fetching planner dashboard card data', ['exception' => $e]);
+            throw new DomainException('Database error while fetching planner dashboard data.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching planner dashboard card data', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching planner dashboard data.');
+        }
+    }
+
+    /**
+     * Get brief logs with pagination.
+     *
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     * @throws DomainException
+     */
+    public function getBriefLogs(int $perPage = 10): LengthAwarePaginator
+    {
+        try {
+            return $this->briefRepository->getBriefLogs($perPage);
+        } catch (QueryException $e) {
+            Log::error('Database error fetching brief logs', ['exception' => $e]);
+            throw new DomainException('Database error while fetching brief logs.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching brief logs', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching brief logs.');
+        }
+    }
+
+    
+
     // ============================================================================
     // WRITE OPERATIONS
     // ============================================================================
@@ -260,6 +334,26 @@ class BriefService
         } catch (Exception $e) {
             Log::error('Unexpected error deleting brief', ['id' => $id, 'exception' => $e]);
             throw new DomainException('Unexpected error while deleting brief.');
+        }
+    }
+
+    /**
+     * Get recent briefs with all related information.
+     *
+     * @param int $limit
+     * @return Collection
+     * @throws DomainException
+     */
+    public function getRecentBriefs(int $limit = 5): Collection
+    {
+        try {
+            return $this->briefRepository->getRecentBriefs($limit);
+        } catch (QueryException $e) {
+            Log::error('Database error fetching recent briefs', ['exception' => $e]);
+            throw new DomainException('Database error while fetching recent briefs.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching recent briefs', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching recent briefs.');
         }
     }
 }

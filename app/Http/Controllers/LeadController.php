@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\LeadResource;
+use App\Models\Lead;
 use App\Services\LeadService;
 use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
@@ -11,8 +12,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Throwable;
 use DomainException;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
-use App\Http\Resources\PendingLeadResource;
 
 class LeadController extends Controller
 {
@@ -83,6 +84,93 @@ class LeadController extends Controller
                 LeadResource::collection($leads),
                 'Leads retrieved successfully'
             );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get lead activity listing.
+     *
+     * GET /leads/activity
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function activity(Request $request): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1',
+                'search' => 'nullable|string|max:255',
+                'brand_id' => 'nullable|integer|exists:brands,id',
+                'agency_id' => 'nullable|integer|exists:agency,id',
+                'current_assign_user' => 'nullable|integer|exists:users,id',
+                'status' => 'nullable|in:1,2,15',
+            ]);
+
+            $perPage = (int) $request->input('per_page', 5);
+            $searchTerm = $request->input('search', null);
+
+            // Get leads with required relations for activity
+            $query = Lead::with([
+                'brand',
+                'assignedUser',
+                'callStatusRelation'
+            ])->accessibleToUser();
+
+            // Apply filters if provided
+            if ($request->has('brand_id') && $request->input('brand_id')) {
+                $query->where('brand_id', $request->input('brand_id'));
+            }
+
+            if ($request->has('agency_id') && $request->input('agency_id')) {
+                $query->where('agency_id', $request->input('agency_id'));
+            }
+
+            if ($request->has('current_assign_user') && $request->input('current_assign_user')) {
+                $query->where('current_assign_user', $request->input('current_assign_user'));
+            }
+
+            if ($request->has('status') && $request->input('status')) {
+                $query->where('status', $request->input('status'));
+            }
+
+            // Apply search if provided
+            if ($searchTerm) {
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', "%{$searchTerm}%")
+                      ->orWhere('email', 'like', "%{$searchTerm}%");
+                });
+            }
+
+            $leads = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+            // Format the response with only the requested fields
+            $formattedLeads = $leads->map(function ($lead) {
+                return [
+                    'id' => $lead->id,
+                    'name' => $lead->name,
+                    'brand_name' => $lead->brand?->name ?? null,
+                    'agency_name' => $lead->agency?->name ?? null,
+                    'assign_to' => $lead->assignedUser?->name ?? null,
+                    'call_status' => $lead->callStatusRelation?->name ?? null,
+                    'contact_person_name' => $lead->name,
+                    'created_at' => $lead->created_at?->format('Y-m-d H:i:s A'),
+                ];
+            });
+
+            return $this->responseService->paginated(
+                $formattedLeads,
+                'Lead activities retrieved successfully',
+                $leads
+            );
+            
         } catch (ValidationException $e) {
             return $this->responseService->validationError(
                 $e->errors(),
@@ -355,6 +443,77 @@ class LeadController extends Controller
             return $this->responseService->success(
                 $leadsList,
                 'Lead list retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Display the latest two leads.
+     *
+     * GET /leads/latest/two
+     *
+     * @return JsonResponse
+     */
+    public function latestTwo(): JsonResponse
+    {
+        try {
+            $leads = Lead::with([
+                'brand',
+                'agency',
+                'assignedUser',
+                'callStatusRelation'
+            ])->accessibleToUser()
+              ->orderBy('created_at', 'desc')
+              ->limit(2)
+              ->get();
+
+            return $this->responseService->success(
+                LeadResource::collection($leads),
+                'Latest two leads retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get the latest two follow-up leads.
+     *
+     * GET /leads/latest/follow-up-two
+     *
+     * @return JsonResponse
+     */
+    public function latestTwoFollowUp(): JsonResponse
+    {
+        try {
+            $leads = $this->leadService->getLatestTwoFollowUpLeads();
+
+            return $this->responseService->success(
+                LeadResource::collection($leads),
+                'Latest two follow-up leads retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get the latest two meeting-scheduled leads.
+     *
+     * GET /leads/latest/meeting-scheduled-two
+     *
+     * @return JsonResponse
+     */
+    public function latestTwoMeetingScheduled(): JsonResponse
+    {
+        try {
+            $leads = $this->leadService->getLatestTwoMeetingScheduledLeads();
+
+            return $this->responseService->success(
+                LeadResource::collection($leads),
+                'Latest two meeting scheduled leads retrieved successfully'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
@@ -758,12 +917,33 @@ class LeadController extends Controller
             ]);
 
             $perPage = (int) $request->input('per_page', 3);
+
+            // This must return LengthAwarePaginator
             $pendingLeads = $this->leadService->getPendingLeads($perPage);
 
+            // Transform paginator items WITHOUT destroying paginator
+            if ($pendingLeads instanceof \Illuminate\Pagination\LengthAwarePaginator) {
+                $pendingLeads->setCollection(
+                    $pendingLeads->getCollection()->map(function ($lead) {
+                        return [
+                            'id' => $lead->id,
+                            'name' => $lead->name,
+                            'priority' => [
+                                'id' => $lead->priority?->id,
+                                'name' => $lead->priority?->name,
+                            ],
+                            'created_at' => $lead->created_at?->format('Y-m-d H:i:s A'),
+                        ];
+                    })
+                );
+            };
+
+            // Send paginator directly
             return $this->responseService->paginated(
-                PendingLeadResource::collection($pendingLeads),
+                $pendingLeads,
                 'Pending leads retrieved successfully'
             );
+
         } catch (ValidationException $e) {
             return $this->responseService->validationError(
                 $e->errors(),

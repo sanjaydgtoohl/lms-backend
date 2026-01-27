@@ -63,9 +63,9 @@ class AgencyRepository implements AgencyRepositoryInterface
      * @param int $id
      * @return Agency|null
      */
-    public function getAgencyById(int $id): ?Agency
+    public function getAgencyById(int $id)
     {
-        return $this->model->with(['agencyType', 'brand', 'parentAgency'])->find($id);
+        return $this->model->with(['agencyType', 'brand', 'parentAgency','childs','childs.agencyType','childs.brand'])->find($id);
     }
 
     /**

@@ -94,6 +94,14 @@ use App\Repositories\EloquentMeetingRepository;
 use App\Contracts\Repositories\ActivityLogRepositoryInterface;
 use App\Repositories\ActivityLogRepository;
 
+use App\Contracts\Repositories\PlannerHistoryRepositoryInterface;
+use App\Repositories\PlannerHistoryRepository;
+
+use App\Contracts\Repositories\PlannerRepositoryInterface;
+use App\Repositories\PlannerRepository;
+use App\Contracts\Repositories\PlannerStatusRepositoryInterface;
+use App\Repositories\PlannerStatusRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -242,6 +250,21 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             ActivityLogRepositoryInterface::class,
             ActivityLogRepository::class
+        );
+
+        $this->app->bind(
+            PlannerHistoryRepositoryInterface::class,
+            PlannerHistoryRepository::class
+        );
+
+        $this->app->bind(
+            PlannerRepositoryInterface::class,
+            PlannerRepository::class
+        );
+
+        $this->app->bind(
+            PlannerStatusRepositoryInterface::class,
+            PlannerStatusRepository::class
         );
     }
     /**

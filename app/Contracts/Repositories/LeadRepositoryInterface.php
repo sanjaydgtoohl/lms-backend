@@ -175,4 +175,18 @@ interface LeadRepositoryInterface
      * @return bool
      */
     public function forceDeleteLead(int $id): bool;
+
+    /**
+     * Get the latest two follow-up leads.
+     *
+     * @return Collection
+     */
+    public function getLatestTwoFollowUpLeads();
+
+    /**
+     * Get the latest two meeting-scheduled leads.
+     *
+     * @return Collection
+     */    
+    public function getLatestTwoMeetingScheduledLeads();
 }

@@ -10,8 +10,6 @@ use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -93,7 +91,7 @@ class AgencyController extends Controller
         try {
             $agencies = Agency::where('status', '1')
                               ->orderBy('id', 'desc')
-                              ->limit(10000)
+                            //   ->limit(10000)
                               ->get()
                               ->map(function ($agency) {
                                   return [
@@ -131,14 +129,16 @@ class AgencyController extends Controller
             $agency = $this->agencyService->create($validatedData);
             
             // Eager load relationships before returning the resource
-            if ($agency) {
+            if ($agency instanceof Agency) {
                 $agency->load(['agencyType', 'brand', 'parentAgency']);
+                return $this->responseService->created(
+                    new AgencyResource($agency),
+                    'Agency created successfully'
+                );
             }
-
-            return $this->responseService->created(
-                new AgencyResource($agency),
-                'Agency created successfully'
-            );
+            
+            // If service returns a response (error case)
+            return $agency;
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
@@ -155,7 +155,8 @@ class AgencyController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $agency = Agency::with(['agencyType', 'brand', 'parentAgency'])->findOrFail($id);
+            // $agency = Agency::with(['agencyType', 'brand', 'parentAgency'])->findOrFail($id);
+            $agency = $this->agencyService->getById($id);
             return $this->responseService->success(new AgencyResource($agency), 'Agency retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

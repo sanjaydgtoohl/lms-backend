@@ -14,8 +14,8 @@ class LeadSourceResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'created_at' => $this->created_at?->format('Y-m-d h:i:s A'),
-            'updated_at' => $this->updated_at?->format('Y-m-d h:i:s A'),
+            // 'created_at' => $this->created_at?->format('Y-m-d h:i:s A'),
+            // 'updated_at' => $this->updated_at?->format('Y-m-d h:i:s A'),
         ];
     }
 }

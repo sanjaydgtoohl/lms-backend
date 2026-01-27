@@ -19,9 +19,8 @@ class BrandTypeResource extends JsonResource
             'name' => $this->name,
             //'slug' => $this->slug,
             //'status' => $this->status,
-            'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
-            //'deleted_at' => $this->deleted_at->toIso8601String(),
+            // 'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
+            // 'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
         ];
     }
 }

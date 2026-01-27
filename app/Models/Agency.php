@@ -13,20 +13,6 @@ class Agency extends Model
     use HasFactory, SoftDeletes;
 
     /**
-     * The "booting" method of the model.
-     * Register model events.
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::deleting(function ($agency) {
-            // Delete all brand agency relationships when agency is deleted
-            BrandAgencyRelationship::where('agency_id', $agency->id)->delete();
-        });
-    }
-
-    /**
      * The table associated with the model.
      *
      * @var string
@@ -39,6 +25,7 @@ class Agency extends Model
      * @var array
      */
     protected $fillable = [
+        'id',
         'name',
         'slug',
         'status',
@@ -47,6 +34,33 @@ class Agency extends Model
         'is_parent',
         'contact_person_id'
     ];
+
+    /**
+     * The "booting" method of the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($agency) {
+            // Delete all brand agency relationships when agency is deleted
+            BrandAgencyRelationship::where('agency_id', $agency->id)->delete();
+        });
+
+        static::created(function ($agency) {
+            // If is_parent is null, set it to its own ID
+            if (is_null($agency->is_parent)) {
+                $agency->update(['is_parent' => $agency->id]);
+            }
+        });
+
+        static::updating(function ($agency) {
+            // If is_parent is null, set it to its own ID
+            if (is_null($agency->is_parent)) {
+                $agency->is_parent = $agency->id;
+            }
+        });
+    }
 
     /**
      * Get the parent agency.
@@ -91,5 +105,10 @@ class Agency extends Model
     public function getContactPersonCount(): int
     {
         return $this->contactPersons()->count();
+    }
+
+    public function childs(): HasMany
+    {
+        return $this->hasMany(Agency::class, 'is_parent', 'id');
     }
 }
