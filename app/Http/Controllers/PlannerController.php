@@ -7,6 +7,7 @@ use App\Models\Planner;
 use App\Services\PlannerService;
 use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
+use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -77,6 +78,8 @@ class PlannerController extends Controller
                 $e->errors(),
                 'Validation failed'
             );
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -127,6 +130,8 @@ class PlannerController extends Controller
                 $e->errors(),
                 'Validation failed'
             );
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -167,6 +172,8 @@ class PlannerController extends Controller
                 $e->errors(),
                 'Validation failed'
             );
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -193,6 +200,8 @@ class PlannerController extends Controller
                 new PlannerResource($planner),
                 'Planner retrieved successfully'
             );
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -233,6 +242,8 @@ class PlannerController extends Controller
                 $e->errors(),
                 'Validation failed'
             );
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -259,6 +270,8 @@ class PlannerController extends Controller
                 null,
                 'Planner deleted successfully'
             );
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
