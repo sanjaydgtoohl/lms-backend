@@ -7,7 +7,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class BriefResource extends JsonResource
 {
-    /**
+    /**`
      * Transform the resource into an array.
      *
      * @param Request $request
@@ -76,6 +76,7 @@ class BriefResource extends JsonResource
                     'name' => $this->priority->name,
                 ];
             }),
+            'planner_status' => $this->getFirstPlannerStatus(),
 
             // Timestamps
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
@@ -129,5 +130,23 @@ class BriefResource extends JsonResource
         }
 
         return 'Expired';
+    }
+
+    /**
+     * Get the first planner status for this brief
+     */
+    private function getFirstPlannerStatus(): ?array
+    {
+        $planner = \App\Models\Planner::where('brief_id', $this->id)
+            ->with('plannerStatus')
+            ->first();
+        
+        if ($planner && $planner->plannerStatus) {
+            return [
+                'id' => $planner->plannerStatus->id,
+                'name' => $planner->plannerStatus->name,
+            ];
+        }
+        return null;
     }
 }
