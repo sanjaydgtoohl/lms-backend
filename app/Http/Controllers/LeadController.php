@@ -373,9 +373,6 @@ class LeadController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
-            // Authorize the user to update this lead
-            $this->authorize('update', $lead);
-
             return $this->responseService->updated(
                 new LeadResource($lead),
                 'Lead updated successfully'
