@@ -13,20 +13,6 @@ class Agency extends Model
     use HasFactory, SoftDeletes;
 
     /**
-     * The "booting" method of the model.
-     * Register model events.
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::deleting(function ($agency) {
-            // Delete all brand agency relationships when agency is deleted
-            BrandAgencyRelationship::where('agency_id', $agency->id)->delete();
-        });
-    }
-
-    /**
      * The table associated with the model.
      *
      * @var string
@@ -47,6 +33,33 @@ class Agency extends Model
         'is_parent',
         'contact_person_id'
     ];
+
+    /**
+     * The "booting" method of the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($agency) {
+            // Delete all brand agency relationships when agency is deleted
+            BrandAgencyRelationship::where('agency_id', $agency->id)->delete();
+        });
+
+        static::created(function ($agency) {
+            // If is_parent is null, set it to its own ID
+            if (is_null($agency->is_parent)) {
+                $agency->update(['is_parent' => $agency->id]);
+            }
+        });
+
+        static::updating(function ($agency) {
+            // If is_parent is null, set it to its own ID
+            if (is_null($agency->is_parent)) {
+                $agency->is_parent = $agency->id;
+            }
+        });
+    }
 
     /**
      * Get the parent agency.

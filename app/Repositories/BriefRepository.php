@@ -197,6 +197,34 @@ class BriefRepository implements BriefRepositoryInterface
     }
 
     /**
+     * Get the latest two briefs.
+     *
+     * @return Collection
+     */
+    public function getLatestTwoBriefs()
+    {
+        return $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->orderBy('created_at', 'desc')
+            ->limit(2)
+            ->get();
+    }
+
+    /**
+     * Get the latest five briefs.
+     *
+     * @return Collection
+     */
+    public function getLatestFiveBriefs()
+    {
+        return $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+    }
+
+    /**
      * Search briefs by multiple criteria.
      *
      * @param array $criteria The search criteria.
@@ -336,4 +364,77 @@ class BriefRepository implements BriefRepositoryInterface
             throw $e;
         }
     }
+
+    /**
+     * Get recent briefs with all related information.
+     *
+     * @param int $limit
+     * @return Collection
+     */
+    public function getRecentBriefs(int $limit = 5)
+    {
+        return $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->accessibleToUser()
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function getPlannerDashboardCardData(): array
+    {
+        $now = now();
+
+        // Active briefs (brief_status is not 'closed')
+        $activeBriefs = $this->model
+            ->whereHas('briefStatus', function ($query) {
+                $query->where('slug', '!=', 'closed');
+            })
+            ->count();
+
+        // Closed briefs (brief_status is 'closed')
+        $closedBriefs = $this->model
+            ->whereHas('briefStatus', function ($query) {
+                $query->where('slug', 'closed');
+            })
+            ->count();
+
+        // Total of all brief left time during submission (sum of days left for all active briefs/overdue items)
+        $totalLeftTime = $this->model
+            ->whereHas('briefStatus', function ($query) {
+                $query->where('slug', '!=', 'closed');
+            })
+            ->selectRaw('SUM(DATEDIFF(submission_date, NOW())) as total_days_left')
+            ->value('total_days_left');
+
+        // Average planning time (in days - difference between created_at and submission_date)
+        $averagePlanningTime = $this->model
+            ->selectRaw('AVG(DATEDIFF(submission_date, created_at)) as avg_days')
+            ->value('avg_days');
+
+        return [
+            'active_briefs' => $activeBriefs,
+            'closed_briefs' => $closedBriefs,
+            'total_left_time_days' => $totalLeftTime ? (int)$totalLeftTime : 0,
+            'average_planning_time_days' => $averagePlanningTime ? round($averagePlanningTime, 2) : 0,
+        ];
+    }
+
+    /**
+     * Get brief logs with pagination.
+     *
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     */
+    public function getBriefLogs(int $perPage = 10): LengthAwarePaginator
+    {
+        return $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->accessibleToUser(Auth::user())
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage)
+            ->appends(request()->query());
+    }
+
+    
 }

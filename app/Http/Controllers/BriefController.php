@@ -97,6 +97,126 @@ class BriefController extends Controller
     }
 
     /**
+     * Get the latest two briefs.
+     *
+     * GET /briefs/latest/two
+     *
+     * @return JsonResponse
+     */
+    public function getLatestTwo(): JsonResponse
+    {
+        try {
+            $briefs = $this->briefService->getLatestTwoBriefs();
+
+            return $this->responseService->success(
+                BriefResource::collection($briefs),
+                'Latest two briefs retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+    /**
+     * Get the latest five briefs.
+     *
+     * GET /briefs/latest/five
+     *
+     * @return JsonResponse
+     */
+    public function getLatestFive(): JsonResponse
+    {
+        try {
+            $briefs = $this->briefService->getLatestFiveBriefs();
+
+            // Format briefs with only required fields
+            $formattedBriefs = $briefs->map(function ($brief) {
+                $leftTime = null;
+                if ($brief->submission_date) {
+                    $now = now();
+                    $diff = $brief->submission_date->diff($now);
+                    if ($brief->submission_date > $now) {
+                        $leftTime = $diff->format('%d days %h hours %i minutes left');
+                    } else {
+                        $leftTime = 'Expired';
+                    }
+                }
+
+                return [
+                    'id' => $brief->id,
+                    'brief_name' => $brief->name,
+                    'status' => $brief->briefStatus?->name,
+                    'product_name' => $brief->product_name,
+                    'brand_name' => $brief->brand?->name,
+                    'comment' => $brief->comment,
+                    'submission_date' => $brief->submission_date ? $brief->submission_date->format('Y-m-d H:i:s A') : null,
+                    'budget' => $brief->budget,
+                    'left_time' => $leftTime,
+                ];
+            });
+
+            return $this->responseService->success(
+                $formattedBriefs,
+                'Latest five briefs retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get the latest five briefs.
+     *
+     * GET /briefs/planner-dashboard-card
+     *
+     * @return JsonResponse
+     */
+    public function getPlannerDashboardCardData(): JsonResponse
+    {
+        try {
+            $data = $this->briefService->getPlannerDashboardCardData();
+
+            return $this->responseService->success(
+                $data,
+                'Planner dashboard card data retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get brief logs with pagination (Latest briefs formatted like getLatestFive)
+     *
+     * GET /briefs/brief-logs
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getBriefLogs(Request $request): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1',
+            ]);
+
+            $perPage = (int) $request->input('per_page', 10);
+            $briefs = $this->briefService->getBriefLogs($perPage);
+
+            return $this->responseService->paginated(
+                BriefResource::collection($briefs),
+                'Brief logs retrieved successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
      * Display the specified brief.
      *
      * GET /briefs/{id}
@@ -492,14 +612,59 @@ class BriefController extends Controller
         }
     }
 
-    public function achal()
+    /**
+     * Get recent briefs with detailed information.
+     *
+     * GET /briefs/recent
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getRecentBriefs(Request $request): JsonResponse
     {
         try {
-        $rules = [     
-            'assign_user_id' => 'required|integer|exists:users,id',
-        ];
+            $this->validate($request, [
+                'limit' => 'nullable|integer|min:1|max:100',
+            ]);
+
+            $limit = (int) $request->input('limit', 5);
+            
+            $briefs = $this->briefService->getRecentBriefs($limit);
+
+            // Format briefs with only required fields
+            $formattedBriefs = $briefs->map(function ($brief) {
+                return [
+                    'id' => $brief->id,
+                    'name' => $brief->name,
+                    'product_name' => $brief->product_name,
+                    'budget' => $brief->budget,
+                    'brand_name' => $brief->brand?->name,
+                    'contact_person_name' => $brief->contactPerson?->name,
+                    'assign_to' => [
+                        'id' => $brief->assignedUser?->id,
+                        'name' => $brief->assignedUser?->name,
+                        'email' => $brief->assignedUser?->email,
+                    ],
+                    'brief_status' => [
+                        'name' => $brief->briefStatus?->name,
+                        'percentage' => $brief->briefStatus?->percentage,
+                    ],
+                ];
+            });
+
+            return $this->responseService->success(
+                $formattedBriefs,
+                'Recent briefs retrieved successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
+
+    
 }

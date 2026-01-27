@@ -162,4 +162,8 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
         $meeting = $this->model->withTrashed()->where('id', $id)->firstOrFail();
         return $meeting->restore();
     }
+
+    public function getRecentMeeting(int $limit = 2)
+    {
+    }
 }

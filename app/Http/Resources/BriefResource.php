@@ -27,17 +27,9 @@ class BriefResource extends JsonResource
             'comment' => $this->comment,
             'submission_date' => $this->formatSubmissionDate(),
             'status' => $this->status,
+            'left_time' => $this->calculateLeftTime(),
 
-            //Foreign Key IDs
-            // 'contact_person_id' => $this->contact_person_id,
-            // 'brand_id' => $this->brand_id,
-            // 'agency_id' => $this->agency_id,
-            // 'assign_user_id' => $this->assign_user_id,
-            // 'created_by' => $this->created_by,
-            // 'brief_status_id' => $this->brief_status_id,
-            // 'priority_id' => $this->priority_id,
-
-            // Relationships (Objects)
+            // Relationships
             'contact_person' => $this->whenLoaded('contactPerson', function () {
                 return [
                     'id' => $this->contactPerson->id,
@@ -75,6 +67,7 @@ class BriefResource extends JsonResource
                 return [
                     'id' => $this->briefStatus->id,
                     'name' => $this->briefStatus->name,
+                    'percentage' => $this->briefStatus->percentage,
                 ];
             }),
             'priority' => $this->whenLoaded('priority', function () {
@@ -112,7 +105,29 @@ class BriefResource extends JsonResource
                 return null;
             }
         }
-
         return null;
+    }
+
+    /**
+     * Calculate left time until submission date
+     */
+    private function calculateLeftTime(): ?string
+    {
+        if (!$this->submission_date) {
+            return null;
+        }
+
+        $submissionDate = $this->submission_date instanceof \Carbon\Carbon
+            ? $this->submission_date
+            : \Carbon\Carbon::parse($this->submission_date);
+
+        $now = now();
+        $diff = $submissionDate->diff($now);
+
+        if ($submissionDate->gt($now)) {
+            return $diff->format('%d days %h hours %i minutes left');
+        }
+
+        return 'Expired';
     }
 }

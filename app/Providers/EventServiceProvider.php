@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Laravel\Lumen\Providers\EventServiceProvider as ServiceProvider;
 use App\Observers\ActivityLogObserver;
+use App\Observers\PlannerObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -46,6 +47,10 @@ class EventServiceProvider extends ServiceProvider
         \App\Models\LeadSubSource::observe(ActivityLogObserver::class);
         \App\Models\Meeting::observe(ActivityLogObserver::class);
         \App\Models\Team::observe(ActivityLogObserver::class);
+        \App\Models\Planner::observe(ActivityLogObserver::class);
+
+        // Register the PlannerObserver to save planner history
+        \App\Models\Planner::observe(PlannerObserver::class);
     }
 
     /**
