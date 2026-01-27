@@ -25,6 +25,7 @@ class Agency extends Model
      * @var array
      */
     protected $fillable = [
+        'id',
         'name',
         'slug',
         'status',
@@ -104,5 +105,10 @@ class Agency extends Model
     public function getContactPersonCount(): int
     {
         return $this->contactPersons()->count();
+    }
+
+    public function childs(): HasMany
+    {
+        return $this->hasMany(Agency::class, 'is_parent', 'id');
     }
 }

@@ -20,6 +20,7 @@ class AgencyResource extends JsonResource
             'brand' => $this->getBrandData(),
             'contact_person_count' => $this->getContactPersonCount(),
             'status' => $this->status,
+            'childs' => $this->childs,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s A'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s A'),
         ];
