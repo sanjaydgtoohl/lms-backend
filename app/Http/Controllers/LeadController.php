@@ -337,29 +337,6 @@ class LeadController extends Controller
 
             $validatedData = $this->validate($request, $rules);
 
-            // Validate that mobile numbers in the array are unique (no duplicates within the array)
-            if (!empty($validatedData['mobile_number'])) {
-                $mobileNumbers = $validatedData['mobile_number'];
-                $uniqueMobileNumbers = array_unique($mobileNumbers);
-                if (count($mobileNumbers) !== count($uniqueMobileNumbers)) {
-                    return $this->responseService->validationError(
-                        ['mobile_number' => ['Mobile numbers must be unique. Duplicate numbers are not allowed.']],
-                        'Validation failed'
-                    );
-                }
-
-                // Check if any mobile number already exists in the database (excluding current lead)
-                $existingMobileNumbers = \App\Models\LeadMobileNumber::whereIn('mobile_number', $mobileNumbers)
-                    ->where('lead_id', '!=', $id)
-                    ->exists();
-                if ($existingMobileNumbers) {
-                    return $this->responseService->validationError(
-                        ['mobile_number' => ['One or more mobile numbers already exist in another lead. Mobile numbers must be unique across all leads.']],
-                        'Validation failed'
-                    );
-                }
-            }
-
             // If updating brand_id or agency_id, validate that exactly ONE is selected
             if ($request->has('brand_id') || $request->has('agency_id')) {
                 $hasBrandId = !empty($validatedData['brand_id']);
