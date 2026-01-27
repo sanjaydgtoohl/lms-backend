@@ -46,6 +46,23 @@ class UserResource extends BaseResource
             'full_name' => $this->full_name,
             'is_active' => $this->isActive(),
             'is_admin' => $this->isAdmin(),
+            'is_parent' => $this->is_parent,
+            'parent' => $this->whenLoaded('parent', function () {
+                return [
+                    'id' => $this->parent->id,
+                    'name' => $this->parent->name,
+                    'email' => $this->parent->email,
+                ];
+            }),
+            'children' => $this->whenLoaded('children', function () {
+                return $this->children->map(function ($child) {
+                    return [
+                        'id' => $child->id,
+                        'name' => $child->name,
+                        'email' => $child->email,
+                    ];
+                });
+            }),
             'profile' => $this->whenLoaded('profile', function () {
                 return new ProfileResource($this->profile);
             }),

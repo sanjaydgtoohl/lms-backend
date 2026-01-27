@@ -24,7 +24,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function all(int $perPage = 15): LengthAwarePaginator
     {
         $modelClass = $this->modelClass;
-        return $modelClass::with(['roles', 'permissions'])->paginate($perPage);
+        return $modelClass::with(['roles', 'permissions', 'parent', 'children'])->paginate($perPage);
     }
 
     /**
@@ -81,7 +81,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function search(array $criteria, int $perPage = 15): LengthAwarePaginator
     {
         $modelClass = $this->modelClass;
-        $query = $modelClass::with(['roles', 'permissions']);
+        $query = $modelClass::with(['roles', 'permissions', 'parent', 'children']);
 
         // Handle the generic 'search' parameter
         if (!empty($criteria['search'])) {

@@ -49,7 +49,7 @@ class UserService
      */
     public function getUserById(int $id): ?User
     {
-        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions']);
+        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions', 'parent', 'children']);
     }
 
     /**
@@ -94,7 +94,7 @@ class UserService
         }
 
         // Reload user with relationships
-        return $this->userRepository->findWithRelations($user->id, ['profile', 'roles', 'permissions']);
+        return $this->userRepository->findWithRelations($user->id, ['profile', 'roles', 'permissions', 'parent', 'children']);
     }
 
     /**
@@ -245,6 +245,7 @@ class UserService
             'role' => 'sometimes|array',
             'role.*' => 'integer|exists:roles,id',
             'status' => 'sometimes|in:1,2,3',
+            'is_parent' => 'nullable|integer|exists:users,id',
         ];
 
         // Add unique email rule if creating new user or updating email
