@@ -43,8 +43,8 @@ class MeetingResource extends JsonResource
             
             // Relationships - Lead with only id and name
             'lead' => $this->when($this->lead, [
-                'id' => $this->lead->id,
-                'name' => $this->lead->name,
+                'id' => $this->lead->id ?? null,
+                'name' => $this->lead->name ?? null,
             ]),
             
             // Convenience fields
