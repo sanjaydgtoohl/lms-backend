@@ -436,5 +436,45 @@ class BriefRepository implements BriefRepositoryInterface
             ->appends(request()->query());
     }
 
-    
+    /**
+     * Get business forecast data including total budget and business weightage.
+     * Business weightage = (sum of brief_status percentages / total brief count) * 100
+     *
+     * @return array
+     */
+    public function getBusinessForecast(): array
+    {
+        // Get total budget
+        $totalBudget = $this->model
+            ->accessibleToUser(Auth::user())
+            ->whereRaw('briefs.status != 15')  // Exclude soft deleted
+            ->sum('briefs.budget');
+
+        // Get total brief count
+        $totalBriefCount = $this->model
+            ->accessibleToUser(Auth::user())
+            ->whereRaw('briefs.status != 15')  // Exclude soft deleted
+            ->count();
+
+        // Calculate business weightage
+        $businessWeightage = 0;
+        if ($totalBriefCount > 0) {
+            // Get sum of brief status percentages
+            $totalStatusPercentage = $this->model
+                ->accessibleToUser(Auth::user())
+                ->join('brief_statuses', 'briefs.brief_status_id', '=', 'brief_statuses.id')
+                ->whereRaw('briefs.status != 15')  // Exclude soft deleted
+                ->sum('brief_statuses.percentage');
+
+            // Business weightage = (total percentage / total brief count) * 100
+            $businessWeightage = round(($totalStatusPercentage / $totalBriefCount), 2);
+        }
+
+        return [
+            'total_budget' => (float) $totalBudget,
+            'total_brief_count' => $totalBriefCount,
+            'business_weightage' => $businessWeightage,
+            //'currency' => 'INR', // You can make this configurable
+        ];
+    }
 }

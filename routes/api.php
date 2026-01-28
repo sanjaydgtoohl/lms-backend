@@ -387,6 +387,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('latest/five', 'BriefController@getLatestFive');
         $router->get('planner-dashboard-card', 'BriefController@getPlannerDashboardCardData');
         $router->get('brief-logs', 'BriefController@getBriefLogs');
+        $router->get('business-forecast', 'BriefController@getBusinessForecast');
         
 
         // Generic CRUD operations
