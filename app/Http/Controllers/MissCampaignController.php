@@ -116,7 +116,7 @@ class MissCampaignController extends Controller
                 'brand_id' => 'required|integer|exists:brands,id',
                 'lead_source_id' => 'required|integer|exists:lead_source,id',
                 'lead_sub_source_id' => 'required|integer|exists:lead_sub_source,id',
-                'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:5120'
+                'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200'
             ];
 
             $validatedData = $this->validate($request, $rules);
@@ -164,7 +164,7 @@ class MissCampaignController extends Controller
                 'brand_id' => 'sometimes|required|integer|exists:brands,id',
                 'lead_source_id' => 'sometimes|required|integer|exists:lead_source,id',
                 'lead_sub_source_id' => 'sometimes|required|integer|exists:lead_sub_source,id',
-                'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:5120',
+                'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
                 'status' => 'sometimes|required|in:1,2,15',
             ];
 
