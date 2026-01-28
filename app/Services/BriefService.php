@@ -356,4 +356,23 @@ class BriefService
             throw new DomainException('Unexpected error while fetching recent briefs.');
         }
     }
+
+    /**
+     * Get business forecast data including total budget and business weightage.
+     *
+     * @return array
+     * @throws DomainException
+     */
+    public function getBusinessForecast(): array
+    {
+        try {
+            return $this->briefRepository->getBusinessForecast();
+        } catch (QueryException $e) {
+            Log::error('Database error fetching business forecast', ['exception' => $e]);
+            throw new DomainException('Database error while fetching business forecast.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching business forecast', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching business forecast.');
+        }
+    }
 }
