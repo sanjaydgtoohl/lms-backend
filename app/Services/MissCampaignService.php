@@ -133,6 +133,7 @@ class MissCampaignService
             return $model->uploadImage($file, 'miss-campaigns', [
                 'disk' => 'public',
                 'prefix' => 'campaign_',
+                'sizeLimit' => 51200, // 50MB in KB
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Validation error uploading miss campaign image', ['errors' => $e->errors()]);
