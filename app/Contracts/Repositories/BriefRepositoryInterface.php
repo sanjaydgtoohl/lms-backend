@@ -154,5 +154,12 @@ interface BriefRepositoryInterface
      */
     public function getBriefLogs(int $perPage = 10): LengthAwarePaginator;
 
+    /**
+     * Get business forecast data including total budget and business weightage.
+     *
+     * @return array
+     */
+    public function getBusinessForecast(): array;
+
     
 }

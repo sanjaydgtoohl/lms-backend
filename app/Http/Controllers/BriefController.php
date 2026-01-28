@@ -8,12 +8,14 @@ use App\Models\BriefStatus;
 use App\Services\BriefService;
 use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
+use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Throwable;
 use Illuminate\Validation\ValidationException;
+
 
 class BriefController extends Controller
 {
@@ -658,6 +660,29 @@ class BriefController extends Controller
                 $e->errors(),
                 'Validation failed'
             );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get business forecast data (total budget and business weightage).
+     *
+     * GET /briefs/business-forecast
+     *
+     * @return JsonResponse
+     */
+    public function getBusinessForecast(): JsonResponse
+    {
+        try {
+            $businessForecast = $this->briefService->getBusinessForecast();
+
+            return $this->responseService->success(
+                $businessForecast,
+                'Business forecast data retrieved successfully'
+            );
+        } catch (DomainException $e) {
+            return $this->responseService->error($e->getMessage(), null, 422, 'DOMAIN_ERROR');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
