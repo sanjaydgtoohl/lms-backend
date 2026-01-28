@@ -368,4 +368,38 @@ class UserController extends Controller
             return $this->responseService->serverError('Failed to retrieve login history: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Get child users list for the currently authenticated user (id and name only)
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getChildUsers(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            $childUsers = $user->children()
+                ->select('id', 'name')
+                ->get()
+                ->map(function ($child) {
+                    return [
+                        'id' => $child->id,
+                        'name' => $child->name,
+                    ];
+                });
+            
+            return $this->responseService->success(
+                $childUsers,
+                'Child users list retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve child users: ' . $e->getMessage());
+        }
+    }
 }

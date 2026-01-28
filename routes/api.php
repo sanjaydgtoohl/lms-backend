@@ -89,6 +89,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('/', 'Api\UserController@me');
         $router->put('/', 'Api\UserController@updateProfile');
         $router->get('login-history', 'Api\UserController@getLoginHistory');
+        $router->get('child-users', 'Api\UserController@getChildUsers');
     });
 
     // Industry routes
