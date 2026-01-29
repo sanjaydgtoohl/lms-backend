@@ -570,5 +570,24 @@ class LeadService
             throw new DomainException('Unexpected error while fetching latest meeting scheduled leads.');
         }
     }
+
+    /**
+     * Get the latest two meeting-done leads.
+     *
+     * @return Collection
+     * @throws DomainException
+     */
+    public function getLatestTwoMeetingDoneLeads(): Collection
+    {
+        try {
+            return $this->leadRepository->getLatestTwoMeetingDoneLeads();
+        } catch (QueryException $e) {
+            Log::error('Database error fetching latest two meeting done leads', ['exception' => $e]);
+            throw new DomainException('Database error while fetching latest meeting done leads.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching latest two meeting done leads', ['exception' => $e]);
+            throw new DomainException('Unexpected error while fetching latest meeting done leads.');
+        }
+    }
 }
 

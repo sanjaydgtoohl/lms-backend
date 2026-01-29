@@ -112,6 +112,8 @@ class LeadController extends Controller
                 'brand_id' => 'nullable|integer|exists:brands,id',
                 'agency_id' => 'nullable|integer|exists:agency,id',
                 'current_assign_user' => 'nullable|integer|exists:users,id',
+                'lead_status_relation' => 'nullable|integer|exists:lead_statuses,id',
+                'priority_id' => 'nullable|integer|exists:priorities,id',
                 'status' => 'nullable|in:1,2,15',
             ]);
 
@@ -122,7 +124,9 @@ class LeadController extends Controller
             $query = Lead::with([
                 'brand',
                 'assignedUser',
-                'callStatusRelation'
+                'callStatusRelation',
+                'leadStatusRelation',
+                'priority'
             ])->accessibleToUser();
 
             // Apply filters if provided
@@ -136,6 +140,14 @@ class LeadController extends Controller
 
             if ($request->has('current_assign_user') && $request->input('current_assign_user')) {
                 $query->where('current_assign_user', $request->input('current_assign_user'));
+            }
+
+            if( $request->has('lead_status_relation') && $request->input('lead_status_relation')) {
+                $query->where('lead_status', $request->input('lead_status_relation'));
+            }
+
+            if ($request->has('priority_id') && $request->input('priority_id')) {
+                $query->where('priority_id', $request->input('priority_id'));
             }
 
             if ($request->has('status') && $request->input('status')) {
@@ -161,6 +173,8 @@ class LeadController extends Controller
                     'agency_name' => $lead->agency?->name ?? null,
                     'assign_to' => $lead->assignedUser?->name ?? null,
                     'call_status' => $lead->callStatusRelation?->name ?? null,
+                    'lead_status' => $lead->leadStatusRelation?->name ?? null,
+                    'priority_name' => $lead->priority?->name ?? null,
                     'contact_person_name' => $lead->name,
                     'created_at' => $lead->created_at?->format('Y-m-d H:i:s A'),
                 ];
@@ -444,7 +458,8 @@ class LeadController extends Controller
                 'brand',
                 'agency',
                 'assignedUser',
-                'callStatusRelation'
+                'callStatusRelation',
+                'priority'
             ])->accessibleToUser()
               ->orderBy('created_at', 'desc')
               ->limit(2)
@@ -495,6 +510,27 @@ class LeadController extends Controller
             return $this->responseService->success(
                 LeadResource::collection($leads),
                 'Latest two meeting scheduled leads retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get the latest two meeting-done leads.
+     *
+     * GET /leads/latest/meeting-done-two
+     *
+     * @return JsonResponse
+     */
+    public function latestTwoMeetingDone(): JsonResponse
+    {
+        try {
+            $leads = $this->leadService->getLatestTwoMeetingDoneLeads();
+
+            return $this->responseService->success(
+                LeadResource::collection($leads),
+                'Latest two meeting done leads retrieved successfully'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
