@@ -444,7 +444,8 @@ class LeadController extends Controller
                 'brand',
                 'agency',
                 'assignedUser',
-                'callStatusRelation'
+                'callStatusRelation',
+                'priority'
             ])->accessibleToUser()
               ->orderBy('created_at', 'desc')
               ->limit(2)
@@ -495,6 +496,27 @@ class LeadController extends Controller
             return $this->responseService->success(
                 LeadResource::collection($leads),
                 'Latest two meeting scheduled leads retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get the latest two meeting-done leads.
+     *
+     * GET /leads/latest/meeting-done-two
+     *
+     * @return JsonResponse
+     */
+    public function latestTwoMeetingDone(): JsonResponse
+    {
+        try {
+            $leads = $this->leadService->getLatestTwoMeetingDoneLeads();
+
+            return $this->responseService->success(
+                LeadResource::collection($leads),
+                'Latest two meeting done leads retrieved successfully'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
