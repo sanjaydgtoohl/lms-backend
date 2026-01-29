@@ -569,41 +569,21 @@ $router->get('/google/callback', function () {
         if (isset($token['error'])) {
             return response()->json($token, 400);
         }
-        
-        // Get authenticated user ID (or use 1 as default)
-        $userId = request()->has('user_id') ? request('user_id') : (auth()->check() ? auth()->id() : 1);
          
-        $googleCalendar = App\Models\GoogleCalender::where('user_id', $userId)->first();
+        $googleCalendar = App\Models\GoogleCalender::where(['user_id' => 1])->first();
         
         if (empty($googleCalendar)) {
             $googleCalendar = new App\Models\GoogleCalender();
-            $googleCalendar->user_id = $userId;
         }
     
-        // Save token as array (let model handle JSON encoding)
-        $googleCalendar->token = $token;
+        $googleCalendar->user_id = 1;
+        $googleCalendar->token = json_encode($token);
+        $googleCalendar->save();
         
-        if ($googleCalendar->save()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'OAuth Success',
-                'user_id' => $userId,
-                'data' => [
-                    'id' => $googleCalendar->id,
-                    'user_id' => $googleCalendar->user_id,
-                    'has_token' => !empty($googleCalendar->token),
-                ]
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to save token'
-            ], 500);
-        }
+        return 'OAuth Success';
 
     } catch (\Exception $e) {
         return response()->json([
-            'success' => false,
             'error' => $e->getMessage()
         ], 500);
     }
