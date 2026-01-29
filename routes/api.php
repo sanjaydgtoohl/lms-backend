@@ -545,6 +545,10 @@ $router->group(['prefix' => 'v1/admin', 'middleware' => ['jwt.auth', 'role:admin
     });
 });
 
+$router->get('/google/login', 'GoogleCalendarController@login');
+$router->get('/google/callback', 'GoogleCalendarController@callback');
+$router->post('/event/create', 'GoogleCalendarController@createEvent');
+
 // -------------------------------------------------------
 // Fallback route for undefined API endpoints
 // -------------------------------------------------------
@@ -559,122 +563,4 @@ $router->get('{any:.*}', function () {
             'status_code' => 404,
         ]
     ], 404);
-});
-
-$router->get('/google/login', function () {
-    $service = new \App\Services\GoogleCalendarService();
-    return Redirect::away($service->client()->createAuthUrl());
-});
-
-$router->get('/google/callback', function () {
-
-    if (!request()->has('code')) {
-        return response()->json(['error' => 'Missing code'], 400);
-    }
-
-    $service = new \App\Services\GoogleCalendarService();
-    $client  = $service->client();
-
-    try {
-        $token = $client->fetchAccessTokenWithAuthCode(request('code'));
-       
-        if (isset($token['error'])) {
-            return response()->json($token, 400);
-        }
-         
-        $googleCalendar = App\Models\GoogleCalender::where(['user_id' => 1])->first();
-        
-        if (empty($googleCalendar)) {
-            $googleCalendar = new App\Models\GoogleCalender();
-        }
-    
-        $googleCalendar->user_id = 1;
-        $googleCalendar->token = json_encode($token);
-        $googleCalendar->save();
-        
-        return 'OAuth Success';
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage()
-        ], 500);
-    }
-});
-
-
-$router->post('/event/create', function () {
-    try {
-        $googleCalendar = App\Models\GoogleCalender::where(['user_id' => 1])->first();
-        $token = json_decode($googleCalendar->token, true);
-       
-        if (!$token) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Google token missing. Please login again.'
-            ], 401);
-        }
-
-        $service = new \App\Services\GoogleCalendarService();
-        $client  = $service->client();
-
-        $client->setAccessToken($token);
-
-        // Auto refresh token
-        if ($client->isAccessTokenExpired()) {
-            if ($client->getRefreshToken()) {
-                $newToken = $client->fetchAccessTokenWithRefreshToken(
-                    $client->getRefreshToken()
-                );
-                app('session')->put('google_token', $client->getAccessToken());
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Session expired. Login again.'
-                ], 401);
-            }
-        }
-
-        $calendarService = new \Google\Service\Calendar($client);
-
-        $event = new \Google\Service\Calendar\Event([
-            'summary' => 'Lumen Meeting',
-            'description' => 'Google Calendar via Lumen',
-            'start' => [
-                'dateTime' => '2026-01-29T10:30:00+05:30',
-                'timeZone' => 'Asia/Kolkata',
-            ],
-            'end' => [
-                'dateTime' => '2026-01-29T11:00:00+05:30',
-                'timeZone' => 'Asia/Kolkata',
-            ],
-            'attendees' => [
-                ['email' => 'sanjay.jangid@dgtoohl.com'],
-                ['email' => 'rahul.saini@dgtoohl.com'],
-                ['email' => 'aryan.sharma@dgtoohl.com'],
-            ],
-        ]);
-
-        $createdEvent = $calendarService->events->insert('primary', $event);
-
-        return response()->json([
-            'success' => true,
-            'event_id' => $createdEvent->getId(),
-            'message' => 'Event created & invite sent'
-        ]);
-
-    } catch (\Google\Service\Exception $e) {
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Google API error',
-            'errors' => json_decode($e->getMessage(), true)
-        ], 500);
-
-    } catch (\Exception $e) {
-
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage()
-        ], 500);
-    }
 });
