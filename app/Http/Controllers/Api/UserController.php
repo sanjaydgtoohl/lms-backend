@@ -370,8 +370,7 @@ class UserController extends Controller
     }
 
     /**
-     * Get child users list for the currently authenticated user (id and name only)
-     *
+     * Get child users list for the currently authenticated user with nested hierarchy (id and name only)
      * @param Request $request
      * @return JsonResponse
      */
@@ -384,22 +383,29 @@ class UserController extends Controller
                 return $this->responseService->unauthorized('User not authenticated');
             }
 
-            $childUsers = $user->children()
-                ->select('id', 'name')
-                ->get()
-                ->map(function ($child) {
-                    return [
-                        'id' => $child->id,
-                        'name' => $child->name,
-                    ];
-                });
+            // Get all descendants (flat list)
+            $descendants = [];
+            $this->collectDescendants($user, $descendants);
             
             return $this->responseService->success(
-                $childUsers,
+                $descendants,
                 'Child users list retrieved successfully'
             );
         } catch (\Exception $e) {
             return $this->responseService->serverError('Failed to retrieve child users: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Collect all descendants recursively in a flat list (reference-based)
+     */
+    private function collectDescendants($user, &$descendants): void
+    {
+        $children = $user->children()->select('id', 'name')->orderBy('id', 'desc')->get();
+
+        foreach ($children as $child) {
+            $descendants[] = ['id' => $child->id, 'name' => $child->name];
+            $this->collectDescendants($child, $descendants);
         }
     }
 }

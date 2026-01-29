@@ -911,4 +911,21 @@ class LeadRepository implements LeadRepositoryInterface
             ->limit(2)
             ->get();
     }
+
+    /**
+     * Get the latest two meeting done leads.
+     *
+     * @return Collection
+     */
+    public function getLatestTwoMeetingDoneLeads()
+    {
+        return $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->whereHas('callStatusRelation', function ($query) {
+                $query->where('slug', 'meeting-done');
+            })
+            ->orderBy('created_at', 'desc')
+            ->limit(2)
+            ->get();
+    }
 }

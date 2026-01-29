@@ -189,4 +189,11 @@ interface LeadRepositoryInterface
      * @return Collection
      */    
     public function getLatestTwoMeetingScheduledLeads();
+
+    /**
+     * Get the latest two meeting-done leads.
+     *
+     * @return Collection
+     */
+    public function getLatestTwoMeetingDoneLeads();
 }
