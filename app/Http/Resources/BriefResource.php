@@ -133,12 +133,13 @@ class BriefResource extends JsonResource
     }
 
     /**
-     * Get the first planner status for this brief
+     * Get the latest planner status for this brief
      */
     private function getFirstPlannerStatus(): ?array
     {
         $planner = \App\Models\Planner::where('brief_id', $this->id)
             ->with('plannerStatus')
+            ->latest()
             ->first();
         
         if ($planner && $planner->plannerStatus) {

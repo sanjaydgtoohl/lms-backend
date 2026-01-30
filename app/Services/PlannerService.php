@@ -123,7 +123,7 @@ class PlannerService
                                     $fileData = $this->uploadFile(
                                         $file,
                                         'document',
-                                        'public/planners/submitted-plans'
+                                        'planners/submitted-plans'
                                     );
                                     // Store only the path in database
                                     $uploadedFiles[] = $fileData['path'];
@@ -144,7 +144,7 @@ class PlannerService
                             $uploadedFile = $this->uploadFile(
                                 $data['backup_plan'],
                                 'document',
-                                'public/planners/backup-plans'
+                                'planners/backup-plans'
                             );
                             // Store only the path in database
                             $data['backup_plan'] = $uploadedFile['path'];

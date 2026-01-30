@@ -152,8 +152,8 @@ class PlannerController extends Controller
                 'brief_id' => 'required|integer|exists:briefs,id',
                 'planner_status_id' => 'nullable|integer|exists:planner_statuses,id',
                 'submitted_plan' => 'nullable|array|max:2',
-                'submitted_plan.*' => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:10240',
-                'backup_plan' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:10240',
+                'submitted_plan.*' => 'file|mimes:xls,xlsx,ppt,pptx|max:10240',
+                'backup_plan' => 'nullable|file|mimes:xls,xlsx|max:10240',
                 'status' => 'nullable|in:1,2',
             ]);
 
@@ -222,8 +222,8 @@ class PlannerController extends Controller
             $this->validate($request, [
                 'brief_id' => 'nullable|integer|exists:briefs,id',
                 'submitted_plan' => 'nullable|array|max:2',
-                'submitted_plan.*' => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:10240',
-                'backup_plan' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:10240',
+                'submitted_plan.*' => 'file|mimes:xls,xlsx,ppt,pptx|max:10240',
+                'backup_plan' => 'nullable|file|mimes:xls,xlsx|max:10240',
                 'status' => 'nullable|in:1,2',
             ]);
 
