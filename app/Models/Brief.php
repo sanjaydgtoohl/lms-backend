@@ -71,6 +71,15 @@ class Brief extends Model
     ];
 
     /**
+     * The attributes that should be appended to JSON.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'latest_planner_id',
+    ];
+
+    /**
      * The "booted" method of the model.
      * Register model event listeners.
      */
@@ -176,6 +185,18 @@ class Brief extends Model
     public function priority()
     {
         return $this->belongsTo(Priority::class, 'priority_id');
+    }
+
+    /**
+     * Get the latest planner id from planner history.
+     *
+     * @return int|null
+     */
+    public function getLatestPlannerIdAttribute(): ?int
+    {
+        return PlannerHistory::where('brief_id', $this->id)
+            ->latest()
+            ->value('planner_id');
     }
 
     // ===================================================================
