@@ -31,6 +31,8 @@ class PlannerHistoryResource extends JsonResource
             'planner' => $this->whenLoaded('planner', function () {
                 return [
                     'id' => $this->planner->id,
+                    'submitted_plan' => $this->getSubmittedPlanWithUrls(),
+                    'backup_plan' => $this->getBackupPlanWithUrl(),
                 ];
             }),
 
@@ -48,10 +50,6 @@ class PlannerHistoryResource extends JsonResource
                     'slug' => $this->plannerStatus->slug,
                 ];
             }),
-
-            // Planner Data Snapshot
-            'submitted_plan' => $this->getSubmittedPlanWithUrls(),
-            'backup_plan' => $this->getBackupPlanWithUrl(),
 
             // Timestamps
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
@@ -110,14 +108,18 @@ class PlannerHistoryResource extends JsonResource
     {
         try {
             $appUrl = rtrim(config('app.url'), '/');
-            $url = $appUrl . '/storage/' . $path;
             
-            // URL encode the filename part only
-            $pathParts = explode('/', $url);
+            // Remove 'public/' from path if present
+            $path = str_replace('public/', '', $path);
+            
+            // URL encode only the filename part
+            $pathParts = explode('/', $path);
             $filename = array_pop($pathParts);
             $directory = implode('/', $pathParts);
             
-            return $directory . '/' . rawurlencode($filename);
+            $url = $appUrl . '/storage/' . $directory . '/' . rawurlencode($filename);
+            
+            return $url;
         } catch (\Exception $e) {
             return null;
         }
