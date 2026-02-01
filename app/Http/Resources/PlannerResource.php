@@ -118,6 +118,9 @@ class PlannerResource extends JsonResource
                 $filename = array_pop($pathParts);
                 $directory = implode('/', $pathParts);
                 
+                // Remove 'public' from directory path
+                $directory = str_replace('public/', '', $directory);
+                
                 // Construct URL with encoded filename
                 $url = $appUrl . '/storage/' . $directory . '/' . rawurlencode($filename);
                 return $url;
