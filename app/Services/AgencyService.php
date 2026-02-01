@@ -67,12 +67,10 @@ class AgencyService
                         $agency = $this->repo->createAgency($agencyData);
     
                         // Set the first created agency as parent
-                        /*
                         if ($i == 0) {
                             $is_parent = $agency->id;
                         }
-                         */
-
+                         
                         if(!empty($clients) && is_array($clients)){
                             // Get Direct agency ID
                             $directAgencyId = $this->getOrCreateDirectAgency();
@@ -93,7 +91,7 @@ class AgencyService
                     }
                 }
             }
-    
+            
             DB::commit();
     
             return $agency;
@@ -104,88 +102,78 @@ class AgencyService
             DB::rollBack();
             return $this->responseService->serverError('Registration failed: ' . $e->getMessage());
         }
-    
     }
     
-    public function update($id, array $data) {
+    public function update(int $id, array $data) {
         try {
             DB::beginTransaction();
-
-            // Get Direct agency ID
-            $directAgencyId = $this->getOrCreateDirectAgency();
-
-            // Update agency basic info if name/type provided
-            if (isset($data['name']) && !empty($data['name'])) {
-                // Check if agency name already exists (excluding current agency and soft-deleted)
-                $nameToCheck = is_array($data['name']) ? $data['name'][0] : $data['name'];
+    
+            $agency = Agency::findOrFail($id);
+    
+            if (!empty($data['name']) && is_array($data['name'])) {
+                $name = $data['name'][0] ?? null;
                 
-                if (Agency::where('name', $nameToCheck)->where('id', '!=', $id)->whereNull('deleted_at')->exists()) {
-                    throw new \DomainException('Agency name "' . $nameToCheck . '" already exists. Agency name must be unique.');
+                if ($name) {
+                    // Check if agency name already exists (excluding current agency)
+                    if (Agency::where('name', $name)
+                        ->where('id', '!=', $id)
+                        ->whereNull('deleted_at')
+                        ->exists()) {
+                        throw new \DomainException('Agency name "' . $name . '" already exists. Agency name must be unique.');
+                    }
+                    
+                    $agency->name = $name;
+                    $agency->slug = Str::slug($name);
                 }
-
-                $updateData = [
-                    'name' => $nameToCheck,
-                    'slug' => Str::slug($nameToCheck),
-                ];
-
-                // Add type if provided
-                if (isset($data['type']) && !empty($data['type'])) {
-                    $typeValue = is_array($data['type']) ? $data['type'][0] : $data['type'];
-                    $updateData['agency_type'] = $typeValue;
-                }
-
-                // Add status if provided
-                if (isset($data['status'])) {
-                    $updateData['status'] = $data['status'];
-                }
-
-                // Update the agency
-                $this->repo->updateAgency($id, $updateData);
-            } elseif (isset($data['status'])) {
-                // Update status only if provided
-                $this->repo->updateAgency($id, ['status' => $data['status']]);
             }
-
+    
+            if (!empty($data['type']) && is_array($data['type'])) {
+                $type = $data['type'][0] ?? null;
+                if ($type) {
+                    $agency->agency_type = $type;
+                }
+            }
+    
+            $agency->save();
+    
             // Handle client/brand relationships
-            if (isset($data['client']) && !empty($data['client'])) {
-                $clients = is_array($data['client']) ? $data['client'] : [$data['client']];
+            if (!empty($data['client']) && is_array($data['client'])) {
+                $clients = $data['client'][0] ?? [];
                 
-                // Flatten if nested array
-                $flatClients = [];
-                foreach ($clients as $client) {
-                    if (is_array($client)) {
-                        $flatClients = array_merge($flatClients, $client);
-                    } else {
-                        $flatClients[] = $client;
+                if (is_array($clients)) {
+                    // Remove existing relationships
+                    BrandAgencyRelationship::where('agency_id', $id)->delete();
+                    
+                    // Add new relationships
+                    foreach ($clients as $client) {
+                        $directAgencyId = $this->getOrCreateDirectAgency();
+                        
+                        // Remove Direct agency from this brand if it exists
+                        BrandAgencyRelationship::where('brand_id', $client)
+                            ->where('agency_id', $directAgencyId)
+                            ->delete();
+                        
+                        // Assign this agency to the brand
+                        BrandAgencyRelationship::create([
+                            'agency_id' => $agency->id,
+                            'brand_id' => $client,
+                        ]);
                     }
                 }
-
-                // Permanently delete existing relationships for this agency
-                BrandAgencyRelationship::where('agency_id', $id)->forceDelete();
-                
-                // Create new relationships and remove Direct from brands
-                foreach ($flatClients as $brandId) {
-                    // Remove Direct agency from this brand if it exists
-                    BrandAgencyRelationship::where('brand_id', $brandId)
-                        ->where('agency_id', $directAgencyId)
-                        ->delete();
-                    
-                    // Assign this agency to the brand
-                    $agencyClients = new BrandAgencyRelationship();
-                    $agencyClients->agency_id = $id;
-                    $agencyClients->brand_id = $brandId;
-                    $agencyClients->save();
-                }
             }
-
+    
             DB::commit();
-            return $this->repo->getAgencyById($id);
+            return $agency;
+            
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
         }
     }
-
+    
     private function createUniqueSlug(string $name, $excludeId = null): string {
         return Str::slug($name);
     }

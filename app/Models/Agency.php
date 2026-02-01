@@ -37,6 +37,7 @@ class Agency extends Model
 
     /**
      * The "booting" method of the model.
+     * Register model events.
      */
     protected static function boot()
     {
@@ -45,20 +46,6 @@ class Agency extends Model
         static::deleting(function ($agency) {
             // Delete all brand agency relationships when agency is deleted
             BrandAgencyRelationship::where('agency_id', $agency->id)->delete();
-        });
-
-        static::created(function ($agency) {
-            // If is_parent is null, set it to its own ID
-            if (is_null($agency->is_parent)) {
-                $agency->update(['is_parent' => $agency->id]);
-            }
-        });
-
-        static::updating(function ($agency) {
-            // If is_parent is null, set it to its own ID
-            if (is_null($agency->is_parent)) {
-                $agency->is_parent = $agency->id;
-            }
         });
     }
 
