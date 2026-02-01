@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Contracts\Repositories\AgencyRepositoryInterface;
 use App\Models\Agency;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 
 class AgencyRepository implements AgencyRepositoryInterface
 {
@@ -91,7 +92,7 @@ class AgencyRepository implements AgencyRepositoryInterface
     }
 
     /**
-     * Update an existing agency  by ID.
+     * Update an existing agency record.
      *
      * @param int $id
      * @param array<string, mixed> $data
@@ -100,9 +101,22 @@ class AgencyRepository implements AgencyRepositoryInterface
     public function updateAgency(int $id, array $data): Agency
     {
         $agency = $this->model->findOrFail($id);
+
+        // Update slug only when name is provided
+        if (isset($data['name'])) {
+            $data['slug'] = Str::slug($data['name']);
+        }
+
         $agency->update($data);
-        $agency->load(['agencyType', 'brand', 'parentAgency']);
-        return $agency;
+
+        return $agency->fresh([
+            'agencyType',
+            'brand',
+            'parentAgency',
+            'childs',
+            'childs.agencyType',
+            'childs.brand',
+        ]);
     }
 
     /**
