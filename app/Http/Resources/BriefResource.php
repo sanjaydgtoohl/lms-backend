@@ -77,7 +77,8 @@ class BriefResource extends JsonResource
                 ];
             }),
             'planner_status' => $this->getFirstPlannerStatus(),
-
+            'planner_id' => $this->latest_planner_id,
+            
             // Timestamps
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
@@ -133,12 +134,13 @@ class BriefResource extends JsonResource
     }
 
     /**
-     * Get the first planner status for this brief
+     * Get the latest planner status for this brief
      */
     private function getFirstPlannerStatus(): ?array
     {
         $planner = \App\Models\Planner::where('brief_id', $this->id)
             ->with('plannerStatus')
+            ->latest()
             ->first();
         
         if ($planner && $planner->plannerStatus) {

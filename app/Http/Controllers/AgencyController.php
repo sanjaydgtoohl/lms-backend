@@ -129,16 +129,14 @@ class AgencyController extends Controller
             $agency = $this->agencyService->create($validatedData);
             
             // Eager load relationships before returning the resource
-            if ($agency instanceof Agency) {
+            if ($agency) {
                 $agency->load(['agencyType', 'brand', 'parentAgency']);
-                return $this->responseService->created(
-                    new AgencyResource($agency),
-                    'Agency created successfully'
-                );
             }
-            
-            // If service returns a response (error case)
-            return $agency;
+
+            return $this->responseService->created(
+                new AgencyResource($agency),
+                'Agency created successfully'
+            );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
@@ -164,7 +162,7 @@ class AgencyController extends Controller
     }
 
     /**
-     * Update an agency
+     * Update an existing agency
      *
      * @param Request $request
      * @param int $id
@@ -173,28 +171,32 @@ class AgencyController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         try {
-            Agency::findOrFail($id);
-            
+            // Verify agency exists
+            $agency = Agency::findOrFail($id);
+
             $rules = [
-                'name' => 'nullable|array',
-                'name.*' => 'string|max:255|distinct|unique:agency,name,' . $id . ',id,deleted_at,NULL',
-                'type' => 'nullable|array',
-                'type.*' => 'integer|exists:agency_type,id',
-                'client' => 'nullable|array',
-                'client.*.*' => 'integer|exists:brands,id',
-                'status' => 'nullable|in:1,2,15',
+                'name' => 'sometimes|required|array',
+                'name.*' => 'string|max:255|distinct|unique:agency,name,NULL,' . $id . ',deleted_at,NULL',
+                'type' => 'sometimes|required|array', 
+                'type.*' => 'integer|exists:agency_type,id', 
+                'client' => 'sometimes|required|array',
+                'client.*.*' => 'integer|exists:brands,id'
             ];
 
             $validatedData = $this->validate($request, $rules);
             
-            if (empty(array_filter($validatedData))) {
-                return $this->responseService->error('No data provided for update', null, 400, 'NO_DATA');
+            // Use AgencyService to handle update with relationships
+            $agency = $this->agencyService->update($id, $validatedData);
+            
+            // Eager load relationships before returning the resource
+            if ($agency) {
+                $agency->load(['agencyType', 'brand', 'parentAgency']);
             }
 
-            $agency = $this->agencyService->update($id, $validatedData);
-            $agency->load(['agencyType', 'brand', 'parentAgency']);
-
-            return $this->responseService->updated(new AgencyResource($agency), 'Agency updated successfully');
+            return $this->responseService->success(
+                new AgencyResource($agency),
+                'Agency updated successfully'
+            );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
