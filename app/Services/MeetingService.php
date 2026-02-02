@@ -297,4 +297,30 @@ class MeetingService
             throw new DomainException('Unexpected error while restoring meeting.', 0, $e);
         }
     }
+
+    public function getEmailIdsForAttendees(array $attendeesIds): array
+    {
+        try {
+            return $this->repository->getEmailIdsForAttendees($attendeesIds);
+        } catch (QueryException $e) {
+            Log::error('Database error fetching email IDs for attendees', ['attendees_ids' => $attendeesIds, 'exception' => $e]);
+            throw new DomainException('Database error while fetching email IDs for attendees.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching email IDs for attendees', ['attendees_ids' => $attendeesIds, 'exception' => $e]);
+            throw new DomainException('Unexpected error while fetching email IDs for attendees.');
+        }
+    }
+
+    public function getLeadidByEmail(int $leadId): array
+    {
+        try {
+            return $this->repository->getLeadidByEmail($leadId);
+        } catch (QueryException $e) {
+            Log::error('Database error fetching lead ID by email', ['lead_id' => $leadId, 'exception' => $e]);
+            throw new DomainException('Database error while fetching lead ID by email.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching lead ID by email', ['lead_id' => $leadId, 'exception' => $e]);
+            throw new DomainException('Unexpected error while fetching lead ID by email.');
+        }
+    }   
 }

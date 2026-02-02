@@ -11,7 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Throwable;
 use DomainException;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Services\GoogleCalendarService;
 
 /**
  * Controller for managing meetings.
@@ -24,17 +24,20 @@ class MeetingController extends Controller
 
     protected $meetingService;
     protected $responseService;
+    protected $googleCalendarService;
 
     /**
      * Create a new MeetingController instance.
      *
      * @param MeetingService $meetingService Service for meeting operations
      * @param ResponseService $responseService Service for standardized API responses
+     * @param GoogleCalendarService $googleCalendarService Service for Google Calendar integration
      */
-    public function __construct(MeetingService $meetingService, ResponseService $responseService)
+    public function __construct(MeetingService $meetingService, ResponseService $responseService, GoogleCalendarService $googleCalendarService)
     {
         $this->meetingService = $meetingService;
         $this->responseService = $responseService;
+        $this->googleCalendarService = $googleCalendarService;
     }
 
     /**
@@ -132,14 +135,14 @@ class MeetingController extends Controller
             $rules = [
                 'title' => 'required|string|max:255',
                 'lead_id' => 'required|integer|exists:leads,id',
-                'attendees_id' => 'nullable|array',
+                'attendees_id' => 'required|array',
                 'attendees_id.*' => 'integer|exists:users,id',
                 'type' => 'required|in:face_to_face,online',
                 'location' => 'nullable|string|max:255',
                 'agenda' => 'nullable|string',
-                'link' => 'nullable|string|url',
-                'meeting_date' => 'nullable|date',
-                'meeting_time' => 'nullable|date_format:H:i',
+                // 'link' => 'nullable|string|url',
+                'meeting_start_date' => 'required|date_format:Y-m-d H:i',
+                'meeting_end_date' => 'required|date_format:Y-m-d H:i|after:meeting_start_date',
                 'status' => 'nullable|in:1,2,15',
             ];
 
@@ -149,8 +152,19 @@ class MeetingController extends Controller
             if (isset($validatedData['attendees_id']) && is_string($validatedData['attendees_id'])) {
                 $validatedData['attendees_id'] = json_decode($validatedData['attendees_id'], true);
             }
-
+        
             $meeting = $this->meetingService->createMeeting($validatedData);
+            $getEmailIdsForAttendees = $this->meetingService->getEmailIdsForAttendees($validatedData['attendees_id']);
+            $getLeadidByEmail = $this->meetingService->getLeadidByEmail($validatedData['lead_id']);
+            
+            $meetingData = $this->googleCalendarService->createEvent([
+                'summary' => $validatedData['title'],
+                'description' => $validatedData['agenda'] ?? '',
+                'start' => $validatedData['meeting_start_date'],
+                'end' => $validatedData['meeting_end_date'],
+                'attendees' => array_merge($getEmailIdsForAttendees, $getLeadidByEmail),
+            ], 1);
+            
             $data = new MeetingResource($meeting);
             return $this->responseService->created($data, 'Meeting created successfully');
         } catch (ValidationException $e) {
