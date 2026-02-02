@@ -152,6 +152,10 @@ class MeetingController extends Controller
             if (isset($validatedData['attendees_id']) && is_string($validatedData['attendees_id'])) {
                 $validatedData['attendees_id'] = json_decode($validatedData['attendees_id'], true);
             }
+            
+            if (!isset($validatedData['status'])) {
+                $validatedData['status'] = '1';
+            }
         
             $meeting = $this->meetingService->createMeeting($validatedData);
             $getEmailIdsForAttendees = $this->meetingService->getEmailIdsForAttendees($validatedData['attendees_id']);
@@ -211,8 +215,8 @@ class MeetingController extends Controller
                 'location' => 'sometimes|nullable|string|max:255',
                 'agenda' => 'sometimes|nullable|string',
                 'link' => 'sometimes|nullable|string|url',
-                'meeting_date' => 'sometimes|nullable|date',
-                'meeting_time' => 'sometimes|nullable|date_format:H:i',
+                'meeting_start_date' => 'sometimes|nullable|date_format:Y-m-d H:i',
+                'meeting_end_date' => 'sometimes|nullable|date_format:Y-m-d H:i|after:meeting_start_date',
                 'status' => 'sometimes|nullable|in:1,2,15',
             ];
 

@@ -21,14 +21,15 @@ class Meeting extends Model
         'location',
         'agenda',
         'link',
-        'meeting_date',
-        'meeting_time',
+        'meeting_start_date',
+        'meeting_end_date',
         'status',
         'google_event',
     ];
 
     protected $casts = [
-        'meeting_date' => 'date',
+        'meeting_start_date' => 'datetime',
+        'meeting_end_date' => 'datetime',
         'attendees_id' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
