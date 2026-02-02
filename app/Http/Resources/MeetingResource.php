@@ -31,8 +31,8 @@ class MeetingResource extends JsonResource
             'location' => $this->location,
             'agenda' => $this->agenda,
             'link' => $this->link,
-            'meeting_date' => $this->meeting_date,
-            'meeting_time' => $this->meeting_time,
+            'meeting_start_date' => $this->meeting_start_date,
+            'meeting_end_date' => $this->meeting_end_date,
             'status' => $this->status,
             
             'lead' => $this->when($this->lead, [

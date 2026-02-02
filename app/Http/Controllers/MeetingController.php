@@ -215,8 +215,8 @@ class MeetingController extends Controller
                 'location' => 'sometimes|nullable|string|max:255',
                 'agenda' => 'sometimes|nullable|string',
                 'link' => 'sometimes|nullable|string|url',
-                'meeting_date' => 'sometimes|nullable|date',
-                'meeting_time' => 'sometimes|nullable|date_format:H:i',
+                'meeting_start_date' => 'sometimes|nullable|date_format:Y-m-d H:i',
+                'meeting_end_date' => 'sometimes|nullable|date_format:Y-m-d H:i|after:meeting_start_date',
                 'status' => 'sometimes|nullable|in:1,2,15',
             ];
 

@@ -28,7 +28,8 @@ class Meeting extends Model
     ];
 
     protected $casts = [
-        'meeting_date' => 'date',
+        'meeting_start_date' => 'datetime',
+        'meeting_end_date' => 'datetime',
         'attendees_id' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
