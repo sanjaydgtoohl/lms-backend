@@ -17,6 +17,7 @@ use Google\Service\Calendar\Event;
 use App\Models\GoogleCalender;
 use Exception;
 use Carbon\Carbon;
+use GuzzleHttp\Client as GuzzleClient;
 
 class GoogleCalendarService
 {
@@ -31,6 +32,12 @@ class GoogleCalendarService
         $this->client->setScopes([Calendar::CALENDAR]);
         $this->client->setAccessType('offline'); // IMPORTANT
         $this->client->setPrompt('consent');     // IMPORTANT
+        
+        // Fix SSL certificate issue on Windows/WAMP
+        $httpClient = new GuzzleClient([
+            'verify' => false  // Disable SSL verification for development
+        ]);
+        $this->client->setHttpClient($httpClient);
     }
 
     /* ===============================

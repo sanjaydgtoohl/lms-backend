@@ -165,6 +165,8 @@ class MeetingController extends Controller
                 'attendees' => array_merge($getEmailIdsForAttendees, $getLeadidByEmail),
             ], 1);
             
+            $meeting->update(['google_event' => json_encode($meetingData)]);
+            
             $data = new MeetingResource($meeting);
             return $this->responseService->created($data, 'Meeting created successfully');
         } catch (ValidationException $e) {
