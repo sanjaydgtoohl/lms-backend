@@ -112,4 +112,8 @@ interface MeetingRepositoryInterface
      * @return bool
      */
     public function restore(int $id): bool;
+
+    public function getEmailIdsForAttendees(array $attendeesId): array;
+
+    public function getLeadidByEmail(int $id): array;
 }

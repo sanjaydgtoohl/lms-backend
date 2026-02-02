@@ -166,4 +166,14 @@ class EloquentMeetingRepository implements MeetingRepositoryInterface
     public function getRecentMeeting(int $limit = 2)
     {
     }
+
+    public function getEmailIdsForAttendees(array $attendeesId): array
+    {
+        return \App\Models\User::whereIn('id', $attendeesId)->pluck('email')->toArray();
+    }
+
+    public function getLeadidByEmail(int $id): array
+    {
+        return \App\Models\Lead::where('id', $id)->pluck('email')->toArray();
+    }
 }
