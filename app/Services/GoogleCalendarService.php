@@ -105,7 +105,7 @@ class GoogleCalendarService
     }
 
    
-    public function createEvent(array $data, int $userId = 1): array
+    public function createEventOld(array $data, int $userId = 1): array
     {        
         $calendar = $this->getCalendar($userId);
 
@@ -130,6 +130,50 @@ class GoogleCalendarService
             'html_link'  => $createdEvent->getHtmlLink(),
         ];
     }
+
+    public function createEvent(array $data, int $userId = 1): array
+    {
+        $calendar = $this->getCalendar($userId);
+
+        $event = new Event([
+            'summary'     => $data['summary'],
+            'description' => $data['description'] ?? '',
+            'start' => [
+                'dateTime' => Carbon::parse($data['start'])->toIso8601String(),
+                'timeZone' => 'Asia/Kolkata',
+            ],
+            'end' => [
+                'dateTime' => Carbon::parse($data['end'])->toIso8601String(),
+                'timeZone' => 'Asia/Kolkata',
+            ],
+            'attendees' => $this->formatAttendees($data['attendees'] ?? []),
+
+            // OPTIONAL: Google Meet link
+            'conferenceData' => [
+                'createRequest' => [
+                    'requestId' => uniqid(),
+                ],
+            ],
+        ]);
+
+        $created = $calendar->events->insert(
+            'primary',
+            $event,
+            [
+                'sendUpdates' => 'all', // notify attendees
+                'conferenceDataVersion' => 1,    // required for Google Meet
+            ]
+        );
+
+        return [
+            'event_id'     => $created->getId(),
+            'html_link'    => $created->getHtmlLink(),
+            'meet_link'    => optional($created->getConferenceData())
+                                ->getEntryPoints()[0]
+                                ->getUri() ?? null,
+        ];
+    }
+
 
     protected function formatAttendees(array $emails = []): array
     {
