@@ -21,8 +21,8 @@ class Meeting extends Model
         'location',
         'agenda',
         'link',
-        'meeting_date',
-        'meeting_time',
+        'meeting_start_date',
+        'meeting_end_date',
         'status',
         'google_event',
     ];

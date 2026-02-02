@@ -152,6 +152,10 @@ class MeetingController extends Controller
             if (isset($validatedData['attendees_id']) && is_string($validatedData['attendees_id'])) {
                 $validatedData['attendees_id'] = json_decode($validatedData['attendees_id'], true);
             }
+            
+            if (!isset($validatedData['status'])) {
+                $validatedData['status'] = '1';
+            }
         
             $meeting = $this->meetingService->createMeeting($validatedData);
             $getEmailIdsForAttendees = $this->meetingService->getEmailIdsForAttendees($validatedData['attendees_id']);
