@@ -130,6 +130,9 @@ class BrandController extends Controller
 
             $validatedData = $this->validate($request, $rules);
 
+            // Trim whitespace from name
+            $validatedData['name'] = trim($validatedData['name']);
+
             // Add system-generated fields
             // Generate a temporary unique slug to avoid constraint violations
             // The actual slug will be finalized in the repository with the brand ID
@@ -182,7 +185,8 @@ class BrandController extends Controller
 
             // Update slug if name changed
             if ($request->has('name')) {
-                $validatedData['slug'] = Str::slug($request->name);
+                $validatedData['name'] = trim($validatedData['name']);
+                $validatedData['slug'] = Str::slug($validatedData['name']);
             }
 
             $this->brandService->updateBrand($id, $validatedData);

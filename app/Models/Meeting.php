@@ -24,6 +24,7 @@ class Meeting extends Model
         'meeting_date',
         'meeting_time',
         'status',
+        'google_event',
     ];
 
     protected $casts = [
