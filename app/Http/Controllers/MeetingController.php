@@ -8,6 +8,7 @@ use App\Http\Resources\MeetingResource;
 use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 use DomainException;
 use Illuminate\Validation\ValidationException;
@@ -227,8 +228,74 @@ class MeetingController extends Controller
                 $validatedData['attendees_id'] = json_decode($validatedData['attendees_id'], true);
             }
 
-            $meeting = $this->meetingService->updateMeeting($id, $validatedData);
-            $data = new MeetingResource($meeting);
+            // Fetch the meeting to get existing Google event ID
+            $meeting = $this->meetingService->getMeetingById($id);
+
+            // Update the meeting in database
+            $updatedMeeting = $this->meetingService->updateMeeting($id, $validatedData);
+
+            // Update Google Calendar event if it exists
+            if ($meeting->google_event) {
+                try {
+                    $googleEvent = json_decode($meeting->google_event, true);
+                    
+                    if (isset($googleEvent['event_id'])) {
+                        $eventUpdateData = [];
+
+                        // Prepare updated event data - same structure as store method
+                        if (isset($validatedData['title'])) {
+                            $eventUpdateData['summary'] = $validatedData['title'];
+                        }
+
+                        if (isset($validatedData['agenda'])) {
+                            $eventUpdateData['description'] = $validatedData['agenda'];
+                        }
+
+                        // Update meeting time if changed
+                        if (isset($validatedData['meeting_start_date'])) {
+                            $eventUpdateData['start'] = $validatedData['meeting_start_date'];
+                        }
+
+                        if (isset($validatedData['meeting_end_date'])) {
+                            $eventUpdateData['end'] = $validatedData['meeting_end_date'];
+                        }
+
+                        // Update attendees if changed - use same connection logic as store
+                        // If attendees changed, get new emails; otherwise keep existing
+                        if (isset($validatedData['attendees_id'])) {
+                            $getEmailIdsForAttendees = $this->meetingService->getEmailIdsForAttendees($validatedData['attendees_id']);
+                        } else {
+                            // If attendees not changed, use existing from meeting
+                            $getEmailIdsForAttendees = $this->meetingService->getEmailIdsForAttendees($updatedMeeting->attendees_id);
+                        }
+
+                        // Get lead email - use updated lead_id if changed, otherwise existing
+                        $leadIdToUse = isset($validatedData['lead_id']) ? $validatedData['lead_id'] : $meeting->lead_id;
+                        $getLeadidByEmail = $this->meetingService->getLeadidByEmail($leadIdToUse);
+
+                        // Update attendees in Google Calendar (same format as store)
+                        $eventUpdateData['attendees'] = array_merge($getEmailIdsForAttendees, $getLeadidByEmail);
+
+                        // Update the Google Calendar event
+                        $updatedEventData = $this->googleCalendarService->updateEvent(
+                            $googleEvent['event_id'],
+                            $eventUpdateData,
+                            1
+                        );
+                        
+                        // Update the google_event field with new data
+                        $updatedMeeting->update(['google_event' => json_encode($updatedEventData)]);
+                    }
+                } catch (Throwable $e) {
+                    // Log Google Calendar update error but continue with database update
+                    Log::warning('Failed to update Google Calendar event', [
+                        'meeting_id' => $id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            $data = new MeetingResource($updatedMeeting->fresh());
             return $this->responseService->updated($data, 'Meeting updated successfully');
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
@@ -246,6 +313,27 @@ class MeetingController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
+            // Get the meeting before deleting
+            $meeting = $this->meetingService->getMeetingById($id);
+
+            // Delete from Google Calendar if event exists
+            if ($meeting->google_event) {
+                try {
+                    $googleEvent = json_decode($meeting->google_event, true);
+                    
+                    if (isset($googleEvent['event_id'])) {
+                        $this->googleCalendarService->deleteEvent($googleEvent['event_id'], 1);
+                    }
+                } catch (Throwable $e) {
+                    // Log error but continue with soft delete
+                    Log::warning('Failed to delete Google Calendar event', [
+                        'meeting_id' => $id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            // Soft delete from database
             $this->meetingService->softDeleteMeeting($id);
             return $this->responseService->deleted('Meeting deleted successfully');
         } catch (ValidationException $e) {
