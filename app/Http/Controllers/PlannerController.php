@@ -13,6 +13,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Throwable;
 use Illuminate\Validation\ValidationException;
+use App\Models\PlannerStatus;
+use Illuminate\Support\Facades\Log;
 
 class PlannerController extends Controller
 {
@@ -106,8 +108,8 @@ class PlannerController extends Controller
             $this->validate($request, [
                 'planner_status_id' => 'nullable|integer|exists:planner_statuses,id',
                 'submitted_plan' => 'nullable|array|max:2',
-                'submitted_plan.*' => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:10240',
-                'backup_plan' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:10240',
+                'submitted_plan.*' => 'file|mimes:xls,xlsx,ppt,pptx|max:10240',
+                'backup_plan' => 'nullable|file|mimes:xls,xlsx|max:10240',
                 'status' => 'nullable|in:1,2',
             ]);
 
@@ -119,6 +121,29 @@ class PlannerController extends Controller
                 $data,
                 Auth::id()
             );
+
+            /**
+             * Auto update planner status to "Plan Submitted" when planner is created
+             */
+            try {
+                $planSubmittedStatus = PlannerStatus::where('name', 'Plan Submitted')->first();
+                
+                if ($planSubmittedStatus) {
+                    $planner->update(['planner_status_id' => $planSubmittedStatus->id]);
+                    
+                    Log::info('Planner status updated to Plan Submitted', [
+                        'planner_id' => $planner->id,
+                        'planner_status_id' => $planSubmittedStatus->id
+                    ]);
+                } else {
+                    Log::warning('Plan Submitted status not found in database');
+                }
+            } catch (Throwable $e) {
+                Log::error('Error updating planner status', [
+                    'planner_id' => $planner->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             return $this->responseService->success(
                 new PlannerResource($planner),
