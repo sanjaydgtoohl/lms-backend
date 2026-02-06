@@ -51,4 +51,24 @@ class Meeting extends Model
     {
         return 'uuid';
     }
+
+    /**
+     * Get Google Event URL from JSON data
+     */
+    public function getGoogleEventUrl()
+    {
+        if (!$this->google_event) {
+            return null;
+        }
+
+        try {
+            $googleEvent = is_string($this->google_event) 
+                ? json_decode($this->google_event, true) 
+                : $this->google_event;
+            
+            return $googleEvent['html_link'] ?? null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
 }

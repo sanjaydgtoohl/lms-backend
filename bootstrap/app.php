@@ -128,11 +128,9 @@ $app->register(\Flipbox\LumenGenerator\LumenGeneratorServiceProvider::class);
 
 // Register providers
 $app->register(Laratrust\LaratrustServiceProvider::class);
-
 $app->register(Illuminate\Session\SessionServiceProvider::class);
 $app->register(Illuminate\Cookie\CookieServiceProvider::class);
 $app->register(Illuminate\Routing\RoutingServiceProvider::class);
-
 
 if (!class_exists('Laratrust')) {
     class_alias(Laratrust\LaratrustFacade::class, 'Laratrust');

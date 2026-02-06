@@ -295,7 +295,7 @@ class LeadController extends Controller
                 );
             }
 
-            // Set default status to deactivated if not provided
+            // Set default status to activated if not provided
             if (!isset($validatedData['status'])) {
                 $validatedData['status'] = '1';
             }
@@ -945,6 +945,10 @@ class LeadController extends Controller
                         return [
                             'id' => $lead->id,
                             'name' => $lead->name,
+                            'brand'=>$brandName = $lead->brand?->name ?? null,                            
+                            'sub_source' => $lead->subSource?->name ?? null,
+                            'contact_person_name' => $lead->name,
+                            'mobile_numbers' => $lead->mobileNumbers->pluck('mobile_number')->toArray(),
                             'priority' => [
                                 'id' => $lead->priority?->id,
                                 'name' => $lead->priority?->name,

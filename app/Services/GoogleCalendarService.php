@@ -209,17 +209,17 @@ class GoogleCalendarService
             $event->setDescription($data['description']);
         }
 
-        // if (isset($data['start'], $data['end'])) {
-        //     $event->setStart([
-        //         'dateTime' => Carbon::parse($data['start'])->toIso8601String(),
-        //         'timeZone' => 'Asia/Kolkata',
-        //     ]);
+        if (isset($data['start'], $data['end'])) {
+            $startDateTime = new \Google\Service\Calendar\EventDateTime();
+            $startDateTime->setDateTime(Carbon::parse($data['start'])->toIso8601String());
+            $startDateTime->setTimeZone('Asia/Kolkata');
+            $event->setStart($startDateTime);
 
-        //     $event->setEnd([
-        //         'dateTime' => Carbon::parse($data['end'])->toIso8601String(),
-        //         'timeZone' => 'Asia/Kolkata',
-        //     ]);
-        // }
+            $endDateTime = new \Google\Service\Calendar\EventDateTime();
+            $endDateTime->setDateTime(Carbon::parse($data['end'])->toIso8601String());
+            $endDateTime->setTimeZone('Asia/Kolkata');
+            $event->setEnd($endDateTime);
+        }
 
         $updatedEvent = $calendar->events->update('primary', $eventId, $event);
 
