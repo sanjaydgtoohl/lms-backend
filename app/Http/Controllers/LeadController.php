@@ -295,7 +295,7 @@ class LeadController extends Controller
                 );
             }
 
-            // Set default status to deactivated if not provided
+            // Set default status to activated if not provided
             if (!isset($validatedData['status'])) {
                 $validatedData['status'] = '1';
             }
