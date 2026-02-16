@@ -251,8 +251,8 @@ class BriefController extends Controller
             $isAssignedTo = $user->id == $brief->assign_user_id;
 
             if (!$isSuperAdmin && !$isCreatedBy && !$isAssignedTo) {
-                return $this->responseService->error(
-                    'You are not authorized to view this brief. Only Super Admin, the user who created this brief, or the user assigned to this brief can view it.',
+                return $this->responseService->forbidden(
+                    'You are not authorized to view this brief. Only Super Admin, the user who created this brief, or the user assigned to this brief can view it.'
                 );
             }
 
