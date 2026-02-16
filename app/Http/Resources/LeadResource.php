@@ -51,13 +51,13 @@ class LeadResource extends JsonResource
             // 'state_id' => $this->state_id,
             // 'city_id' => $this->city_id,
             // 'zone_id' => $this->zone_id,
-            // 'postal_code' => $this->postal_code,
+            'postal_code' => $this->postal_code,
 
             // Special Fields
             //'call_status' => $this->call_status,
             'call_attempt' => $this->call_attempt,
-
-            // Relationship Objects
+    
+            // Relationship Objects or Call feedback
             'call_status_relation' => $this->whenLoaded('callStatusRelation', function () {
                 return [
                     'id' => $this->callStatusRelation->id ?? null,
@@ -65,6 +65,7 @@ class LeadResource extends JsonResource
                 ];
             }),
 
+            // Status of the lead
             'lead_status_relation' => $this->whenLoaded('leadStatusRelation', function () {
                 return [
                     'id' => $this->leadStatusRelation->id ?? null,
@@ -106,7 +107,6 @@ class LeadResource extends JsonResource
                 return [
                     'id' => $this->priority->id ?? null,
                     'name' => $this->priority->name ?? null,
-                    'slug' => $this->priority->slug ?? null,
                 ];
             }),
 

@@ -44,7 +44,6 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
         'status',
         'email_verified_at',
         'last_login_at',
-        'is_parent',
     ];
 
     /**
@@ -196,19 +195,37 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     }
 
     /**
-     * Get the parent user
+     * Get user parent relationships
      */
-    public function parent()
+    public function parentRelationships(): HasMany
     {
-        return $this->belongsTo(User::class, 'is_parent');
+        return $this->hasMany(UserParent::class, 'user_id');
     }
 
     /**
-     * Get the child users
+     * Get the parent users of this user
+     */
+    public function parents()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'user_parent',
+            'user_id',
+            'is_parent'
+        )->withTimestamps();
+    }
+
+    /**
+     * Get the child users (users that have this user as parent)
      */
     public function children()
     {
-        return $this->hasMany(User::class, 'is_parent');
+        return $this->belongsToMany(
+            User::class,
+            'user_parent',
+            'is_parent',
+            'user_id'
+        )->withTimestamps();
     }
 
     /**

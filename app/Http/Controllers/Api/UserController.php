@@ -133,7 +133,8 @@ class UserController extends Controller
                 'role_id' => 'required|array',
                 'role_id.*' => 'integer|exists:roles,id',
                 'status' => 'sometimes|in:1,2,3',
-                'is_parent' => 'nullable|integer|exists:users,id',
+                'is_parent' => 'nullable|array',
+                'is_parent.*' => 'integer|exists:users,id',
             ];
 
             $validated = \Illuminate\Support\Facades\Validator::make($request->all(), $rules);
@@ -383,13 +384,12 @@ class UserController extends Controller
                 return $this->responseService->unauthorized('User not authenticated');
             }
 
-            // Get all descendants (flat list)
-            $descendants = [];
-            $this->collectDescendants($user, $descendants);
+            // Get all descendants in nested tree format
+            $childTree = $this->buildChildTree($user);
             
             return $this->responseService->success(
-                $descendants,
-                'Child users list retrieved successfully'
+                $childTree,
+                'Child users hierarchy retrieved successfully'
             );
         } catch (\Exception $e) {
             return $this->responseService->serverError('Failed to retrieve child users: ' . $e->getMessage());
@@ -397,15 +397,21 @@ class UserController extends Controller
     }
 
     /**
-     * Collect all descendants recursively in a flat list (reference-based)
+     * Build nested tree structure for children recursively
      */
-    private function collectDescendants($user, &$descendants): void
+    private function buildChildTree($user): array
     {
-        $children = $user->children()->select('id', 'name')->orderBy('id', 'desc')->get();
-
+        $children = $user->children()->select('users.id', 'users.name')->orderBy('users.name', 'asc')->get();
+        
+        $tree = [];
         foreach ($children as $child) {
-            $descendants[] = ['id' => $child->id, 'name' => $child->name];
-            $this->collectDescendants($child, $descendants);
+            $tree[] = [
+                'id' => $child->id,
+                'name' => $child->name,
+                'children' => $this->buildChildTree($child)
+            ];
         }
+        
+        return $tree;
     }
 }
