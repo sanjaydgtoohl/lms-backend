@@ -84,8 +84,14 @@ class LeadRepository implements LeadRepositoryInterface
                   ->orWhereHas('brand', function ($brandQuery) use ($searchTerm) {
                       $brandQuery->where('name', 'LIKE', "%{$searchTerm}%");
                   })
+                  ->orWhereHas('agency', function ($agencyQuery) use ($searchTerm) {
+                      $agencyQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
                   ->orWhereHas('assignedUser', function ($userQuery) use ($searchTerm) {
                       $userQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('mobileNumbers', function ($mobileQuery) use ($searchTerm) {
+                      $mobileQuery->where('mobile_number', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('leadStatusRelation', function ($statusQuery) use ($searchTerm) {
                       $statusQuery->where('name', 'LIKE', "%{$searchTerm}%");
@@ -270,7 +276,13 @@ class LeadRepository implements LeadRepositoryInterface
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
                   ->orWhere('email', 'LIKE', "%{$search}%")
-                  ->orWhere('profile_url', 'LIKE', "%{$search}%");
+                  ->orWhere('profile_url', 'LIKE', "%{$search}%")
+                  ->orWhereHas('agency', function ($agencyQuery) use ($search) {
+                      $agencyQuery->where('name', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('mobileNumbers', function ($mobileQuery) use ($search) {
+                      $mobileQuery->where('mobile_number', 'LIKE', "%{$search}%");
+                  });
             });
         }
 

@@ -49,25 +49,38 @@ class UserResource extends BaseResource
             'is_parent' => $this->is_parent,
             'parents' => $this->whenLoaded('parents', function () {
                 return $this->parents->map(function ($parent) {
-                    return [
-                        'id' => $parent->id,
-                        'name' => $parent->name,
-                        'email' => $parent->email,
-                    ];
+                    return $this->buildParentHierarchy($parent);
                 });
             }),
-            'children' => $this->whenLoaded('children', function () {
-                return $this->children->map(function ($child) {
-                    return [
-                        'id' => $child->id,
-                        'name' => $child->name,
-                        'email' => $child->email,
-                    ];
-                });
-            }),
+            // 'children' => $this->whenLoaded('children', function () {
+            //     return $this->children->map(function ($child) {
+            //         return [
+            //             'id' => $child->id,
+            //             'name' => $child->name,
+            //             'email' => $child->email,
+            //         ];
+            //     });
+            // }),
             'profile' => $this->whenLoaded('profile', function () {
                 return new ProfileResource($this->profile);
             }),
         ]);
+    }
+
+    /**
+     * Build parent hierarchy recursively
+     */
+    private function buildParentHierarchy($parent): array
+    {
+        $parents = $parent->parents()->select('users.id', 'users.name', 'users.email')->get();
+        
+        return [
+            'id' => $parent->id,
+            'name' => $parent->name,
+            'email' => $parent->email,
+            'parents' => $parents->isNotEmpty() ? $parents->map(function ($p) {
+                return $this->buildParentHierarchy($p);
+            })->toArray() : []
+        ];
     }
 }
