@@ -9,6 +9,9 @@ use App\Contracts\Repositories\RoleRepositoryInterface;
 use App\Services\ResponseService;
 use App\Services\PermissionService;
 use App\Contracts\Repositories\PermissionRepositoryInterface;
+use App\Services\UserService;
+use App\Contracts\Repositories\UserRepositoryInterface;
+use App\Contracts\Repositories\UserParentRepositoryInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,6 +35,14 @@ class AppServiceProvider extends ServiceProvider
             return new PermissionService(
                 $app->make(PermissionRepositoryInterface::class),
                 $app->make(ResponseService::class)
+            );
+        });
+
+        // Bind UserService
+        $this->app->bind(UserService::class, function ($app) {
+            return new UserService(
+                $app->make(UserRepositoryInterface::class),
+                $app->make(UserParentRepositoryInterface::class)
             );
         });
         

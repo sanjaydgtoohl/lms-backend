@@ -47,25 +47,40 @@ class UserResource extends BaseResource
             'is_active' => $this->isActive(),
             'is_admin' => $this->isAdmin(),
             'is_parent' => $this->is_parent,
-            'parent' => $this->whenLoaded('parent', function () {
-                return [
-                    'id' => $this->parent->id,
-                    'name' => $this->parent->name,
-                    'email' => $this->parent->email,
-                ];
-            }),
-            'children' => $this->whenLoaded('children', function () {
-                return $this->children->map(function ($child) {
-                    return [
-                        'id' => $child->id,
-                        'name' => $child->name,
-                        'email' => $child->email,
-                    ];
+            'parents' => $this->whenLoaded('parents', function () {
+                return $this->parents->map(function ($parent) {
+                    return $this->buildParentHierarchy($parent);
                 });
             }),
+            // 'children' => $this->whenLoaded('children', function () {
+            //     return $this->children->map(function ($child) {
+            //         return [
+            //             'id' => $child->id,
+            //             'name' => $child->name,
+            //             'email' => $child->email,
+            //         ];
+            //     });
+            // }),
             'profile' => $this->whenLoaded('profile', function () {
                 return new ProfileResource($this->profile);
             }),
         ]);
+    }
+
+    /**
+     * Build parent hierarchy recursively
+     */
+    private function buildParentHierarchy($parent): array
+    {
+        $parents = $parent->parents()->select('users.id', 'users.name', 'users.email')->get();
+        
+        return [
+            'id' => $parent->id,
+            'name' => $parent->name,
+            'email' => $parent->email,
+            'parents' => $parents->isNotEmpty() ? $parents->map(function ($p) {
+                return $this->buildParentHierarchy($p);
+            })->toArray() : []
+        ];
     }
 }
