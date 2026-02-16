@@ -101,7 +101,6 @@ class LeadRepository implements LeadRepositoryInterface
 
     /**
      * Fetch a single lead by its primary ID.
-     * The caller should verify authorization using LeadPolicy.
      *
      * @param int $id
      * @return Lead|null

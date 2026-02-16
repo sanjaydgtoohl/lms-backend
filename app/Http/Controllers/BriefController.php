@@ -235,9 +235,6 @@ class BriefController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
-            // Authorize the user to view this brief
-            // $this->authorize('view', $brief);
-
             return $this->responseService->success(
                 new BriefResource($brief),
                 'Brief retrieved successfully'

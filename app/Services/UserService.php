@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use App\Contracts\Repositories\UserRepositoryInterface;
+use App\Contracts\Repositories\UserParentRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -21,13 +22,24 @@ class UserService
     protected $userRepository;
 
     /**
+     * The user parent repository instance
+     *
+     * @var UserParentRepositoryInterface
+     */
+    protected $userParentRepository;
+
+    /**
      * Constructor
      *
      * @param UserRepositoryInterface $userRepository
+     * @param UserParentRepositoryInterface $userParentRepository
      */
-    public function __construct(UserRepositoryInterface $userRepository)
-    {
+    public function __construct(
+        UserRepositoryInterface $userRepository,
+        UserParentRepositoryInterface $userParentRepository
+    ){
         $this->userRepository = $userRepository;
+        $this->userParentRepository = $userParentRepository;
     }
 
     /**
@@ -49,7 +61,7 @@ class UserService
      */
     public function getUserById(int $id): ?User
     {
-        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions', 'parent', 'children']);
+        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children']);
     }
 
     /**
@@ -86,6 +98,10 @@ class UserService
         $roleIds = $data['role_id'] ?? $data['role'] ?? [];
         unset($data['role_id'], $data['role']);
 
+        // Extract parent IDs for user_parent relationships
+        $parentIds = $data['is_parent'] ?? [];
+        unset($data['is_parent']);
+
         $user = $this->userRepository->create($data);
 
         // Sync roles if provided
@@ -93,8 +109,13 @@ class UserService
             $this->syncUserRoles($user->id, $roleIds);
         }
 
+        // Sync parents if provided
+        if (!empty($parentIds)) {
+            $this->syncUserParents($user->id, $parentIds);
+        }
+
         // Reload user with relationships
-        return $this->userRepository->findWithRelations($user->id, ['profile', 'roles', 'permissions', 'parent', 'children']);
+        return $this->userRepository->findWithRelations($user->id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children']);
     }
 
     /**
@@ -119,19 +140,27 @@ class UserService
         // Extract role_id or role (accept both formats)
         $roleIds = $data['role_id'] ?? $data['role'] ?? null;
 
+        // Extract parent IDs for user_parent relationships
+        $parentIds = $data['is_parent'] ?? null;
+
         // Hash password if provided
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
 
         // Remove role_id and role from data before updating user record
-        unset($data['role_id'], $data['role']);
+        unset($data['role_id'], $data['role'], $data['is_parent']);
 
         $success = $this->userRepository->update($id, $data);
 
         // Sync roles if provided
         if ($roleIds !== null && is_array($roleIds)) {
             $this->syncUserRoles($id, $roleIds);
+        }
+
+        // Sync parents if provided
+        if ($parentIds !== null && is_array($parentIds)) {
+            $this->syncUserParents($id, $parentIds);
         }
 
         return $success;
@@ -245,7 +274,8 @@ class UserService
             'role' => 'sometimes|array',
             'role.*' => 'integer|exists:roles,id',
             'status' => 'sometimes|in:1,2,3',
-            'is_parent' => 'nullable|integer|exists:users,id',
+            'is_parent' => 'nullable|array',
+            'is_parent.*' => 'integer|exists:users,id',
         ];
 
         // Add unique email rule if creating new user or updating email
@@ -319,6 +349,45 @@ class UserService
 
         if (!empty($insertData)) {
             DB::table('role_user')->insert($insertData);
+        }
+    }
+
+    /**
+     * Sync user parents
+     *
+     * @param int $userId
+     * @param array $parentIds
+     * @return void
+     */
+    public function syncUserParents(int $userId, array $parentIds): void
+    {
+        $user = $this->userRepository->find($userId);
+        
+        if (!$user) {
+            return;
+        }
+
+        // Delete all existing parent relationships for this user
+        DB::table('user_parent')
+            ->where('user_id', $userId)
+            ->delete();
+
+        // Insert new parent relationships
+        $insertData = [];
+        foreach ($parentIds as $parentId) {
+            // Ensure parent user exists and is not the same as the user
+            if ($parentId !== $userId && $this->userRepository->find($parentId)) {
+                $insertData[] = [
+                    'user_id' => $userId,
+                    'is_parent' => $parentId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        if (!empty($insertData)) {
+            DB::table('user_parent')->insert($insertData);
         }
     }
 }

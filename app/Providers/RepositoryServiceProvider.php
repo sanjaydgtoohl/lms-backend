@@ -102,6 +102,9 @@ use App\Repositories\PlannerRepository;
 use App\Contracts\Repositories\PlannerStatusRepositoryInterface;
 use App\Repositories\PlannerStatusRepository;
 
+use App\Contracts\Repositories\UserParentRepositoryInterface;
+use App\Repositories\UserParentRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -265,6 +268,11 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             PlannerStatusRepositoryInterface::class,
             PlannerStatusRepository::class
+        );
+
+        $this->app->bind(
+            UserParentRepositoryInterface::class,
+            UserParentRepository::class
         );
     }
     /**

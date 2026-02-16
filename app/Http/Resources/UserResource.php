@@ -47,12 +47,14 @@ class UserResource extends BaseResource
             'is_active' => $this->isActive(),
             'is_admin' => $this->isAdmin(),
             'is_parent' => $this->is_parent,
-            'parent' => $this->whenLoaded('parent', function () {
-                return [
-                    'id' => $this->parent->id,
-                    'name' => $this->parent->name,
-                    'email' => $this->parent->email,
-                ];
+            'parents' => $this->whenLoaded('parents', function () {
+                return $this->parents->map(function ($parent) {
+                    return [
+                        'id' => $parent->id,
+                        'name' => $parent->name,
+                        'email' => $parent->email,
+                    ];
+                });
             }),
             'children' => $this->whenLoaded('children', function () {
                 return $this->children->map(function ($child) {
