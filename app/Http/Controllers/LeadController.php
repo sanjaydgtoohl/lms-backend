@@ -204,26 +204,55 @@ class LeadController extends Controller
      * @param int $id
      * @return JsonResponse
      */
+    /**
+     * Get a specific lead by ID
+     * Authorization: Super Admin (id=8), user assigned_by, or user assigned_to
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
     public function show(int $id): JsonResponse
     {
         try {
+            // Fetch lead with all relationships
             $lead = $this->leadService->getLead($id);
 
+            // Check if lead exists
             if (!$lead) {
-                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+                return $this->responseService->notFound('Lead not found');
             }
 
-            // Authorize the user to view this lead
-            // $this->authorize('view', $lead);
+            // Get authenticated user
+            $user = auth()->user();
 
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            // Authorization: Allow if Super Admin (id=8) OR assigned_by OR assigned_to
+            $isSuperAdmin = $user->id == 8;
+            $isAssignedBy = $user->id == $lead->assigned_by;
+            $isAssignedTo = $user->id == $lead->assigned_to;
+
+            if (!$isSuperAdmin && !$isAssignedBy && !$isAssignedTo) {
+                return $this->responseService->error(
+                    'You are not authorized to view this lead. Only Super Admin, the user who assigned this lead, or the user assigned to this lead can view it.',
+                );
+            }
+
+            // Return lead with resource transformation
             return $this->responseService->success(
                 new LeadResource($lead),
                 'Lead retrieved successfully'
             );
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->responseService->notFound('Lead not found');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }
+
 
     /**
      * Store a newly created lead in storage.

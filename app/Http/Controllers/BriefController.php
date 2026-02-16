@@ -220,6 +220,7 @@ class BriefController extends Controller
 
     /**
      * Display the specified brief.
+     * Authorization: Super Admin (id=8), user created_by, or user assigned_to
      *
      * GET /briefs/{id}
      *
@@ -229,16 +230,40 @@ class BriefController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
+            // Fetch brief with all relationships
             $brief = $this->briefService->getBrief($id);
 
+            // Check if brief exists
             if (!$brief) {
-                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+                return $this->responseService->notFound('Brief not found');
             }
 
+            // Get authenticated user
+            $user = auth()->user();
+
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            // Authorization: Allow if Super Admin (id=8) OR created_by OR assigned_to
+            $isSuperAdmin = $user->id == 8;
+            $isCreatedBy = $user->id == $brief->created_by;
+            $isAssignedTo = $user->id == $brief->assign_user_id;
+
+            if (!$isSuperAdmin && !$isCreatedBy && !$isAssignedTo) {
+                return $this->responseService->error(
+                    'You are not authorized to view this brief. Only Super Admin, the user who created this brief, or the user assigned to this brief can view it.',
+                );
+            }
+
+            // Return brief with resource transformation
             return $this->responseService->success(
                 new BriefResource($brief),
                 'Brief retrieved successfully'
             );
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->responseService->notFound('Brief not found');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
@@ -296,16 +321,17 @@ class BriefController extends Controller
             if (!isset($data['status'])) {
                 $data['status'] = '2';
             }
-            // Handle brief_status_id and priority_id logic
-            if ((!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) && (!isset($data['priority_id']) || is_null($data['priority_id']))) {
-                // Both not provided: set defaults
+            // Set brief_status_id default to 1 if not provided
+            if (!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) {
                 $data['brief_status_id'] = 1;
-                $data['priority_id'] = 3;
-            } elseif (isset($data['brief_status_id']) && !is_null($data['brief_status_id']) && (!isset($data['priority_id']) || is_null($data['priority_id']))) {
-                // Only brief_status_id provided: fetch priority_id from brief status
+            }
+            // Fetch priority_id from brief status if not provided
+            if (!isset($data['priority_id']) || is_null($data['priority_id'])) {
                 $briefStatus = BriefStatus::find($data['brief_status_id']);
                 if ($briefStatus && $briefStatus->priority_id) {
                     $data['priority_id'] = $briefStatus->priority_id;
+                } else {
+                    $data['priority_id'] = 3; // Fallback default
                 }
             }
 
@@ -372,16 +398,17 @@ class BriefController extends Controller
             }
 
             $data = $request->all();
-            // Handle brief_status_id and priority_id logic
-            if ((!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) && (!isset($data['priority_id']) || is_null($data['priority_id']))) {
-                // Both not provided: set defaults
+            // Set brief_status_id default to 1 if not provided
+            if (!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) {
                 $data['brief_status_id'] = 1;
-                $data['priority_id'] = 3;
-            } elseif (isset($data['brief_status_id']) && !is_null($data['brief_status_id']) && (!isset($data['priority_id']) || is_null($data['priority_id']))) {
-                // Only brief_status_id provided: fetch priority_id from brief status
+            }
+            // Fetch priority_id from brief status if not provided
+            if (!isset($data['priority_id']) || is_null($data['priority_id'])) {
                 $briefStatus = BriefStatus::find($data['brief_status_id']);
                 if ($briefStatus && $briefStatus->priority_id) {
                     $data['priority_id'] = $briefStatus->priority_id;
+                } else {
+                    $data['priority_id'] = 3; // Fallback default
                 }
             }
 
