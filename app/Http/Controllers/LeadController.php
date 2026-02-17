@@ -223,20 +223,21 @@ class LeadController extends Controller
             }
 
             // Get authenticated user
+            /** @var \App\Models\User $user */
             $user = auth()->user();
 
             if (!$user) {
                 return $this->responseService->unauthorized('User not authenticated');
             }
 
-            // Authorization: Allow if Super Admin (id=8) OR assigned_by OR assigned_to
-            $isSuperAdmin = $user->id == 8;
-            $isAssignedBy = $user->id == $lead->assigned_by;
-            $isAssignedTo = $user->id == $lead->assigned_to;
+            // Authorization: Allow if Super Admin role OR created_by OR current_assign_user
+            $isSuperAdmin = $user->hasRole('Super Admin');
+            $isCreatedBy = $user->id == $lead->created_by;
+            $isAssignedTo = $user->id == $lead->current_assign_user;
 
-            if (!$isSuperAdmin && !$isAssignedBy && !$isAssignedTo) {
-                return $this->responseService->error(
-                    'You are not authorized to view this lead. Only Super Admin, the user who assigned this lead, or the user assigned to this lead can view it.',
+            if (!$isSuperAdmin && !$isCreatedBy && !$isAssignedTo) {
+                return $this->responseService->forbidden(
+                    'You are not authorized to view this lead. Only Super Admin, the user who created this lead, or the user assigned to this lead can view it.'
                 );
             }
 
