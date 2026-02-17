@@ -205,6 +205,7 @@ class BriefRepository implements BriefRepositoryInterface
     {
         return $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
+            ->accessibleToUser()
             ->orderBy('created_at', 'desc')
             ->limit(2)
             ->get();
@@ -219,6 +220,7 @@ class BriefRepository implements BriefRepositoryInterface
     {
         return $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
+            ->accessibleToUser()
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -382,15 +384,14 @@ class BriefRepository implements BriefRepositoryInterface
     }
 
     public function getPlannerDashboardCardData(): array
-    {
+    { 
         $now = now();
 
-        // Active briefs (brief_status is not 'closed')
+        // Active briefs (submission_date is in the future)
         $activeBriefs = $this->model
-            ->whereHas('briefStatus', function ($query) {
-                $query->where('slug', '!=', 'closed');
-            })
-            ->count();
+        ->whereDate('submission_date', '>=', now())
+        ->count();
+
 
         // Closed briefs (brief_status is 'closed')
         $closedBriefs = $this->model
@@ -399,13 +400,10 @@ class BriefRepository implements BriefRepositoryInterface
             })
             ->count();
 
-        // Total of all brief left time during submission (sum of days left for all active briefs/overdue items)
-        $totalLeftTime = $this->model
-            ->whereHas('briefStatus', function ($query) {
-                $query->where('slug', '!=', 'closed');
-            })
-            ->selectRaw('SUM(DATEDIFF(submission_date, NOW())) as total_days_left')
-            ->value('total_days_left');
+        // Total of all brief left time during submission
+        $overdueTime = $this->model
+            ->where('submission_date', '<', now())
+            ->count();
 
         // Average planning time (in days - difference between created_at and submission_date)
         $averagePlanningTime = $this->model
@@ -415,7 +413,7 @@ class BriefRepository implements BriefRepositoryInterface
         return [
             'active_briefs' => $activeBriefs,
             'closed_briefs' => $closedBriefs,
-            'total_left_time_days' => $totalLeftTime ? max((int)$totalLeftTime, 0) : 0,
+            'overdue_time' => $overdueTime ?? 0,
             'average_planning_time_days' => $averagePlanningTime ? round($averagePlanningTime, 2) : 0,
         ];
     }
