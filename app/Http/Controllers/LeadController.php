@@ -489,7 +489,8 @@ class LeadController extends Controller
                 'agency',
                 'assignedUser',
                 'callStatusRelation',
-                'priority'
+                'priority',
+                'leadStatusRelation'
             ])->accessibleToUser()
               ->orderBy('created_at', 'desc')
               ->limit(2)
