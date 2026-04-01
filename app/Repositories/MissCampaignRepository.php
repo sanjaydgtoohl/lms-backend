@@ -18,6 +18,8 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
         'brand',
         'leadSource',
         'leadSubSource',
+        'assignedBy',
+        'assignedTo',
     ];
 
     /**
@@ -89,5 +91,39 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
     {
         $item = $this->model->findOrFail($id);
         return $item->delete();
+    }
+
+    public function updateStatus(int $id, string $status, ?int $assignTo = null, ?int $assignBy = null): bool
+    {
+        $item = $this->model->findOrFail($id);
+        $data = ['status' => $status];
+
+        if ($assignTo !== null) {
+            $data['assign_to'] = $assignTo;
+        }
+
+        if ($assignBy !== null) {
+            $data['assign_by'] = $assignBy;
+        }
+
+        return $item->update($data);
+    }
+
+    public function updateAssign(int $id, int $assignTo, ?int $assignBy = null): bool
+    {
+        $item = $this->model->findOrFail($id);
+        $data = ['assign_to' => $assignTo];
+
+        if ($assignBy !== null) {
+            $data['assign_by'] = $assignBy;
+        }
+
+        return $item->update($data);
+    }
+
+    public function updateComment(int $id, ?string $comment = null): bool
+    {
+        $item = $this->model->findOrFail($id);
+        return $item->update(['comment' => $comment]);
     }
 }

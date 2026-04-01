@@ -17,10 +17,11 @@ use App\Traits\HasApiTokens;
 use App\Traits\SoftDeletes;
 use App\Models\LoginLog;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\NotificationTrait;
 
 class User extends Model implements AuthenticatableContract, AuthorizableContract, JWTSubject
 {
-    use Authenticatable, Authorizable, HasFactory,HasTimestamps, HasUuid, HasApiTokens, SoftDeletes;
+    use Authenticatable, Authorizable, HasFactory,HasTimestamps, HasUuid, HasApiTokens, SoftDeletes,NotificationTrait;
 
     /**
      * The table associated with the model.

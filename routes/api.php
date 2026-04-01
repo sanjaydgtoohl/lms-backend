@@ -264,6 +264,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('list', 'RoleController@list');
         $router->post('/', 'RoleController@store');
         $router->get('{id:[0-9]+}', 'RoleController@show');
+        $router->get('{id:[0-9]+}/users', 'RoleController@getUsers');
         $router->put('{id:[0-9]+}', 'RoleController@update');
         $router->patch('{id:[0-9]+}', 'RoleController@update');
         $router->delete('{id:[0-9]+}', 'RoleController@destroy');
@@ -355,7 +356,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->post('{id:[0-9]+}/priority', 'LeadController@updatePriority');
         $router->post('{id:[0-9]+}/status', 'LeadController@updateStatus');
         $router->put('{id:[0-9]+}/call-status', 'LeadController@addCallStatus');
-        $router->delete('{id:[0-9]+}/call-status/{callStatusId:[0-9]+}', 'LeadController@removeCallStatus');
+        //$router->delete('{id:[0-9]+}/call-status/{callStatusId:[0-9]+}', 'LeadController@removeCallStatus');
     });
 
     // Miss Campaign routes
@@ -367,6 +368,11 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('/{id:[0-9]+}', 'MissCampaignController@update');     
         $router->patch('/{id:[0-9]+}', 'MissCampaignController@update'); 
         $router->delete('/{id:[0-9]+}', 'MissCampaignController@destroy');
+        $router->put('/{id:[0-9]+}/assign-to', 'MissCampaignController@updateAssignTo');
+        $router->put('/{id:[0-9]+}/comment', 'MissCampaignController@updateComment');
+
+        // MissCampaignHistory get all by miss_campaign_id
+        $router->get('/{id:[0-9]+}/history', 'MissCampaignHistoryController@getByMissCampaignId');
     });
 
     // Brief Status routes
@@ -529,6 +535,19 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('{id:[0-9]+}', 'ActivityLogController@show');
         $router->delete('old-logs', 'ActivityLogController@deleteOldActivityLogs');
         $router->delete('{id:[0-9]+}', 'ActivityLogController@destroy');
+    });
+
+    // Notification routes
+    $router->group(['prefix' => 'notifications'], function () use ($router) {
+        $router->get('/', 'NotificationController@index');
+        $router->post('{id:[0-9]+}/read', 'NotificationController@markAsRead');
+        $router->post('read-all', 'NotificationController@markAllAsRead');
+        $router->get('unread-count', 'NotificationController@unreadCount');
+          
+        $router->get('unread', 'NotificationController@unreadNotifications');
+        $router->get('latest', 'NotificationController@latestNotifications');
+        $router->delete('clear-all', 'NotificationController@clearAllNotifications');
+        $router->delete('{id:[0-9]+}', 'NotificationController@deleteNotification');
     });
 });
 

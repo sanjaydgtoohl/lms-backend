@@ -5,12 +5,15 @@ namespace App\Services;
 use App\Contracts\Repositories\LeadRepositoryInterface;
 use App\Models\Lead;
 use App\Models\LeadMobileNumber;
+use App\Models\LeadAssignHistory;
 use DomainException;
 use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use App\Events\LeadAssignedEvent;
+use App\Events\LeadCallStatusAddedEvent;
 
 class LeadService
 {
@@ -233,7 +236,14 @@ class LeadService
                 throw new DomainException('Lead name is required.');
             }
 
-            return $this->leadRepository->createLead($data);
+            $lead = $this->leadRepository->createLead($data);
+
+            // If current_assign_user is set, assign the lead and trigger notification
+            if (!empty($data['current_assign_user'])) {
+                $this->assignLeadToUser($lead->id, $data['current_assign_user']);
+            }
+
+            return $lead;
         } catch (DomainException $e) {
             throw $e;
         } catch (QueryException $e) {
@@ -277,7 +287,14 @@ class LeadService
     public function assignLeadToUser(int $leadId, int $userId): bool
     {
         try {
-            return $this->leadRepository->assignLeadToUser($leadId, $userId);
+            $result = $this->leadRepository->assignLeadToUser($leadId, $userId);
+
+            // Fire event only if assignment successful
+            if ($result) {
+                event(new LeadAssignedEvent($leadId, $userId));
+            }
+
+            return $result;
         } catch (QueryException $e) {
             Log::error('Database error assigning lead to user', ['lead_id' => $leadId, 'user_id' => $userId, 'exception' => $e]);
             throw new DomainException('Database error while assigning lead to user.');
@@ -340,7 +357,21 @@ class LeadService
     public function addCallStatus(int $leadId, int $callStatusId): bool
     {
         try {
-            return $this->leadRepository->addCallStatus($leadId, $callStatusId);
+            // Get previous call status before update
+            $lead = $this->leadRepository->getLeadById($leadId);
+            $previousCallStatusId = $lead ? $lead->call_status : null;
+            $updatedByUserId = auth()->id();
+            $result = $this->leadRepository->addCallStatus($leadId, $callStatusId);
+            if ($result) {
+                event(new \App\Events\LeadCallStatusAddedEvent(
+                    $leadId,
+                    $callStatusId,
+                    $previousCallStatusId,
+                    $updatedByUserId,
+                    now()
+                ));
+            }
+            return $result;
         } catch (QueryException $e) {
             Log::error('Database error adding call status', ['lead_id' => $leadId, 'call_status_id' => $callStatusId, 'exception' => $e]);
             throw new DomainException('Database error while adding call status.');

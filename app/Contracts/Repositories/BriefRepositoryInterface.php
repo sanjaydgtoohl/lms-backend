@@ -152,7 +152,7 @@ interface BriefRepositoryInterface
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    public function getBriefLogs(int $perPage = 10): LengthAwarePaginator;
+    public function getBriefLogs(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator;
 
     /**
      * Get business forecast data including total budget and business weightage.

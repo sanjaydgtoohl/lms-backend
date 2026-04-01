@@ -58,6 +58,9 @@ class Brief extends Model
         'comment',
         'submission_date',
         'status',
+        'campaign_start_date',
+        'campaign_end_date',
+        'campaign_duration',
     ];
 
     /**
@@ -67,7 +70,10 @@ class Brief extends Model
      */
     protected $casts = [
         'submission_date' => 'datetime',
+        'campaign_start_date' => 'date',
+        'campaign_end_date' => 'date',
         'budget' => 'decimal:2',
+        'campaign_duration' => 'integer',
     ];
 
     /**
@@ -85,6 +91,14 @@ class Brief extends Model
      */
     protected static function booted()
     {
+        static::creating(function ($brief) {
+            $brief->calculateCampaignDuration();
+        });
+
+        static::updating(function ($brief) {
+            $brief->calculateCampaignDuration();
+        });
+
         static::updated(function ($brief) {
             $brief->saveHistoryIfFieldsChanged();
         });
@@ -202,6 +216,21 @@ class Brief extends Model
     // ===================================================================
     // HISTORY TRACKING METHODS
     // ===================================================================
+
+    /**
+     * Calculate campaign duration in days based on start and end dates.
+     * Auto-calculates and sets the campaign_duration attribute.
+     */
+    private function calculateCampaignDuration(): void
+    {
+        if ($this->campaign_start_date && $this->campaign_end_date) {
+            $startDate = Carbon::parse($this->campaign_start_date);
+            $endDate = Carbon::parse($this->campaign_end_date);
+            
+            // Calculate difference in days (inclusive of both start and end dates)
+            $this->campaign_duration = $endDate->diffInDays($startDate) + 1;
+        }
+    }
 
     /**
      * Check if any tracked fields have changed and save history if needed.

@@ -73,5 +73,10 @@ interface RoleRepositoryInterface
 	 * Detach a permission from a role
 	 */
 	public function detachPermission(int $roleId, int $permissionId): bool;
+
+	/**
+	 * Get users for a specific role
+	 */
+	public function getUsers(int $roleId, int $perPage = 10): LengthAwarePaginator;
 }
 

@@ -146,9 +146,9 @@ class BriefController extends Controller
                 return [
                     'id' => $brief->id,
                     'brief_name' => $brief->name,
-                    'status' => $brief->briefStatus?->name,
+                    'status' => isset($brief->briefStatus) ? $brief->briefStatus->name : null,
                     'product_name' => $brief->product_name,
-                    'brand_name' => $brief->brand?->name,
+                    'brand_name' => isset($brief->brand) ? $brief->brand->name : null,
                     'comment' => $brief->comment,
                     'submission_date' => $brief->submission_date ? $brief->submission_date->format('Y-m-d H:i:s A') : null,
                     'budget' => $brief->budget,
@@ -199,10 +199,12 @@ class BriefController extends Controller
         try {
             $this->validate($request, [
                 'per_page' => 'nullable|integer|min:1',
+                'search' => 'nullable|string|max:255',
             ]);
 
             $perPage = (int) $request->input('per_page', 10);
-            $briefs = $this->briefService->getBriefLogs($perPage);
+            $searchTerm = $request->input('search', null);
+            $briefs = $this->briefService->getBriefLogs($perPage, $searchTerm);
 
             return $this->responseService->paginated(
                 BriefResource::collection($briefs),
@@ -296,6 +298,8 @@ class BriefController extends Controller
                 'comment' => 'nullable|string',
                 'submission_date' => 'required|date_format:Y-m-d H:i:s',
                 'status' => 'nullable|in:1,2,15',
+                'campaign_start_date' => 'required|date_format:Y-m-d',
+                'campaign_end_date' => 'required|date_format:Y-m-d|after_or_equal:campaign_start_date',
             ];
 
             $this->validate($request, $rules);
@@ -318,13 +322,13 @@ class BriefController extends Controller
             $data['uuid'] = (string) Str::uuid();
             $data['slug'] = Str::slug($request->input('name')) . '-' . uniqid();
             $data['created_by'] = Auth::id();
-            // Set default status if not provided
+            // Set default status if not provided (1 = active)
             if (!isset($data['status'])) {
-                $data['status'] = '2';
+                $data['status'] = '1';
             }
             // Set brief_status_id default to 1 if not provided
             if (!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) {
-                $data['brief_status_id'] = 1;
+                $data['brief_status_id'] = 1;   
             }
             // Fetch priority_id from brief status if not provided
             if (!isset($data['priority_id']) || is_null($data['priority_id'])) {
@@ -380,6 +384,8 @@ class BriefController extends Controller
                 'comment' => 'nullable|string',
                 'submission_date' => 'sometimes|required|date_format:Y-m-d H:i:s',
                 'status' => 'nullable|in:1,2,15',
+                'campaign_start_date' => 'nullable|date_format:Y-m-d',
+                'campaign_end_date' => 'nullable|date_format:Y-m-d|after_or_equal:campaign_start_date',
             ];
 
             $this->validate($request, $rules);
@@ -564,6 +570,9 @@ class BriefController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
+            $previousStatusId = $brief->brief_status_id;
+            $previousStatusName = $brief->briefStatus ? $brief->briefStatus->name : null;
+
             // Get the brief status to fetch its associated priority
             $briefStatus = \App\Models\BriefStatus::find($request->input('brief_status_id'));
 
@@ -577,6 +586,19 @@ class BriefController extends Controller
             }
 
             $brief = $this->briefService->updateBrief($id, $updateData);
+
+            // Fire event for notification
+            event(new \App\Events\BriefStatusChangedEvent(
+                $brief->id,
+                $brief->name,
+                $previousStatusId,
+                $previousStatusName,
+                $briefStatus ? $briefStatus->id : null,
+                $briefStatus ? $briefStatus->name : null,
+                auth()->id(),
+                auth()->user() ? auth()->user()->name : null,
+                now()
+            ));
 
             return $this->responseService->success(
                 new BriefResource($brief),
@@ -616,11 +638,15 @@ class BriefController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
-            $updateData = [
-                'assign_user_id' => $request->input('assign_user_id'),
-            ];
+            // Use the updateBrief method which will fire the event if assign_user_id changes
+            $brief = $this->briefService->updateBrief($id, ['assign_user_id' => $request->input('assign_user_id')]);
 
-            $brief = $this->briefService->updateBrief($id, $updateData);
+            if (!$brief) {
+                return $this->responseService->error(
+                    ['Assignment failed'],
+                    'Failed to assign brief to user'
+                );
+            }
 
             return $this->responseService->success(
                 new BriefResource($brief),

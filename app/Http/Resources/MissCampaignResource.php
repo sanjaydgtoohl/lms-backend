@@ -53,6 +53,21 @@ class MissCampaignResource extends JsonResource
                 ] : null;
             }),
 
+            // Assignment Information
+            'assigned_by' => $this->whenLoaded('assignedBy', function () {
+                return $this->assignedBy ? [
+                    'id' => $this->assignedBy->id,
+                    'name' => $this->assignedBy->name,
+                ] : null;
+            }),
+            'assigned_to' => $this->whenLoaded('assignedTo', function () {
+                return $this->assignedTo ? [
+                    'id' => $this->assignedTo->id,
+                    'name' => $this->assignedTo->name,
+                ] : null;
+            }),
+            'comment' => $this->comment,
+
             // Timestamps
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),

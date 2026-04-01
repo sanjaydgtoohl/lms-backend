@@ -116,7 +116,9 @@ class MissCampaignController extends Controller
                 'brand_id' => 'required|integer|exists:brands,id',
                 'lead_source_id' => 'required|integer|exists:lead_source,id',
                 'lead_sub_source_id' => 'required|integer|exists:lead_sub_source,id',
-                'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200'
+                'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
+                'assign_by' => 'nullable|integer|exists:users,id',
+                'assign_to' => 'nullable|integer|exists:users,id',
             ];
 
             $validatedData = $this->validate($request, $rules);
@@ -124,6 +126,7 @@ class MissCampaignController extends Controller
             // Add system-generated fields
             $validatedData['slug'] = Str::slug($request->name) . '-' . uniqid();
             $validatedData['status'] = '1'; // Default active status
+            $validatedData['assign_by'] = Auth::id(); // Set assign_by to logged-in user
 
             // Handle image upload if present
             if ($request->hasFile('image_path')) {
@@ -166,9 +169,23 @@ class MissCampaignController extends Controller
                 'lead_sub_source_id' => 'sometimes|required|integer|exists:lead_sub_source,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
                 'status' => 'sometimes|required|in:1,2,15',
+                'assign_by' => 'sometimes|required|integer|exists:users,id',
+                'assign_to' => 'sometimes|required|integer|exists:users,id',
             ];
 
             $validatedData = $this->validate($request, $rules);
+
+            // Fetch current campaign data before update
+            $oldCampaign = $this->missCampaignService->getMissCampaign($id);
+            if ($oldCampaign) {
+                \App\Models\MissCampaignHistory::create([
+                    'miss_campaign_id' => $oldCampaign->id,
+                    'status' => $oldCampaign->status,
+                    'assign_by' => $oldCampaign->assign_by,
+                    'assign_to' => $oldCampaign->assign_to,
+                    'comment' => $oldCampaign->comment,
+                ]);
+            }
 
             // Update slug if name changed
             if ($request->has('name')) {
@@ -236,6 +253,120 @@ class MissCampaignController extends Controller
             return $this->responseService->success(
                 $campaignsList,
                 'Miss campaign list retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Update the assigned user of a miss campaign.
+     *
+     * PUT /miss-campaigns/{id}/assign-to
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function updateAssignTo(Request $request, int $id): JsonResponse
+    {
+        try {
+            $rules = [
+                'assign_to' => 'required|integer|exists:users,id',
+                'assign_by' => 'required|integer|exists:users,id',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            // Store old data in history before update
+            $oldCampaign = $this->missCampaignService->getMissCampaign($id);
+            if ($oldCampaign) {
+                \App\Models\MissCampaignHistory::create([
+                    'miss_campaign_id' => $oldCampaign->id,
+                    'status' => $oldCampaign->status,
+                    'assign_by' => $oldCampaign->assign_by,
+                    'assign_to' => $oldCampaign->assign_to,
+                    'comment' => $oldCampaign->comment,
+                ]);
+            }
+
+            $this->missCampaignService->updateAssignMissCampaign(
+                $id,
+                $validatedData['assign_to'],
+                $validatedData['assign_by']
+            );
+
+            // Fetch updated campaign with relationships
+            $campaign = $this->missCampaignService->getMissCampaign($id);
+
+            if (!$campaign) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            return $this->responseService->updated(
+                new MissCampaignResource($campaign),
+                'Miss campaign assigned user updated successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Update the comment of a miss campaign.
+     *
+     * PUT /miss-campaigns/{id}/comment
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function updateComment(Request $request, int $id): JsonResponse
+    {
+        try {
+            $rules = [
+                'comment' => 'nullable|string|max:1000',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            // Store old data in history before update
+            $oldCampaign = $this->missCampaignService->getMissCampaign($id);
+            if ($oldCampaign) {
+                \App\Models\MissCampaignHistory::create([
+                    'miss_campaign_id' => $oldCampaign->id,
+                    'status' => $oldCampaign->status,
+                    'assign_by' => $oldCampaign->assign_by,
+                    'assign_to' => $oldCampaign->assign_to,
+                    'comment' => $oldCampaign->comment,
+                ]);
+            }
+
+            $this->missCampaignService->updateCommentMissCampaign(
+                $id,
+                $validatedData['comment'] ?? null
+            );
+
+            // Fetch updated campaign with relationships
+            $campaign = $this->missCampaignService->getMissCampaign($id);
+
+            if (!$campaign) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            return $this->responseService->updated(
+                new MissCampaignResource($campaign),
+                'Miss campaign comment updated successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

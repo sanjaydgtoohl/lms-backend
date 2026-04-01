@@ -105,6 +105,9 @@ use App\Repositories\PlannerStatusRepository;
 use App\Contracts\Repositories\UserParentRepositoryInterface;
 use App\Repositories\UserParentRepository;
 
+use App\Contracts\Repositories\NotificationRepositoryInterface;
+use App\Repositories\NotificationRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -273,6 +276,12 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             UserParentRepositoryInterface::class,
             UserParentRepository::class
+        );
+
+        // notification repository
+        $this->app->bind(
+            NotificationRepositoryInterface::class,
+            NotificationRepository::class
         );
     }
     /**

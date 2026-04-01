@@ -219,4 +219,88 @@ class MissCampaignService
             throw new DomainException('Unexpected error while deleting miss campaign.');
         }
     }
+
+    /**
+     * Update the status of a miss campaign.
+     *
+     * @param int $id
+     * @param string $status
+     * @param int|null $assignTo
+     * @param int|null $assignBy
+     * @return bool
+     * @throws DomainException
+     */
+    public function updateStatusMissCampaign(int $id, string $status, ?int $assignTo = null, ?int $assignBy = null): bool
+    {
+        try {
+            if (empty($status)) {
+                throw new DomainException('Status is required.');
+            }
+
+            // Validate status values (1 = active, 2 = inactive, 15 = completed)
+            $validStatuses = ['1', '2', '15'];
+            if (!in_array($status, $validStatuses)) {
+                throw new DomainException('Invalid status value. Allowed values: 1, 2, 15');
+            }
+
+            return $this->missCampaignRepository->updateStatus($id, $status, $assignTo, $assignBy);
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            Log::error('Database error updating miss campaign status', ['id' => $id, 'status' => $status, 'exception' => $e]);
+            throw new DomainException('Database error while updating miss campaign status.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error updating miss campaign status', ['id' => $id, 'status' => $status, 'exception' => $e]);
+            throw new DomainException('Unexpected error while updating miss campaign status.');
+        }
+    }
+
+    /**
+     * Update the assigned user of a miss campaign.
+     *
+     * @param int $id
+     * @param int $assignTo
+     * @param int|null $assignBy
+     * @return bool
+     * @throws DomainException
+     */
+    public function updateAssignMissCampaign(int $id, int $assignTo, ?int $assignBy = null): bool
+    {
+        try {
+            if (empty($assignTo)) {
+                throw new DomainException('Assign to user ID is required.');
+            }
+
+            return $this->missCampaignRepository->updateAssign($id, $assignTo, $assignBy);
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            Log::error('Database error updating miss campaign assignment', ['id' => $id, 'assignTo' => $assignTo, 'exception' => $e]);
+            throw new DomainException('Database error while updating miss campaign assignment.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error updating miss campaign assignment', ['id' => $id, 'assignTo' => $assignTo, 'exception' => $e]);
+            throw new DomainException('Unexpected error while updating miss campaign assignment.');
+        }
+    }
+
+    /**
+     * Update the comment of a miss campaign.
+     *
+     * @param int $id
+     * @param string|null $comment
+     * @return bool
+     * @throws DomainException
+     */
+    public function updateCommentMissCampaign(int $id, ?string $comment = null): bool
+    {
+        try {
+            return $this->missCampaignRepository->updateComment($id, $comment);
+        } catch (QueryException $e) {
+            Log::error('Database error updating miss campaign comment', ['id' => $id, 'comment' => $comment, 'exception' => $e]);
+            throw new DomainException('Database error while updating miss campaign comment.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error updating miss campaign comment', ['id' => $id, 'comment' => $comment, 'exception' => $e]);
+            throw new DomainException('Unexpected error while updating miss campaign comment.');
+        }
+    }
 }
