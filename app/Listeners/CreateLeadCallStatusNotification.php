@@ -19,22 +19,22 @@ class CreateLeadCallStatusNotification
 
     public function handle(LeadCallStatusAddedEvent $event)
     {
-        $lead = Lead::find($event->leadId);
+        $lead = Lead::find($event->getLeadId());
         if (!$lead) {
             return;
         }
 
-        $callStatus = \App\Models\CallStatus::find($event->callStatusId);
-        $prevCallStatus = $event->previousCallStatusId ? \App\Models\CallStatus::find($event->previousCallStatusId) : null;
+        $callStatus = \App\Models\CallStatus::find($event->getCallStatusId());
+        $prevCallStatus = $event->getPreviousCallStatusId() ? \App\Models\CallStatus::find($event->getPreviousCallStatusId()) : null;
         $status = $lead->lead_status ? Status::find($lead->lead_status) : null;
         $priority = $lead->priority_id ? Priority::find($lead->priority_id) : null;
-        $updater = $event->updatedByUserId ? \App\Models\User::find($event->updatedByUserId) : null;
-        $timestamp = $event->timestamp;
+        $updater = $event->getUpdatedByUserId() ? \App\Models\User::find($event->getUpdatedByUserId()) : null;
+        $timestamp = $event->getTimestamp();
 
         $notifiedUserIds = [];
 
         // Notify assigned user if not the updater
-        if ($lead->current_assign_user && $lead->current_assign_user != $event->updatedByUserId) {
+        if ($lead->current_assign_user && $lead->current_assign_user != $event->getUpdatedByUserId()) {
             $this->notificationService->createNotificationForNotifiable(
                 \App\Models\User::class,
                 $lead->current_assign_user,
@@ -57,10 +57,10 @@ class CreateLeadCallStatusNotification
         }
 
         // Notify updater if not already notified
-        if ($event->updatedByUserId && !in_array($event->updatedByUserId, $notifiedUserIds)) {
+        if ($event->getUpdatedByUserId() && !in_array($event->getUpdatedByUserId(), $notifiedUserIds)) {
             $this->notificationService->createNotificationForNotifiable(
                 \App\Models\User::class,
-                $event->updatedByUserId,
+                $event->getUpdatedByUserId(),
                 'lead_call_status_added',
                 [
                     'title' => 'You updated a lead call status',
@@ -76,7 +76,7 @@ class CreateLeadCallStatusNotification
                     'priority_name' => $priority ? $priority->name : null
                 ]
             );
-            $notifiedUserIds[] = $event->updatedByUserId;
+            $notifiedUserIds[] = $event->getUpdatedByUserId();
         }
 
         // Optionally: Add logic here to notify other stakeholders (e.g., admins/managers) if needed

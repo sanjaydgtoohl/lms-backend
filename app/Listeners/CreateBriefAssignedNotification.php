@@ -17,6 +17,7 @@ class CreateBriefAssignedNotification
 
     public function __construct(NotificationService $notificationService)
     {
+        
         $this->notificationService = $notificationService;
     }
 
@@ -24,25 +25,25 @@ class CreateBriefAssignedNotification
     {
         try {
             // Fetch the brief with necessary relationships
-            $brief = Brief::with(['assignedUser', 'brand', 'agency'])->find($event->briefId);
+            $brief = Brief::with(['assignedUser', 'brand', 'agency'])->find($event->getBriefId());
 
             if (!$brief) {
-                Log::warning('Brief not found for notification creation', ['brief_id' => $event->briefId]);
+                Log::warning('Brief not found for notification creation', ['brief_id' => $event->getBriefId()]);
                 return;
             }
 
             // Fetch the assigned user
-            $user = User::find($event->userId);
+            $user = User::find($event->getUserId());
 
             if (!$user) {
-                Log::warning('User not found for notification creation', ['user_id' => $event->userId]);
+                Log::warning('User not found for notification creation', ['user_id' => $event->getUserId()]);
                 return;
             }
 
             // Create the notification
             $this->notificationService->createNotificationForNotifiable(
                 User::class,
-                $event->userId,
+                $event->getUserId(),
                 'brief_assigned',
                 [
                     'title' => 'Brief Assigned',
@@ -54,20 +55,20 @@ class CreateBriefAssignedNotification
             );
 
             Log::info('Brief assigned notification created successfully', [
-                'brief_id' => $event->briefId,
-                'user_id' => $event->userId
+                'brief_id' => $event->getBriefId(),
+                'user_id' => $event->getUserId()
             ]);
 
         } catch (QueryException $e) {
             Log::error('Database error creating brief assigned notification', [
-                'brief_id' => $event->briefId,
-                'user_id' => $event->userId,
+                'brief_id' => $event->getBriefId(),
+                'user_id' => $event->getUserId(),
                 'exception' => $e->getMessage()
             ]);
         } catch (Exception $e) {
             Log::error('Unexpected error creating brief assigned notification', [
-                'brief_id' => $event->briefId,
-                'user_id' => $event->userId,
+                'brief_id' => $event->getBriefId(),
+                'user_id' => $event->getUserId(),
                 'exception' => $e->getMessage()
             ]);
         }

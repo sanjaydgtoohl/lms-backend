@@ -24,25 +24,25 @@ class CreateLeadAssignedNotification
     {
         try {
             // Fetch the lead with necessary relationships
-            $lead = Lead::with(['assignedUser'])->find($event->leadId);
+            $lead = Lead::with(['assignedUser'])->find($event->getLeadId());
 
             if (!$lead) {
-                Log::warning('Lead not found for notification creation', ['lead_id' => $event->leadId]);
+                Log::warning('Lead not found for notification creation', ['lead_id' => $event->getLeadId()]);
                 return;
             }
 
             // Fetch the assigned user
-            $user = User::find($event->userId);
+            $user = User::find($event->getUserId());
 
             if (!$user) {
-                Log::warning('User not found for notification creation', ['user_id' => $event->userId]);
+                Log::warning('User not found for notification creation', ['user_id' => $event->getUserId()]);
                 return;
             }
 
             // Create the notification
             $this->notificationService->createNotificationForNotifiable(
                 User::class,
-                $event->userId,
+                $event->getUserId(),
                 'lead_assigned',
                 [
                     'title' => 'Lead Assigned',
@@ -54,21 +54,21 @@ class CreateLeadAssignedNotification
             );
 
             Log::info('Lead assigned notification created successfully', [
-                'lead_id' => $event->leadId,
-                'user_id' => $event->userId
+                'lead_id' => $event->getLeadId(),
+                'user_id' => $event->getUserId()
             ]);
 
         } catch (QueryException $e) {
             Log::error('Database error creating lead assigned notification', [
-                'lead_id' => $event->leadId,
-                'user_id' => $event->userId,
+                'lead_id' => $event->getLeadId(),
+                'user_id' => $event->getUserId(),
                 'exception' => $e->getMessage()
             ]);
             // Don't re-throw to prevent breaking the lead assignment flow
         } catch (Exception $e) {
             Log::error('Unexpected error creating lead assigned notification', [
-                'lead_id' => $event->leadId,
-                'user_id' => $event->userId,
+                'lead_id' => $event->getLeadId(),
+                'user_id' => $event->getUserId(),
                 'exception' => $e->getMessage()
             ]);
             // Don't re-throw to prevent breaking the lead assignment flow

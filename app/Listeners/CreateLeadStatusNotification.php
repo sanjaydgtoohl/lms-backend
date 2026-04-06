@@ -19,13 +19,13 @@ class CreateLeadStatusNotification
 
     public function handle(LeadStatusChangedEvent $event)
     {
-        $lead = Lead::find($event->leadId);
+        $lead = Lead::find($event->getLeadId());
 
         if (!$lead || !$lead->current_assign_user) {
             return;
-        }
+        };
 
-        $status = Status::find($event->status);
+        $status = Status::find($event->getStatus());
 
         $this->notificationRepository->create([
             'type' => 'lead_status_changed',

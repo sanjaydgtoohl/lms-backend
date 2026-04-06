@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\BriefResource;
+use App\Http\Resources\RecentBriefResource;
 use App\Models\Brief;
 use App\Models\BriefStatus;
 use App\Services\BriefService;
@@ -678,32 +679,11 @@ class BriefController extends Controller
             ]);
 
             $limit = (int) $request->input('limit', 5);
-            
+
             $briefs = $this->briefService->getRecentBriefs($limit);
 
-            // Format briefs with only required fields
-            $formattedBriefs = $briefs->map(function ($brief) {
-                return [
-                    'id' => $brief->id,
-                    'name' => $brief->name,
-                    'product_name' => $brief->product_name,
-                    'budget' => $brief->budget,
-                    'brand_name' => $brief->brand?->name,
-                    'contact_person_name' => $brief->contactPerson?->name,
-                    'assign_to' => [
-                        'id' => $brief->assignedUser?->id,
-                        'name' => $brief->assignedUser?->name,
-                        'email' => $brief->assignedUser?->email,
-                    ],
-                    'brief_status' => [
-                        'name' => $brief->briefStatus?->name,
-                        'percentage' => $brief->briefStatus?->percentage,
-                    ],
-                ];
-            });
-
             return $this->responseService->success(
-                $formattedBriefs,
+                RecentBriefResource::collection($briefs),
                 'Recent briefs retrieved successfully'
             );
         } catch (ValidationException $e) {
