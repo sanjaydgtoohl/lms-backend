@@ -33,9 +33,13 @@ class NotificationRepository extends BaseRepository implements NotificationRepos
     /**
      * {@inheritdoc}
      */
-    public function markAsRead($notificationId): bool
+    public function markAsReadForNotifiable(string $notifiableType, $notifiableId, $notificationId): bool
     {
-        $notification = Notification::find($notificationId);
+        $notification = Notification::where('id', $notificationId)
+            ->where('notifiable_type', $notifiableType)
+            ->where('notifiable_id', $notifiableId)
+            ->first();
+
         if (! $notification) {
             return false;
         }
@@ -102,9 +106,13 @@ class NotificationRepository extends BaseRepository implements NotificationRepos
     /**
      * {@inheritdoc}
      */
-    public function deleteById($id): bool
+    public function deleteByIdForNotifiable(string $notifiableType, $notifiableId, $id): bool
     {
-        $notification = Notification::find($id);
+        $notification = Notification::where('id', $id)
+            ->where('notifiable_type', $notifiableType)
+            ->where('notifiable_id', $notifiableId)
+            ->first();
+
         if (! $notification) {
             return false;
         }

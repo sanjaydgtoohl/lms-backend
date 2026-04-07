@@ -18,12 +18,14 @@ interface NotificationRepositoryInterface extends BaseRepositoryInterface
     public function getNotificationsForNotifiable(string $notifiableType, $notifiableId, int $perPage = 10): LengthAwarePaginator;
 
     /**
-     * Mark a single notification as read.
+     * Mark a single notification as read for a specific notifiable.
      *
+     * @param string $notifiableType
+     * @param int|string $notifiableId
      * @param int|string $notificationId
      * @return bool
      */
-    public function markAsRead($notificationId): bool;
+    public function markAsReadForNotifiable(string $notifiableType, $notifiableId, $notificationId): bool;
 
     /**
      * Mark all notifications belonging to a notifiable as read.
@@ -72,12 +74,14 @@ interface NotificationRepositoryInterface extends BaseRepositoryInterface
     public function getLatestNotificationsForNotifiable(string $notifiableType, $notifiableId, int $limit = 5);
 
     /**
-     * Delete a notification by its primary key.
+     * Delete a notification by its primary key for a specific notifiable.
      *
+     * @param string $notifiableType
+     * @param int|string $notifiableId
      * @param int|string $id
      * @return bool
      */
-    public function deleteById($id): bool;
+    public function deleteByIdForNotifiable(string $notifiableType, $notifiableId, $id): bool;
 
     /**
      * Delete all notifications belonging to a notifiable.

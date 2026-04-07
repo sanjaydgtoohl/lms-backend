@@ -47,7 +47,25 @@ class NotificationService
      */
     public function markAsRead($id): bool
     {
-        return $this->repository->markAsRead($id);
+        $user = Auth::user();
+        if (! $user) {
+            return false;
+        }
+
+        return $this->repository->markAsReadForNotifiable(get_class($user), $user->id, $id);
+    }
+
+    /**
+     * Delete a notification by its primary key.
+     */
+    public function deleteNotification($id): bool
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return false;
+        }
+
+        return $this->repository->deleteByIdForNotifiable(get_class($user), $user->id, $id);
     }
 
     /**
@@ -173,14 +191,6 @@ class NotificationService
     {
         $user = Auth::user();
         return $this->getLatestNotificationsForNotifiable(get_class($user), $user->id, $limit);
-    }
-
-    /**
-     * Delete a notification by its primary key.
-     */
-    public function deleteNotification($id): bool
-    {
-        return $this->repository->deleteById($id);
     }
 
     /**
