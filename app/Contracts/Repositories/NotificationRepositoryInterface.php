@@ -51,7 +51,7 @@ interface NotificationRepositoryInterface extends BaseRepositoryInterface
      * @param int|string $id
      * @return Notification|null
      */
-    public function findById($id): ?Notification;
+    public function findById(string $notifiableType, $notifiableId, $id): ?Notification;
 
     /**
      * Get unread notifications for a given notifiable (paginated).
