@@ -271,7 +271,7 @@ class RoleController extends Controller
             $this->validate($request, [
                 'per_page' => 'nullable|integer|min:1|max:100',
             ]);
-            $perPage = (int) $request->input('per_page', 10);
+            $perPage = (int) ($request->input('per_page') ?? 10);
 
             // Check if role exists
             $role = $this->roleService->find($id);
