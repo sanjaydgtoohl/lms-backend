@@ -28,7 +28,7 @@ class RecentBriefResource extends JsonResource
             'budget' => $this->budget,
             'brand_name' => $this->brand ? $this->brand->name : null,
             'contact_person_name' => $this->contactPerson ? $this->contactPerson->name : null,
-            'assign_to' => [
+            'assigned_user' => [
                 'id' => $this->assignedUser ? $this->assignedUser->id : null,
                 'name' => $this->assignedUser ? $this->assignedUser->name : null,
                 'email' => $this->assignedUser ? $this->assignedUser->email : null,

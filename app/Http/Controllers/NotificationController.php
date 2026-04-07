@@ -139,7 +139,7 @@ class NotificationController extends Controller
     {
         try {
             $this->validate($request, [
-                'limit' => 'nullable|integer|min:1',
+                'limit' => 'nullable|integer|min:1|max:100',
             ]);
 
             $limit = (int) $request->input('limit', 5);
@@ -165,11 +165,9 @@ class NotificationController extends Controller
     {
         try {
             $deleted = $this->notificationService->deleteNotification($id);
-
             if (! $deleted) {
                 return $this->responseService->notFound('Notification not found');
             }
-
             return $this->responseService->deleted('Notification deleted successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

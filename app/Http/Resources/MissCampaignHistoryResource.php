@@ -18,16 +18,16 @@ class MissCampaignHistoryResource extends JsonResource
             'id' => $this->id,
             'miss_campaign_id' => $this->miss_campaign_id,
             'assign_by' => $this->whenLoaded('assignBy', function () {
-                return [
+                return $this->assignBy ? [
                     'id' => $this->assignBy->id,
                     'name' => $this->assignBy->name,
-                ];
+                ] : null;
             }),
             'assign_to' => $this->whenLoaded('assignTo', function () {
-                return [
+                return $this->assignTo ? [
                     'id' => $this->assignTo->id,
                     'name' => $this->assignTo->name,
-                ];
+                ] : null;
             }),
             'comment' => $this->comment,
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),

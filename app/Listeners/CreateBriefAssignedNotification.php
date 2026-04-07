@@ -25,7 +25,7 @@ class CreateBriefAssignedNotification
     {
         try {
             // Fetch the brief with necessary relationships
-            $brief = Brief::with(['assignedUser', 'brand', 'agency'])->find($event->getBriefId());
+             $brief = Brief::find($event->getBriefId());
 
             if (!$brief) {
                 Log::warning('Brief not found for notification creation', ['brief_id' => $event->getBriefId()]);

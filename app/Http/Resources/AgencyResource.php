@@ -17,7 +17,9 @@ class AgencyResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
-            'contact_person_count' => $this->getContactPersonCount(),
+            'contact_person_count' => isset($this->contact_persons_count)
+                ? (int) $this->contact_persons_count
+                : 0,
             'agency_type' => $this->getAgencyTypeData(),
             'is_parent' => $this->getParentAgencyData(),
             'status' => $this->status,

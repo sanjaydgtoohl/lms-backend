@@ -589,6 +589,9 @@ class BriefController extends Controller
             $brief = $this->briefService->updateBrief($id, $updateData);
 
             // Fire event for notification
+            if (!$brief) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
             event(new \App\Events\BriefStatusChangedEvent(
                 $brief->id,
                 $brief->name,
@@ -644,8 +647,8 @@ class BriefController extends Controller
 
             if (!$brief) {
                 return $this->responseService->error(
-                    ['Assignment failed'],
-                    'Failed to assign brief to user'
+                    'Failed to assign brief to user',
+                    ['Assignment failed']
                 );
             }
 
