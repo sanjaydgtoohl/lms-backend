@@ -38,6 +38,7 @@ class NotificationRepository extends BaseRepository implements NotificationRepos
         $notification = Notification::where('id', $notificationId)
             ->where('notifiable_type', $notifiableType)
             ->where('notifiable_id', $notifiableId)
+            ->whereNull('read_at')
             ->first();
 
         if (! $notification) {
@@ -73,9 +74,12 @@ class NotificationRepository extends BaseRepository implements NotificationRepos
     /**
      * {@inheritdoc}
      */
-    public function findById($id): ?Notification
+    public function findById(string $notifiableType, $notifiableId, $id): ?Notification
     {
-        return Notification::find($id);
+        return Notification::where('id', $id)
+            ->where('notifiable_type', $notifiableType)
+            ->where('notifiable_id', $notifiableId)
+            ->first();
     }
 
     /**

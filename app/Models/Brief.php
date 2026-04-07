@@ -227,6 +227,12 @@ class Brief extends Model
             $startDate = Carbon::parse($this->campaign_start_date);
             $endDate = Carbon::parse($this->campaign_end_date);
             
+            // Check for invalid date range (start after end)
+            if ($startDate->greaterThan($endDate)) {
+                $this->campaign_duration = 0;
+                return;
+            }
+            
             // Calculate difference in days (inclusive of both start and end dates)
             $this->campaign_duration = $endDate->diffInDays($startDate) + 1;
         }

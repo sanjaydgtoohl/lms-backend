@@ -103,11 +103,16 @@ class NotificationService
     }
 
     /**
-     * Find notification by primary key.
+     * Find notification by primary key for the current user.
      */
     public function findById($id): ?Notification
     {
-        return $this->repository->findById($id);
+        $user = Auth::user();
+        if (! $user) {
+            return null;
+        }
+
+        return $this->repository->findById(get_class($user), $user->id, $id);
     }
 
     /**
