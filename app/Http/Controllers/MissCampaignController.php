@@ -126,11 +126,46 @@ class MissCampaignController extends Controller
                 'name' => 'required|string|max:255',
                 'brand_id' => 'required|integer|exists:brands,id',
                 'lead_source_id' => 'required|integer|exists:lead_source,id',
-                'lead_sub_source_id' => 'required|integer|exists:lead_sub_source,id',
+                'lead_sub_source_id' => 'nullable|integer|exists:lead_sub_source,id',
+                'media_type_id' => 'nullable|integer|exists:media_types,id',
+                'industry_id' => 'nullable|integer|exists:industries,id',
+                'country_id' => 'required|integer|exists:countries,id',
+                'state_id' => 'nullable|integer|exists:states,id',
+                'city_id' => 'nullable|integer|exists:cities,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
             ];
 
             $validatedData = $this->validate($request, $rules);
+
+            // Ensure hierarchical location consistency
+            $countryId = $validatedData['country_id'];
+
+            if (!empty($validatedData['state_id'])) {
+                $state = \App\Models\State::find($validatedData['state_id']);
+                if (!$state || (int) $state->country_id !== (int) $countryId) {
+                    return $this->responseService->validationError(
+                        ['state_id' => ['The selected state does not belong to the selected country.']],
+                        'Validation failed'
+                    );
+                }
+            }
+
+            if (!empty($validatedData['city_id'])) {
+                if (empty($validatedData['state_id'])) {
+                    return $this->responseService->validationError(
+                        ['city_id' => ['A state must be selected before selecting a city.']],
+                        'Validation failed'
+                    );
+                }
+
+                $city = \App\Models\City::find($validatedData['city_id']);
+                if (!$city || (int) $city->state_id !== (int) $validatedData['state_id'] || (int) $city->country_id !== (int) $countryId) {
+                    return $this->responseService->validationError(
+                        ['city_id' => ['The selected city does not belong to the selected state and country.']],
+                        'Validation failed'
+                    );
+                }
+            }
 
             // Add system-generated fields
             $validatedData['slug'] = Str::slug($request->name) . '-' . uniqid();
@@ -174,12 +209,54 @@ class MissCampaignController extends Controller
                 'name' => 'sometimes|required|string|max:255',
                 'brand_id' => 'sometimes|required|integer|exists:brands,id',
                 'lead_source_id' => 'sometimes|required|integer|exists:lead_source,id',
-                'lead_sub_source_id' => 'sometimes|required|integer|exists:lead_sub_source,id',
+                'lead_sub_source_id' => 'sometimes|nullable|integer|exists:lead_sub_source,id',
+                'media_type_id' => 'sometimes|nullable|integer|exists:media_types,id',
+                'industry_id' => 'sometimes|nullable|integer|exists:industries,id',
+                'country_id' => 'sometimes|required|integer|exists:countries,id',
+                'state_id' => 'sometimes|nullable|integer|exists:states,id',
+                'city_id' => 'sometimes|nullable|integer|exists:cities,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
                 'status' => 'sometimes|required|in:1,2,15',
             ];
 
             $validatedData = $this->validate($request, $rules);
+
+            $campaign = $this->missCampaignService->getMissCampaign($id);
+            if (!$campaign) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            // Determine resulting location values for validation
+            $countryId = $request->has('country_id') ? $validatedData['country_id'] : $campaign->country_id;
+            $stateId = $request->has('state_id') ? $validatedData['state_id'] : $campaign->state_id;
+            $cityId = $request->has('city_id') ? $validatedData['city_id'] : $campaign->city_id;
+
+            if (!empty($stateId)) {
+                $state = \App\Models\State::find($stateId);
+                if (!$state || (int) $state->country_id !== (int) $countryId) {
+                    return $this->responseService->validationError(
+                        ['state_id' => ['The selected state does not belong to the selected country.']],
+                        'Validation failed'
+                    );
+                }
+            }
+
+            if (!empty($cityId)) {
+                if (empty($stateId)) {
+                    return $this->responseService->validationError(
+                        ['city_id' => ['A state must be defined before selecting a city.']],
+                        'Validation failed'
+                    );
+                }
+
+                $city = \App\Models\City::find($cityId);
+                if (!$city || (int) $city->state_id !== (int) $stateId || (int) $city->country_id !== (int) $countryId) {
+                    return $this->responseService->validationError(
+                        ['city_id' => ['The selected city does not belong to the selected state and country.']],
+                        'Validation failed'
+                    );
+                }
+            }
 
             // Update slug if name changed
             if ($request->has('name')) {

@@ -44,6 +44,11 @@ class MissCampaign extends BaseModel
         'lead_source_id',
         'lead_sub_source_id',
         'image_path',
+        'media_type_id',
+        'industry_id',
+        'country_id',
+        'state_id',
+        'city_id',
     ];
 
     /**
@@ -56,6 +61,11 @@ class MissCampaign extends BaseModel
         'brand_id' => 'integer',
         'lead_source_id' => 'integer',
         'lead_sub_source_id' => 'integer',
+        'media_type_id' => 'integer',
+        'industry_id' => 'integer',
+        'country_id' => 'integer',
+        'state_id' => 'integer',
+        'city_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -89,6 +99,56 @@ class MissCampaign extends BaseModel
     public function leadSubSource(): BelongsTo
     {
         return $this->belongsTo(LeadSubSource::class, 'lead_sub_source_id');
+    }
+
+    /**
+     * Get the media type associated with the campaign.
+     *
+     * @return BelongsTo
+     */
+    public function mediaType(): BelongsTo
+    {
+        return $this->belongsTo(MediaType::class, 'media_type_id');
+    }
+
+    /**
+     * Get the industry associated with the campaign.
+     *
+     * @return BelongsTo
+     */
+    public function industry(): BelongsTo
+    {
+        return $this->belongsTo(Industry::class, 'industry_id');
+    }
+
+    /**
+     * Get the country associated with the campaign.
+     *
+     * @return BelongsTo
+     */
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
+
+    /**
+     * Get the state associated with the campaign.
+     *
+     * @return BelongsTo
+     */
+    public function state(): BelongsTo
+    {
+        return $this->belongsTo(State::class, 'state_id');
+    }
+
+    /**
+     * Get the city associated with the campaign.
+     *
+     * @return BelongsTo
+     */
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class, 'city_id');
     }
 
 }

@@ -29,6 +29,11 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
         'brand',
         'leadSource',
         'leadSubSource',
+        'mediaType',
+        'industry',
+        'country',
+        'state',
+        'city',
     ];
 
     /**
@@ -57,6 +62,21 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
                   })
                   ->orWhereHas('leadSubSource', function ($subSourceQuery) use ($searchTerm) {
                       $subSourceQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('mediaType', function ($mediaQuery) use ($searchTerm) {
+                      $mediaQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('industry', function ($industryQuery) use ($searchTerm) {
+                      $industryQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('country', function ($countryQuery) use ($searchTerm) {
+                      $countryQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('state', function ($stateQuery) use ($searchTerm) {
+                      $stateQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('city', function ($cityQuery) use ($searchTerm) {
+                      $cityQuery->where('name', 'LIKE', "%{$searchTerm}%");
                   });
             });
         }

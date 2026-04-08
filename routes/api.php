@@ -162,8 +162,8 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('list', 'MediaTypeController@list');
         $router->post('/', 'MediaTypeController@store');
         $router->get('{id:[0-9]+}', 'MediaTypeController@show');
-        //$router->put('{id:[0-9]+}', 'MediaTypeController@update');
-        //$router->patch('{id:[0-9]+}', 'MediaTypeController@update');
+        $router->put('{id:[0-9]+}', 'MediaTypeController@update');
+        $router->patch('{id:[0-9]+}', 'MediaTypeController@update');
         $router->delete('{id:[0-9]+}', 'MediaTypeController@destroy');
     });
 

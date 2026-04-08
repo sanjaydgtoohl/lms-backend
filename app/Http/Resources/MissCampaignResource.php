@@ -63,6 +63,36 @@ class MissCampaignResource extends JsonResource
                     'name' => $this->leadSubSource->name,
                 ] : null;
             }),
+            'media_type' => $this->whenLoaded('mediaType', function () {
+                return $this->mediaType ? [
+                    'id' => $this->mediaType->id,
+                    'name' => $this->mediaType->name,
+                ] : null;
+            }),
+            'industry' => $this->whenLoaded('industry', function () {
+                return $this->industry ? [
+                    'id' => $this->industry->id,
+                    'name' => $this->industry->name,
+                ] : null;
+            }),
+            'country' => $this->whenLoaded('country', function () {
+                return $this->country ? [
+                    'id' => $this->country->id,
+                    'name' => $this->country->name,
+                ] : null;
+            }),
+            'state' => $this->whenLoaded('state', function () {
+                return $this->state ? [
+                    'id' => $this->state->id,
+                    'name' => $this->state->name,
+                ] : null;
+            }),
+            'city' => $this->whenLoaded('city', function () {
+                return $this->city ? [
+                    'id' => $this->city->id,
+                    'name' => $this->city->name,
+                ] : null;
+            }),
 
             // Timestamps
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
