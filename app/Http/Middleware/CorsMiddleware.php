@@ -21,8 +21,8 @@ class CorsMiddleware
             'http://localhost:8080',
             'https://www.lms.dgtoohl.com',
             'https://lms.dgtoohl.com',
-            'https://www.api.dev.lms.dgtoohl.com',
-            'https://api.dev.lms.dgtoohl.com',
+            'https://www.dev.lms.dgtoohl.com',
+            'https://dev.lms.dgtoohl.com',
         ];
 
         $origin = $request->header('Origin');
