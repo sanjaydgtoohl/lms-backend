@@ -370,9 +370,6 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->delete('/{id:[0-9]+}', 'MissCampaignController@destroy');
         $router->put('/{id:[0-9]+}/assign-to', 'MissCampaignController@updateAssignTo');
         $router->put('/{id:[0-9]+}/comment', 'MissCampaignController@updateComment');
-
-        // MissCampaignHistory get all by miss_campaign_id
-        $router->get('/{id:[0-9]+}/history', 'MissCampaignHistoryController@getByMissCampaignId');
     });
 
     // Brief Status routes

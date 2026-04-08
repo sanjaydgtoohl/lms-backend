@@ -175,18 +175,6 @@ class MissCampaignController extends Controller
 
             $validatedData = $this->validate($request, $rules);
 
-            // Fetch current campaign data before update
-            $oldCampaign = $this->missCampaignService->getMissCampaign($id);
-            if ($oldCampaign) {
-                \App\Models\MissCampaignHistory::create([
-                    'miss_campaign_id' => $oldCampaign->id,
-                    'status' => $oldCampaign->status,
-                    'assign_by' => $oldCampaign->assign_by,
-                    'assign_to' => $oldCampaign->assign_to,
-                    'comment' => $oldCampaign->comment,
-                ]);
-            }
-
             // Update slug if name changed
             if ($request->has('name')) {
                 $validatedData['slug'] = Str::slug($request->name) . '-' . $id;
@@ -278,18 +266,6 @@ class MissCampaignController extends Controller
 
             $validatedData = $this->validate($request, $rules);
 
-            // Store old data in history before update
-            $oldCampaign = $this->missCampaignService->getMissCampaign($id);
-            if ($oldCampaign) {
-                \App\Models\MissCampaignHistory::create([
-                    'miss_campaign_id' => $oldCampaign->id,
-                    'status' => $oldCampaign->status,
-                    'assign_by' => $oldCampaign->assign_by,
-                    'assign_to' => $oldCampaign->assign_to,
-                    'comment' => $oldCampaign->comment,
-                ]);
-            }
-
             $this->missCampaignService->updateAssignMissCampaign(
                 $id,
                 $validatedData['assign_to'],
@@ -334,18 +310,6 @@ class MissCampaignController extends Controller
             ];
 
             $validatedData = $this->validate($request, $rules);
-
-            // Store old data in history before update
-            $oldCampaign = $this->missCampaignService->getMissCampaign($id);
-            if ($oldCampaign) {
-                \App\Models\MissCampaignHistory::create([
-                    'miss_campaign_id' => $oldCampaign->id,
-                    'status' => $oldCampaign->status,
-                    'assign_by' => $oldCampaign->assign_by,
-                    'assign_to' => $oldCampaign->assign_to,
-                    'comment' => $oldCampaign->comment,
-                ]);
-            }
 
             $this->missCampaignService->updateCommentMissCampaign(
                 $id,
