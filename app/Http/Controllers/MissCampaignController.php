@@ -227,9 +227,9 @@ class MissCampaignController extends Controller
             }
 
             // Determine resulting location values for validation
-            $countryId = $request->has('country_id') ? $validatedData['country_id'] : $campaign->country_id;
-            $stateId = $request->has('state_id') ? $validatedData['state_id'] : $campaign->state_id;
-            $cityId = $request->has('city_id') ? $validatedData['city_id'] : $campaign->city_id;
+            $countryId = array_key_exists('country_id', $validatedData) ? $validatedData['country_id'] : $campaign->country_id;
+            $stateId = array_key_exists('state_id', $validatedData) ? $validatedData['state_id'] : $campaign->state_id;
+            $cityId = array_key_exists('city_id', $validatedData) ? $validatedData['city_id'] : $campaign->city_id;
 
             if (!empty($stateId)) {
                 $state = \App\Models\State::find($stateId);
