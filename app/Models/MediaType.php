@@ -29,7 +29,7 @@ class MediaType extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean',
+        'status' => 'string',
     ];
 
     protected $hidden = [

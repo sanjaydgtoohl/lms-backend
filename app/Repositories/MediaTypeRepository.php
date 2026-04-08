@@ -47,4 +47,19 @@ class MediaTypeRepository implements MediaTypeRepositoryInterface
     {
         return $this->getMediaTypeById($id)->delete();
     }
+
+    public function updateMediaType(int $id, array $data): MediaType
+    {
+        $mediaType = $this->getMediaTypeById($id);
+        $mediaType->update($data);
+        return $mediaType;
+    }
+
+    public function listMediaTypes()
+    {
+        return $this->model
+            ->select('id', 'name')
+            ->orderBy('name', 'asc')
+            ->get();
+    }
 }

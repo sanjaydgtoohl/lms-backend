@@ -46,4 +46,17 @@ class MediaTypeService
     {
         return $this->repository->deleteMediaType($id);
     }
+
+    public function update(int $id, array $data): MediaType
+    {
+        if (isset($data['name'])) {
+            $data['slug'] = Str::slug($data['name']);
+        }
+        return $this->repository->updateMediaType($id, $data);
+    }
+
+    public function list()
+    {
+        return $this->repository->listMediaTypes();
+    }
 }

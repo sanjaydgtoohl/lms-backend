@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * API Routes Definition
+ * -----------------------------------------
+ * Defines all API routes for the application, including authentication, resources, and business logic endpoints.
+ *
+ * @package Routes
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-08
+ */
+
 /** @var \Laravel\Lumen\Routing\Router $router */
 
 use App\Http\Controllers\Api\AuthController;
@@ -43,6 +54,7 @@ use App\Http\Controllers\PlannerController;
 use App\Http\Controllers\PlannerHistoryController;
 use App\Http\Controllers\PlannerStatusController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\MediaTypeController;
 use App\Models\GoogleCalender;
 use Carbon\Carbon;
 
@@ -142,6 +154,17 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('{id}', 'LeadSubSourceController@show');
         $router->put('{id}', 'LeadSubSourceController@update');
         $router->delete('{id}', 'LeadSubSourceController@destroy');
+    });
+
+    // Media Type routes
+    $router->group(['prefix' => 'media-types'], function () use ($router) {
+        $router->get('/', 'MediaTypeController@index');
+        $router->get('list', 'MediaTypeController@list');
+        $router->post('/', 'MediaTypeController@store');
+        $router->get('{id:[0-9]+}', 'MediaTypeController@show');
+        //$router->put('{id:[0-9]+}', 'MediaTypeController@update');
+        //$router->patch('{id:[0-9]+}', 'MediaTypeController@update');
+        $router->delete('{id:[0-9]+}', 'MediaTypeController@destroy');
     });
 
     $router->group(['prefix' => 'countries'], function () use ($router) {
@@ -356,7 +379,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->post('{id:[0-9]+}/priority', 'LeadController@updatePriority');
         $router->post('{id:[0-9]+}/status', 'LeadController@updateStatus');
         $router->put('{id:[0-9]+}/call-status', 'LeadController@addCallStatus');
-        //$router->delete('{id:[0-9]+}/call-status/{callStatusId:[0-9]+}', 'LeadController@removeCallStatus');
+        $router->delete('{id:[0-9]+}/call-status/{callStatusId:[0-9]+}', 'LeadController@removeCallStatus');
     });
 
     // Miss Campaign routes
@@ -368,8 +391,6 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('/{id:[0-9]+}', 'MissCampaignController@update');     
         $router->patch('/{id:[0-9]+}', 'MissCampaignController@update'); 
         $router->delete('/{id:[0-9]+}', 'MissCampaignController@destroy');
-        $router->put('/{id:[0-9]+}/assign-to', 'MissCampaignController@updateAssignTo');
-        $router->put('/{id:[0-9]+}/comment', 'MissCampaignController@updateComment');
     });
 
     // Brief Status routes

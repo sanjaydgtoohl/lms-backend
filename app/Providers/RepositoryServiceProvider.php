@@ -108,6 +108,9 @@ use App\Repositories\UserParentRepository;
 use App\Contracts\Repositories\NotificationRepositoryInterface;
 use App\Repositories\NotificationRepository;
 
+use App\Contracts\Repositories\MediaTypeRepositoryInterface;
+use App\Repositories\MediaTypeRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -278,10 +281,14 @@ class RepositoryServiceProvider extends ServiceProvider
             UserParentRepository::class
         );
 
-        // notification repository
         $this->app->bind(
             NotificationRepositoryInterface::class,
             NotificationRepository::class
+        );
+
+        $this->app->bind(
+            MediaTypeRepositoryInterface::class,
+            MediaTypeRepository::class
         );
     }
     /**

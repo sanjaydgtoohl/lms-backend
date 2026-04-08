@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * MissCampaign Model
+ * -----------------------------------------
+ * Represents a miss campaign entity with relationships to brands, sources, and file handling capabilities.
+ *
+ * @package App\Models
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-08
+ */
+
 namespace App\Models;
 
 use App\Traits\HandlesFileUploads;
@@ -33,9 +44,6 @@ class MissCampaign extends BaseModel
         'lead_source_id',
         'lead_sub_source_id',
         'image_path',
-        'assign_by',
-        'assign_to',
-        'comment',
     ];
 
     /**
@@ -48,8 +56,6 @@ class MissCampaign extends BaseModel
         'brand_id' => 'integer',
         'lead_source_id' => 'integer',
         'lead_sub_source_id' => 'integer',
-        'assign_by' => 'integer',
-        'assign_to' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -85,23 +91,4 @@ class MissCampaign extends BaseModel
         return $this->belongsTo(LeadSubSource::class, 'lead_sub_source_id');
     }
 
-    /**
-     * Get the user who assigned the campaign.
-     *
-     * @return BelongsTo
-     */
-    public function assignedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'assign_by');
-    }
-
-    /**
-     * Get the user to whom the campaign is assigned.
-     *
-     * @return BelongsTo
-     */
-    public function assignedTo(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'assign_to');
-    }
 }

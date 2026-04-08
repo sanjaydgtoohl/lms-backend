@@ -38,7 +38,7 @@ class MediaTypeSeeder extends Seeder
 
         foreach ($types as $type) {
             DB::table('media_types')->insert([
-                'name' => strtoupper($type),
+                'name' => $type,
                 'slug' => Str::slug($type),
                 'status' => '1',
                 'created_at' => Carbon::now(),

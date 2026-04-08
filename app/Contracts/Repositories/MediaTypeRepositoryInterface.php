@@ -49,4 +49,20 @@ interface MediaTypeRepositoryInterface
      * @return bool
      */
     public function deleteMediaType(int $id): bool;
+
+    /**
+     * Update an existing media type.
+     *
+     * @param int $id
+     * @param array $data
+     * @return MediaType
+     */
+    public function updateMediaType(int $id, array $data): MediaType;
+
+    /**
+     * Get a list of media types for dropdown selection.
+     *
+     * @return mixed
+     */
+    public function listMediaTypes();
 }

@@ -85,12 +85,53 @@ class MediaTypeController extends Controller
         }
     }
 
+    public function update(Request $request, $id)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('media_types', 'name')
+                        ->ignore($id)
+                        ->whereNull('deleted_at')
+                ],
+                //'status' => 'nullable|boolean',
+            ]);
+
+            $validatedData = $validator->validate();
+            $mediaType = $this->mediaTypeService->update((int) $id, $validatedData);
+
+            return $this->responseService->success(
+                new MediaTypeResource($mediaType),
+                'Media type updated successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
     public function destroy($id)
     {
         try {
             $this->mediaTypeService->delete((int) $id);
 
             return $this->responseService->deleted('Media type deleted successfully');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    public function list()
+    {
+        try {
+            $mediaTypes = $this->mediaTypeService->list();
+
+            return $this->responseService->success(
+                MediaTypeResource::collection($mediaTypes),
+                'Media types list retrieved successfully'
+            );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * MissCampaign Repository
+ * -----------------------------------------
+ * Handles data access operations for miss campaigns, providing CRUD methods and query logic.
+ *
+ * @package App\Repositories
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-08
+ */
+
 namespace App\Repositories;
 
 use App\Contracts\Repositories\MissCampaignRepositoryInterface;
@@ -18,8 +29,6 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
         'brand',
         'leadSource',
         'leadSubSource',
-        'assignedBy',
-        'assignedTo',
     ];
 
     /**
@@ -93,37 +102,9 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
         return $item->delete();
     }
 
-    public function updateStatus(int $id, string $status, ?int $assignTo = null, ?int $assignBy = null): bool
+    public function updateStatus(int $id, string $status): bool
     {
         $item = $this->model->findOrFail($id);
-        $data = ['status' => $status];
-
-        if ($assignTo !== null) {
-            $data['assign_to'] = $assignTo;
-        }
-
-        if ($assignBy !== null) {
-            $data['assign_by'] = $assignBy;
-        }
-
-        return $item->update($data);
-    }
-
-    public function updateAssign(int $id, int $assignTo, ?int $assignBy = null): bool
-    {
-        $item = $this->model->findOrFail($id);
-        $data = ['assign_to' => $assignTo];
-
-        if ($assignBy !== null) {
-            $data['assign_by'] = $assignBy;
-        }
-
-        return $item->update($data);
-    }
-
-    public function updateComment(int $id, ?string $comment = null): bool
-    {
-        $item = $this->model->findOrFail($id);
-        return $item->update(['comment' => $comment]);
+        return $item->update(['status' => $status]);
     }
 }

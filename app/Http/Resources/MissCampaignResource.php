@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * MissCampaign Resource
+ * -----------------------------------------
+ * Transforms MissCampaign model data into JSON responses for API endpoints.
+ *
+ * @package App\Http\Resources
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-08
+ */
+
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
@@ -52,21 +63,6 @@ class MissCampaignResource extends JsonResource
                     'name' => $this->leadSubSource->name,
                 ] : null;
             }),
-
-            // Assignment Information
-            'assigned_by' => $this->whenLoaded('assignedBy', function () {
-                return $this->assignedBy ? [
-                    'id' => $this->assignedBy->id,
-                    'name' => $this->assignedBy->name,
-                ] : null;
-            }),
-            'assigned_to' => $this->whenLoaded('assignedTo', function () {
-                return $this->assignedTo ? [
-                    'id' => $this->assignedTo->id,
-                    'name' => $this->assignedTo->name,
-                ] : null;
-            }),
-            'comment' => $this->comment,
 
             // Timestamps
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),

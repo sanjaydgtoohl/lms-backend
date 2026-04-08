@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * MissCampaign Controller
+ * -----------------------------------------
+ * Handles HTTP requests for miss campaign management, including CRUD operations and API responses.
+ *
+ * @package App\Http\Controllers
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-08
+ */
+
 namespace App\Http\Controllers;
 
 use App\Http\Resources\MissCampaignResource;
@@ -117,8 +128,6 @@ class MissCampaignController extends Controller
                 'lead_source_id' => 'required|integer|exists:lead_source,id',
                 'lead_sub_source_id' => 'required|integer|exists:lead_sub_source,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
-                'assign_by' => 'nullable|integer|exists:users,id',
-                'assign_to' => 'nullable|integer|exists:users,id',
             ];
 
             $validatedData = $this->validate($request, $rules);
@@ -126,7 +135,6 @@ class MissCampaignController extends Controller
             // Add system-generated fields
             $validatedData['slug'] = Str::slug($request->name) . '-' . uniqid();
             $validatedData['status'] = '1'; // Default active status
-            $validatedData['assign_by'] = Auth::id(); // Set assign_by to logged-in user
 
             // Handle image upload if present
             if ($request->hasFile('image_path')) {
@@ -169,8 +177,6 @@ class MissCampaignController extends Controller
                 'lead_sub_source_id' => 'sometimes|required|integer|exists:lead_sub_source,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
                 'status' => 'sometimes|required|in:1,2,15',
-                'assign_by' => 'sometimes|required|integer|exists:users,id',
-                'assign_to' => 'sometimes|required|integer|exists:users,id',
             ];
 
             $validatedData = $this->validate($request, $rules);
@@ -241,96 +247,6 @@ class MissCampaignController extends Controller
             return $this->responseService->success(
                 $campaignsList,
                 'Miss campaign list retrieved successfully'
-            );
-        } catch (Throwable $e) {
-            return $this->responseService->handleException($e);
-        }
-    }
-
-    /**
-     * Update the assigned user of a miss campaign.
-     *
-     * PUT /miss-campaigns/{id}/assign-to
-     *
-     * @param Request $request
-     * @param int $id
-     * @return JsonResponse
-     */
-    public function updateAssignTo(Request $request, int $id): JsonResponse
-    {
-        try {
-            $rules = [
-                'assign_to' => 'required|integer|exists:users,id',
-                'assign_by' => 'required|integer|exists:users,id',
-            ];
-
-            $validatedData = $this->validate($request, $rules);
-
-            $this->missCampaignService->updateAssignMissCampaign(
-                $id,
-                $validatedData['assign_to'],
-                $validatedData['assign_by']
-            );
-
-            // Fetch updated campaign with relationships
-            $campaign = $this->missCampaignService->getMissCampaign($id);
-
-            if (!$campaign) {
-                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
-            }
-
-            return $this->responseService->updated(
-                new MissCampaignResource($campaign),
-                'Miss campaign assigned user updated successfully'
-            );
-        } catch (ValidationException $e) {
-            return $this->responseService->validationError(
-                $e->errors(),
-                'Validation failed'
-            );
-        } catch (Throwable $e) {
-            return $this->responseService->handleException($e);
-        }
-    }
-
-    /**
-     * Update the comment of a miss campaign.
-     *
-     * PUT /miss-campaigns/{id}/comment
-     *
-     * @param Request $request
-     * @param int $id
-     * @return JsonResponse
-     */
-    public function updateComment(Request $request, int $id): JsonResponse
-    {
-        try {
-            $rules = [
-                'comment' => 'nullable|string|max:1000',
-            ];
-
-            $validatedData = $this->validate($request, $rules);
-
-            $this->missCampaignService->updateCommentMissCampaign(
-                $id,
-                $validatedData['comment'] ?? null
-            );
-
-            // Fetch updated campaign with relationships
-            $campaign = $this->missCampaignService->getMissCampaign($id);
-
-            if (!$campaign) {
-                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
-            }
-
-            return $this->responseService->updated(
-                new MissCampaignResource($campaign),
-                'Miss campaign comment updated successfully'
-            );
-        } catch (ValidationException $e) {
-            return $this->responseService->validationError(
-                $e->errors(),
-                'Validation failed'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
