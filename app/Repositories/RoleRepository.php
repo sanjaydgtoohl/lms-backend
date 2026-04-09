@@ -155,7 +155,10 @@ class RoleRepository implements RoleRepositoryInterface
         $role = $this->model->find($roleId);
 
         if (! $role) {
-            return collect()->paginate($perPage);
+            return new LengthAwarePaginator([], 0, $perPage, 1, [
+                'path' => '',
+                'pageName' => 'page'
+            ]);
         }
 
         return $role->users()->paginate($perPage);

@@ -5,19 +5,18 @@ namespace App\Services;
 use App\Contracts\Repositories\NotificationRepositoryInterface;
 use App\Models\Notification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class NotificationService
 {
     protected NotificationRepositoryInterface $repository;
-    protected ResponseService $responseService;
 
     public function __construct(
-        NotificationRepositoryInterface $repository,
-        ResponseService $responseService
+        NotificationRepositoryInterface $repository
     ) {
         $this->repository = $repository;
-        $this->responseService = $responseService;
     }
 
     /**
@@ -26,20 +25,24 @@ class NotificationService
      * @param string $type
      * @param mixed $id
      * @param int $perPage
+     * @param array|null $queryParams
      * @return LengthAwarePaginator<Notification>
      */
-    public function getNotificationsForNotifiable(string $type, $id, int $perPage = 10): LengthAwarePaginator
+    public function getNotificationsForNotifiable(string $type, $id, int $perPage = 10, ?array $queryParams = null): LengthAwarePaginator
     {
-        return $this->repository->getNotificationsForNotifiable($type, $id, $perPage);
+        return $this->repository->getNotificationsForNotifiable($type, $id, $perPage, $queryParams);
     }
 
     /**
      * Convenience helper for currently authenticated user.
      */
-    public function getNotificationsForCurrentUser(int $perPage = 10): LengthAwarePaginator
+    public function getNotificationsForCurrentUser(int $perPage = 10, ?array $queryParams = null): LengthAwarePaginator
     {
         $user = Auth::user();
-        return $this->getNotificationsForNotifiable(get_class($user), $user->id, $perPage);
+        if (! $user) {
+            return new Paginator([], 0, $perPage, 1, ['path' => '', 'pageName' => 'page']);
+        }
+        return $this->getNotificationsForNotifiable(get_class($user), $user->id, $perPage, $queryParams);
     }
 
     /**
@@ -82,6 +85,9 @@ class NotificationService
     public function markAllAsReadForCurrentUser(): int
     {
         $user = Auth::user();
+        if (! $user) {
+            return 0;
+        }
         return $this->markAllAsReadForNotifiable(get_class($user), $user->id);
     }
 
@@ -99,6 +105,9 @@ class NotificationService
     public function getUnreadCountForCurrentUser(): int
     {
         $user = Auth::user();
+        if (! $user) {
+            return 0;
+        }
         return $this->getUnreadCountForNotifiable(get_class($user), $user->id);
     }
 
@@ -167,18 +176,21 @@ class NotificationService
     /**
      * Get unread notifications for the given notifiable.
      */
-    public function getUnreadNotificationsForNotifiable(string $type, $id, int $perPage = 10)
+    public function getUnreadNotificationsForNotifiable(string $type, $id, int $perPage = 10, ?array $queryParams = null)
     {
-        return $this->repository->getUnreadNotificationsForNotifiable($type, $id, $perPage);
+        return $this->repository->getUnreadNotificationsForNotifiable($type, $id, $perPage, $queryParams);
     }
 
     /**
      * Convenience helper for currently authenticated user.
      */
-    public function getUnreadNotificationsForCurrentUser(int $perPage = 10)
+    public function getUnreadNotificationsForCurrentUser(int $perPage = 10, ?array $queryParams = null)
     {
         $user = Auth::user();
-        return $this->getUnreadNotificationsForNotifiable(get_class($user), $user->id, $perPage);
+        if (! $user) {
+            return new Paginator([], 0, $perPage, 1, ['path' => '', 'pageName' => 'page']);
+        }
+        return $this->getUnreadNotificationsForNotifiable(get_class($user), $user->id, $perPage, $queryParams);
     }
 
     /**
@@ -195,6 +207,9 @@ class NotificationService
     public function getLatestNotificationsForCurrentUser(int $limit = 5)
     {
         $user = Auth::user();
+        if (! $user) {
+            return collect();
+        }
         return $this->getLatestNotificationsForNotifiable(get_class($user), $user->id, $limit);
     }
 
@@ -214,6 +229,9 @@ class NotificationService
     public function clearAllNotificationsForCurrentUser(): int
     {
         $user = Auth::user();
+        if (! $user) {
+            return 0;
+        }
         return $this->clearAllNotificationsForNotifiable(get_class($user), $user->id);
     }
 }

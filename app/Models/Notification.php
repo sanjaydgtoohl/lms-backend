@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 class Notification extends Model
 {
@@ -55,11 +54,53 @@ class Notification extends Model
         'updated_at' => 'datetime',
     ];
 
-    // no boot customization required since we rely on database auto-increment
     /**
      * Get the owning notifiable model (user, agency, etc.).
      */
     public function notifiable()
     {
         return $this->morphTo();
-    }}
+    }
+
+    /**
+     * Scope to get unread notifications.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeUnread($query)
+    {
+        return $query->whereNull('read_at');
+    }
+
+    /**
+     * Scope to get read notifications.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeRead($query)
+    {
+        return $query->whereNotNull('read_at');
+    }
+
+    /**
+     * Mark the notification as read.
+     *
+     * @return void
+     */
+    public function markAsRead(): void
+    {
+        $this->update(['read_at' => now()]);
+    }
+
+    /**
+     * Mark the notification as unread.
+     *
+     * @return void
+     */
+    public function markAsUnread(): void
+    {
+        $this->update(['read_at' => null]);
+    }
+}

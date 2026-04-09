@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Events;
+use Carbon\CarbonInterface;
 
 class LeadCallStatusAddedEvent
 {
@@ -10,7 +11,14 @@ class LeadCallStatusAddedEvent
     protected int $updatedByUserId;
     protected $timestamp;
 
-    public function __construct(int $leadId, int $callStatusId, ?int $previousCallStatusId, int $updatedByUserId, $timestamp = null)
+    public function __construct(
+        int $leadId,
+        int $callStatusId,
+        ?int $previousCallStatusId,
+        int $updatedByUserId,
+        ?CarbonInterface $timestamp = null
+    )
+    
     {
         $this->leadId = $leadId;
         $this->callStatusId = $callStatusId;
@@ -39,7 +47,7 @@ class LeadCallStatusAddedEvent
         return $this->updatedByUserId;
     }
 
-    public function getTimestamp()
+    public function getTimestamp(): CarbonInterface
     {
         return $this->timestamp;
     }

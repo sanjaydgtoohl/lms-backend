@@ -22,5 +22,5 @@ interface MissCampaignRepositoryInterface
     public function createMissCampaign(array $data);
     public function updateMissCampaign(int $id, array $data);
     public function deleteMissCampaign(int $id);
-    public function updateStatus(int $id, string $status);
+    public function updateStatus(int $id, string $status): bool;
 }

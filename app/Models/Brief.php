@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -202,6 +203,14 @@ class Brief extends Model
     }
 
     /**
+     * Get all notifications for this brief.
+     */
+    public function notifications(): MorphMany
+    {
+        return $this->morphMany(Notification::class, 'notifiable');
+    }
+
+    /**
      * Get the latest planner id from planner history.
      *
      * @return int|null
@@ -223,19 +232,22 @@ class Brief extends Model
      */
     private function calculateCampaignDuration(): void
     {
-        if ($this->campaign_start_date && $this->campaign_end_date) {
-            $startDate = Carbon::parse($this->campaign_start_date);
-            $endDate = Carbon::parse($this->campaign_end_date);
-            
-            // Check for invalid date range (start after end)
-            if ($startDate->greaterThan($endDate)) {
-                $this->campaign_duration = 0;
-                return;
-            }
-            
-            // Calculate difference in days (inclusive of both start and end dates)
-            $this->campaign_duration = $endDate->diffInDays($startDate) + 1;
+        if (!$this->campaign_start_date || !$this->campaign_end_date) {
+            $this->campaign_duration = 0;
+            return;
         }
+
+        $startDate = Carbon::parse($this->campaign_start_date);
+        $endDate = Carbon::parse($this->campaign_end_date);
+        
+        // Check for invalid date range (start after end)
+        if ($startDate->greaterThan($endDate)) {
+            $this->campaign_duration = 0;
+            return;
+        }
+        
+        // Calculate difference in days (inclusive of both start and end dates)
+        $this->campaign_duration = $endDate->diffInDays($startDate) + 1;
     }
 
     /**

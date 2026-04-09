@@ -2,10 +2,6 @@
 
 namespace App\Events;
 
-use Illuminate\Database\QueryException;
-use DomainException;
-use Illuminate\Support\Facades\Log;
-use Exception;
 use Illuminate\Queue\SerializesModels;
 
 class LeadAssignedEvent

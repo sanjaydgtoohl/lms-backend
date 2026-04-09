@@ -28,15 +28,15 @@ class RecentBriefResource extends JsonResource
             'budget' => $this->budget,
             'brand_name' => $this->brand ? $this->brand->name : null,
             'contact_person_name' => $this->contactPerson ? $this->contactPerson->name : null,
-            'assigned_user' => [
-                'id' => $this->assignedUser ? $this->assignedUser->id : null,
-                'name' => $this->assignedUser ? $this->assignedUser->name : null,
-                'email' => $this->assignedUser ? $this->assignedUser->email : null,
-            ],
-            'brief_status' => [
-                'name' => $this->briefStatus ? $this->briefStatus->name : null,
-                'percentage' => $this->briefStatus ? $this->briefStatus->percentage : null,
-            ],
+            'assigned_user' => $this->assignedUser ? [
+                'id' => $this->assignedUser->id,
+                'name' => $this->assignedUser->name,
+                'email' => $this->assignedUser->email,
+            ] : null,
+            'brief_status' => $this->briefStatus ? [
+                'name' => $this->briefStatus->name,
+                'percentage' => $this->briefStatus->percentage,
+            ] : null,
         ];
     }
 }

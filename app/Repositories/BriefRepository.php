@@ -60,7 +60,7 @@ class BriefRepository implements BriefRepositoryInterface
             ->accessibleToUser(Auth::user());
 
         // Apply search filter if search term is provided
-        if ($searchTerm) {
+        if ($searchTerm !== null && $searchTerm !== '') {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('product_name', 'LIKE', "%{$searchTerm}%")

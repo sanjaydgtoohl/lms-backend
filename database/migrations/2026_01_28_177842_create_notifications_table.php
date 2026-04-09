@@ -19,6 +19,7 @@ class CreateNotificationsTable extends Migration
             $table->morphs('notifiable');
             $table->text('data');
             $table->timestamp('read_at')->nullable();
+            $table->index('read_at');
             $table->timestamps();
         });
     }  
@@ -30,6 +31,9 @@ class CreateNotificationsTable extends Migration
      */
     public function down()
     {
+        Schema::table('notifications', function (Blueprint $table) {
+            $table->dropIndex(['read_at']);
+        });
         Schema::dropIfExists('notifications');
     }
 }

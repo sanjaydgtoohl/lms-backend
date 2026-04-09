@@ -11,6 +11,7 @@ use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Events\LeadAssignedEvent;
 use App\Events\LeadCallStatusAddedEvent;
@@ -232,18 +233,20 @@ class LeadService
     public function createLead(array $data): Lead
     {
         try {
-            if (empty($data['name'])) {
-                throw new DomainException('Lead name is required.');
-            }
+            return DB::transaction(function () use ($data) {
+                if (empty($data['name'])) {
+                    throw new DomainException('Lead name is required.');
+                }
 
-            $lead = $this->leadRepository->createLead($data);
+                $lead = $this->leadRepository->createLead($data);
 
-            // If current_assign_user is set, assign the lead and trigger notification
-            if (!empty($data['current_assign_user'])) {
-                $this->assignLeadToUser($lead->id, $data['current_assign_user']);
-            }
+                // If current_assign_user is set, assign the lead and trigger notification
+                if (!empty($data['current_assign_user'])) {
+                    $this->assignLeadToUser($lead->id, $data['current_assign_user']);
+                }
 
-            return $lead;
+                return $lead;
+            });
         } catch (DomainException $e) {
             throw $e;
         } catch (QueryException $e) {
@@ -287,10 +290,14 @@ class LeadService
     public function assignLeadToUser(int $leadId, int $userId): bool
     {
         try {
+            // Fetch current assigned user before update
+            $lead = $this->leadRepository->getLeadById($leadId);
+            $currentAssignedUser = $lead ? $lead->current_assign_user : null;
+
             $result = $this->leadRepository->assignLeadToUser($leadId, $userId);
 
-            // Fire event only if assignment successful
-            if ($result) {
+            // Fire event only if assignment successful and user changed
+            if ($result && $currentAssignedUser != $userId) {
                 event(new LeadAssignedEvent($leadId, $userId));
             }
 
@@ -360,6 +367,12 @@ class LeadService
             // Get previous call status before update
             $lead = $this->leadRepository->getLeadById($leadId);
             $previousCallStatusId = $lead ? $lead->call_status : null;
+
+            // If status is unchanged, return true without update or event
+            if ($previousCallStatusId == $callStatusId) {
+                return true;
+            }
+
             $updatedByUserId = auth()->id();
             $result = $this->leadRepository->addCallStatus($leadId, $callStatusId);
             if ($result) {

@@ -12,7 +12,7 @@ use App\Contracts\Repositories\PermissionRepositoryInterface;
 use App\Services\UserService;
 use App\Contracts\Repositories\UserRepositoryInterface;
 use App\Contracts\Repositories\UserParentRepositoryInterface;
-use App\Repositories\NotificationRepository;
+use App\Contracts\Repositories\NotificationRepositoryInterface;
 use App\Services\NotificationService;
 
 class AppServiceProvider extends ServiceProvider
@@ -51,7 +51,7 @@ class AppServiceProvider extends ServiceProvider
         // Bind NotificationService
         $this->app->bind(NotificationService::class, function ($app) {
             return new NotificationService(
-                $app->make(NotificationRepository::class),
+                $app->make(NotificationRepositoryInterface::class),
                 $app->make(ResponseService::class)
             );
         });

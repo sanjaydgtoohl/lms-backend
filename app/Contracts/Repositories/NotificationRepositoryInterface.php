@@ -13,9 +13,10 @@ interface NotificationRepositoryInterface extends BaseRepositoryInterface
      * @param string $notifiableType
      * @param int|string $notifiableId
      * @param int $perPage
+     * @param array|null $queryParams
      * @return LengthAwarePaginator<Notification>
      */
-    public function getNotificationsForNotifiable(string $notifiableType, $notifiableId, int $perPage = 10): LengthAwarePaginator;
+    public function getNotificationsForNotifiable(string $notifiableType, $notifiableId, int $perPage = 10, ?array $queryParams = null): LengthAwarePaginator;
 
     /**
      * Mark a single notification as read for a specific notifiable.
@@ -46,7 +47,10 @@ interface NotificationRepositoryInterface extends BaseRepositoryInterface
     public function getUnreadCountForNotifiable(string $notifiableType, $notifiableId): int;
 
     /**
-     * Find a notification by its primary key.
+     * * Find a notification by its primary key for a specific notifiable.
+      *
+     * @param string $notifiableType
+     * @param int|string $notifiableId
      *
      * @param int|string $id
      * @return Notification|null
@@ -59,9 +63,10 @@ interface NotificationRepositoryInterface extends BaseRepositoryInterface
      * @param string $notifiableType
      * @param int|string $notifiableId
      * @param int $perPage
+     * @param array|null $queryParams
      * @return LengthAwarePaginator<Notification>
      */
-    public function getUnreadNotificationsForNotifiable(string $notifiableType, $notifiableId, int $perPage = 10);
+    public function getUnreadNotificationsForNotifiable(string $notifiableType, $notifiableId, int $perPage = 10, ?array $queryParams = null);
 
     /**
      * Get latest notifications for a given notifiable (limited collection).

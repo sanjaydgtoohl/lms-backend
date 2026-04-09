@@ -8,7 +8,7 @@
  * @package App\Repositories
  * @author Achal Sharma
  * @version 1.0.0
- * @since 2026-04-08
+ * @since 2026-04-09
  */
 
 namespace App\Repositories;
@@ -50,7 +50,7 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
     {
         $query = $this->model->with(self::DEFAULT_RELATIONSHIPS)->where('status', '1');
 
-        if ($searchTerm) {
+        if ($searchTerm !== null && $searchTerm !== '') {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('slug', 'LIKE', "%{$searchTerm}%")

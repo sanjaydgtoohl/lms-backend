@@ -1,5 +1,17 @@
 <?php
 
+/**
+ * Log Successful Login Listener
+ * -----------------------------------------
+ * Event listener that logs successful user authentication attempts, capturing login details
+ * including IP address, user agent, and timestamp for security auditing.
+ *
+ * @package App\Listeners
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-09
+ */
+
 namespace App\Listeners;
 
 // Required class imports for event handling and logging
@@ -11,6 +23,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 use Exception;
 use Illuminate\Database\QueryException;
+use Throwable;
 
 class LogSuccessfulLogin
 {
@@ -54,14 +67,16 @@ class LogSuccessfulLogin
                 ],
             ]);
         } catch (QueryException $e) {
-            Log::error('Database error logging successful login', [
+            Log::error('Database error writing login', [
                 'user_id' => $user->id ?? null,
-                'exception' => $e->getMessage()
+                'exception_type' => get_class($e),
+                'exception_code' => $e->getCode()
             ]);
-        } catch (Exception $e) {
-            Log::error('Unexpected error logging successful login', [
+        } catch (Throwable $e) {
+            Log::error('Unexpected error writing login', [
                 'user_id' => $user->id ?? null,
-                'exception' => $e->getMessage()
+                'exception_type' => get_class($e),
+                'exception_code' => $e->getCode()
             ]);
         }
     }

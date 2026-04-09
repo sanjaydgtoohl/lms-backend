@@ -28,10 +28,10 @@ class MediaTypeResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'slug' => $this->slug,
+            //'slug' => $this->slug,
             'status' => $this->status === '1',
-            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+            //'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            //'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];
     }
 }

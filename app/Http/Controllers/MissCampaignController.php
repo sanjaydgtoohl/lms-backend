@@ -50,8 +50,47 @@ class MissCampaignController extends Controller
         $this->missCampaignService = $missCampaignService;
     }
 
-    /**
-     * Display a listing of the miss campaigns.
+    /**     * Validate location hierarchy consistency (country -> state -> city).
+     *
+     * @param array $data Validated data containing country_id, state_id, city_id
+     * @return array|null Returns null on success, or validation error array on failure
+     */
+    protected function validateLocationHierarchy(array $data): ?array
+    {
+        $countryId = $data['country_id'];
+        $stateId = $data['state_id'] ?? null;
+        $cityId = $data['city_id'] ?? null;
+
+        // Validate state belongs to country
+        if (!empty($stateId)) {
+            $state = \App\Models\State::find($stateId);
+            if (!$state || (int) $state->country_id !== (int) $countryId) {
+                return [
+                    'state_id' => ['The selected state does not belong to the selected country.']
+                ];
+            }
+        }
+
+        // Validate city requires state and belongs to both state and country
+        if (!empty($cityId)) {
+            if (empty($stateId)) {
+                return [
+                    'city_id' => ['A state must be selected before selecting a city.']
+                ];
+            }
+
+            $city = \App\Models\City::find($cityId);
+            if (!$city || (int) $city->state_id !== (int) $stateId || (int) $city->country_id !== (int) $countryId) {
+                return [
+                    'city_id' => ['The selected city does not belong to the selected state and country.']
+                ];
+            }
+        }
+
+        return null; // No validation errors
+    }
+
+    /**     * Display a listing of the miss campaigns.
      *
      * GET /miss-campaigns
      *
@@ -137,34 +176,10 @@ class MissCampaignController extends Controller
 
             $validatedData = $this->validate($request, $rules);
 
-            // Ensure hierarchical location consistency
-            $countryId = $validatedData['country_id'];
-
-            if (!empty($validatedData['state_id'])) {
-                $state = \App\Models\State::find($validatedData['state_id']);
-                if (!$state || (int) $state->country_id !== (int) $countryId) {
-                    return $this->responseService->validationError(
-                        ['state_id' => ['The selected state does not belong to the selected country.']],
-                        'Validation failed'
-                    );
-                }
-            }
-
-            if (!empty($validatedData['city_id'])) {
-                if (empty($validatedData['state_id'])) {
-                    return $this->responseService->validationError(
-                        ['city_id' => ['A state must be selected before selecting a city.']],
-                        'Validation failed'
-                    );
-                }
-
-                $city = \App\Models\City::find($validatedData['city_id']);
-                if (!$city || (int) $city->state_id !== (int) $validatedData['state_id'] || (int) $city->country_id !== (int) $countryId) {
-                    return $this->responseService->validationError(
-                        ['city_id' => ['The selected city does not belong to the selected state and country.']],
-                        'Validation failed'
-                    );
-                }
+            // Validate location hierarchy consistency
+            $locationErrors = $this->validateLocationHierarchy($validatedData);
+            if ($locationErrors) {
+                return $this->responseService->validationError($locationErrors, 'Validation failed');
             }
 
             // Add system-generated fields
@@ -226,36 +241,17 @@ class MissCampaignController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
-            // Determine resulting location values for validation
-            $countryId = array_key_exists('country_id', $validatedData) ? $validatedData['country_id'] : $campaign->country_id;
-            $stateId = array_key_exists('state_id', $validatedData) ? $validatedData['state_id'] : $campaign->state_id;
-            $cityId = array_key_exists('city_id', $validatedData) ? $validatedData['city_id'] : $campaign->city_id;
+            // Prepare location data for validation (merge validated data with existing campaign data)
+            $locationData = [
+                'country_id' => array_key_exists('country_id', $validatedData) ? $validatedData['country_id'] : $campaign->country_id,
+                'state_id' => array_key_exists('state_id', $validatedData) ? $validatedData['state_id'] : $campaign->state_id,
+                'city_id' => array_key_exists('city_id', $validatedData) ? $validatedData['city_id'] : $campaign->city_id,
+            ];
 
-            if (!empty($stateId)) {
-                $state = \App\Models\State::find($stateId);
-                if (!$state || (int) $state->country_id !== (int) $countryId) {
-                    return $this->responseService->validationError(
-                        ['state_id' => ['The selected state does not belong to the selected country.']],
-                        'Validation failed'
-                    );
-                }
-            }
-
-            if (!empty($cityId)) {
-                if (empty($stateId)) {
-                    return $this->responseService->validationError(
-                        ['city_id' => ['A state must be defined before selecting a city.']],
-                        'Validation failed'
-                    );
-                }
-
-                $city = \App\Models\City::find($cityId);
-                if (!$city || (int) $city->state_id !== (int) $stateId || (int) $city->country_id !== (int) $countryId) {
-                    return $this->responseService->validationError(
-                        ['city_id' => ['The selected city does not belong to the selected state and country.']],
-                        'Validation failed'
-                    );
-                }
+            // Validate location hierarchy consistency
+            $locationErrors = $this->validateLocationHierarchy($locationData);
+            if ($locationErrors) {
+                return $this->responseService->validationError($locationErrors, 'Validation failed');
             }
 
             // Update slug if name changed

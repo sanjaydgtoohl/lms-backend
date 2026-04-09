@@ -3,7 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\LeadStatusChangedEvent;
-use App\Contracts\Repositories\NotificationRepositoryInterface;
+use App\Services\NotificationService;
 use App\Models\User;
 use App\Models\Lead;
 use App\Models\Status;
@@ -13,11 +13,11 @@ use Illuminate\Database\QueryException;
 
 class CreateLeadStatusNotification
 {
-    protected $notificationRepository;
+    protected $notificationService;
 
-    public function __construct(NotificationRepositoryInterface $notificationRepository)
+    public function __construct(NotificationService $notificationService)
     {
-        $this->notificationRepository = $notificationRepository;
+        $this->notificationService = $notificationService;
     }
 
     public function handle(LeadStatusChangedEvent $event)
@@ -31,17 +31,17 @@ class CreateLeadStatusNotification
 
             $status = Status::find($event->getStatus());
 
-            $this->notificationRepository->create([
-                'type' => 'lead_status_changed',
-                'notifiable_type' => User::class,
-                'notifiable_id' => $lead->current_assign_user,
-                'data' => [
+            $this->notificationService->createNotificationForNotifiable(
+                User::class,
+                $lead->current_assign_user,
+                'lead_status_changed',
+                [
                     'title' => 'Lead Status Updated',
                     'message' => 'Lead status has been updated to "' . ($status ? $status->name : 'Unknown') . '" for lead "' . $lead->name . '".',
                     'name' => $lead->name,
                     'status_name' => $status ? $status->name : 'Unknown'
                 ]
-            ]);
+            );
         } catch (QueryException $e) {
             Log::error('Database error creating lead status notification', [
                 'lead_id' => $event->getLeadId(),

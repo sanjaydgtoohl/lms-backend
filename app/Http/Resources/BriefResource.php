@@ -7,7 +7,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class BriefResource extends JsonResource
 {
-    /**`
+    /**
      * Transform the resource into an array.
      *
      * @param Request $request

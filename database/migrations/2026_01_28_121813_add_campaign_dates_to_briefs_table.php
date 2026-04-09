@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -27,13 +28,16 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Normalize any rows with status = '15' to '2' before removing the enum value
+        DB::table('briefs')->where('status', '15')->update(['status' => '2']);
+
         Schema::table('briefs', function (Blueprint $table) {
             $table->dropColumn('campaign_start_date');
             $table->dropColumn('campaign_end_date');    
             $table->dropColumn('campaign_duration');
-            $table->enum('status', ['1', '2', '15'])
+            $table->enum('status', ['1', '2'])
                 ->default('2')
-                ->comment('1 = active, 2 = deactivated, 15 = soft deleted')
+                ->comment('1 = active, 2 = deactivated')
                 ->change();
         });
     }

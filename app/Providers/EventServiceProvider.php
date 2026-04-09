@@ -23,7 +23,7 @@ class EventServiceProvider extends ServiceProvider
         ],
 
         \App\Events\LeadAssignedEvent::class => [
-        \App\Listeners\CreateLeadAssignedNotification::class,
+            \App\Listeners\CreateLeadAssignedNotification::class,
         ],
 
         \App\Events\LeadStatusChangedEvent::class => [

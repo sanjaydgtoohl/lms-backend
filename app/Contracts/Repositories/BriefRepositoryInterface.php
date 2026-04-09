@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * Get brief logs with pagination.
+ *
+ * `@param` int $perPage
++     * `@param` string|null $searchTerm Optional search term to filter logs.
+ * `@return` LengthAwarePaginator
+ */
+
 namespace App\Contracts\Repositories;
 
 use App\Models\Brief;

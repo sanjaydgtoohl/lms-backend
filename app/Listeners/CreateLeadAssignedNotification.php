@@ -49,7 +49,7 @@ class CreateLeadAssignedNotification
                     'message' => 'A new lead "' . ($lead->name ?? 'Unknown') . '" has been assigned to you.',
                     'lead_id' => $lead->id,
                     'lead_name' => $lead->name ?? 'Unknown',
-                    'assigned_at' => now()->format('Y-m-d H:i:s A'),
+                    'assigned_at' => now()->format('Y-m-d h:i:s A'),
                 ]
             );
 

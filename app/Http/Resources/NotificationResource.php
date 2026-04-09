@@ -30,9 +30,9 @@ class NotificationResource extends BaseResource
             //'notifiable_type' => $this->notifiable_type,
             'notifiable_id' => $this->notifiable_id,
             'data' => $this->data,
-            'read_at' => $this->read_at ? $this->read_at->format('Y-m-d H:i:s A') : null,
-            'created_at' => $this->created_at->format('Y-m-d H:i:s A'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s A'),
+            'read_at' => $this->read_at ? $this->read_at->format('Y-m-d h:i:s A') : null,
+            'created_at' => $this->created_at->format('Y-m-d h:i:s A'),
+            'updated_at' => $this->updated_at->format('Y-m-d h:i:s A'),
         ]);
     }
 }

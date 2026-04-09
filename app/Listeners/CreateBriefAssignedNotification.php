@@ -50,7 +50,7 @@ class CreateBriefAssignedNotification
                     'message' => 'A new brief "' . ($brief->name ?? 'Unknown') . '" has been assigned to you.',
                     'brief_id' => $brief->id,
                     'budget' => $brief->budget ?? 0,
-                    'assigned_at' => now()->format('Y-m-d H:i:s A'),
+                    'assigned_at' => now()->format('Y-m-d h:i:s A'),
                 ]
             );
 

@@ -32,7 +32,7 @@ class NotificationTest extends TestCase
         $this->artisan('migrate');
 
         // still run notification migration explicitly in case it comes later
-        $this->artisan('migrate', ['--path' => 'database/migrations/2026_01_28_175848_create_notifications_table.php']);
+        $this->artisan('migrate', ['--path' => 'database/migrations/2026_01_28_177842_create_notifications_table.php']);
 
         // create a user and store JWT token
         $email = 'notif_' . uniqid() . '@example.com';
@@ -46,7 +46,7 @@ class NotificationTest extends TestCase
         $this->seeStatusCode(201);
         $body = json_decode($this->response->getContent(), true);
         $this->token = $body['data']['token'];
-        $this->userId = User::first()->id;
+        $this->userId = $body['data']['user']['id'] ?? User::where('email', $email)->first()->id;
     }
 
     protected function authGet(string $uri)

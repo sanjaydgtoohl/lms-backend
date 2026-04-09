@@ -592,6 +592,8 @@ class BriefController extends Controller
             if (!$brief) {
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
+
+            $user = auth()->user();
             event(new \App\Events\BriefStatusChangedEvent(
                 $brief->id,
                 $brief->name,
@@ -599,8 +601,8 @@ class BriefController extends Controller
                 $previousStatusName,
                 $briefStatus ? $briefStatus->id : null,
                 $briefStatus ? $briefStatus->name : null,
-                auth()->id(),
-                auth()->user() ? auth()->user()->name : null,
+                $user?->id,
+                $user?->name,
                 now()
             ));
 

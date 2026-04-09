@@ -77,6 +77,6 @@ interface RoleRepositoryInterface
 	/**
 	 * Get users for a specific role
 	 */
-	public function getUsers(int $roleId, int $perPage = 10): LengthAwarePaginator;
+	public function getUsers(int $roleId, int $perPage = 15): LengthAwarePaginator;
 }
 

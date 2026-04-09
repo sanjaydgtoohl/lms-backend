@@ -21,13 +21,18 @@ class NotificationRepository extends BaseRepository implements NotificationRepos
     /**
      * {@inheritdoc}
      */
-    public function getNotificationsForNotifiable(string $notifiableType, $notifiableId, int $perPage = 10): LengthAwarePaginator
+    public function getNotificationsForNotifiable(string $notifiableType, $notifiableId, int $perPage = 10, ?array $queryParams = null): LengthAwarePaginator
     {
-        return Notification::where('notifiable_type', $notifiableType)
+        $paginator = Notification::where('notifiable_type', $notifiableType)
             ->where('notifiable_id', $notifiableId)
             ->orderBy('created_at', 'desc')
-            ->paginate($perPage)
-            ->appends(request()->query());
+            ->paginate($perPage);
+
+        if ($queryParams) {
+            $paginator->appends($queryParams);
+        }
+
+        return $paginator;
     }
 
     /**
@@ -85,14 +90,19 @@ class NotificationRepository extends BaseRepository implements NotificationRepos
     /**
      * {@inheritdoc}
      */
-    public function getUnreadNotificationsForNotifiable(string $notifiableType, $notifiableId, int $perPage = 10)
+    public function getUnreadNotificationsForNotifiable(string $notifiableType, $notifiableId, int $perPage = 10, ?array $queryParams = null)
     {
-        return Notification::where('notifiable_type', $notifiableType)
+        $paginator = Notification::where('notifiable_type', $notifiableType)
             ->where('notifiable_id', $notifiableId)
             ->whereNull('read_at')
             ->orderBy('created_at', 'desc')
-            ->paginate($perPage)
-            ->appends(request()->query());
+            ->paginate($perPage);
+
+        if ($queryParams) {
+            $paginator->appends($queryParams);
+        }
+
+        return $paginator;
     }
 
     /**
