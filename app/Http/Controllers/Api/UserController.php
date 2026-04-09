@@ -9,6 +9,7 @@ use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
@@ -127,7 +128,7 @@ class UserController extends Controller
             // Validate required fields first
             $rules = [
                 'name' => 'required|string|max:255',
-                'email' => 'required|email|max:255|unique:users,email',
+                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->whereNull('deleted_at')],
                 'password' => 'required|string|min:8',
                 'phone' => 'nullable|integer|digits:10',
                 'role_id' => 'required|array',
