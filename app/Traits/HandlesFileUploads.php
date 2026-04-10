@@ -308,8 +308,8 @@ trait HandlesFileUploads
         $baseUrl = rtrim($baseUrl, '/');
         
         // Replace lms.dgtoohl.com with apislms.dgtoohl.com for file URLs
-        $baseUrl = str_replace('https://lms.dgtoohl.com', 'https://apislms.dgtoohl.com', $baseUrl);
-        $baseUrl = str_replace('http://lms.dgtoohl.com', 'http://apislms.dgtoohl.com', $baseUrl);
+        $baseUrl = str_replace('https://www.dev.lms.dgtoohl.com', 'https://www.api.dev.lms.dgtoohl.com', $baseUrl);
+        $baseUrl = str_replace('https://www.dev.lms.dgtoohl.com', 'https://www.api.dev.lms.dgtoohl.com', $baseUrl);
 
         // For S3 and cloud storage, try to get URL from config or generate it
         if ($driver === 's3') {
