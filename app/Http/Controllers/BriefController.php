@@ -392,7 +392,7 @@ class BriefController extends Controller
             $this->validate($request, $rules);
 
             // Validate campaign end date against existing start date if needed
-            if ($request->has('campaign_end_date') && !$request->has('campaign_start_date')) {
+            if ($request->has('campaign_end_date') && !$request->exists('campaign_start_date')) {
                 $brief = $this->briefService->getBrief($id);
                 if ($brief && $brief->campaign_start_date) {
                     $newEndDate = \Carbon\Carbon::createFromFormat('Y-m-d', $request->input('campaign_end_date'));

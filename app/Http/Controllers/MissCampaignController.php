@@ -251,6 +251,7 @@ class MissCampaignController extends Controller
             // Clear city_id when state_id is being set to null to prevent hierarchy validation errors
             if (array_key_exists('state_id', $validatedData) && $validatedData['state_id'] === null && !array_key_exists('city_id', $validatedData)) {
                 $locationData['city_id'] = null;
+                $validatedData['city_id'] = null;
             }
 
             // Validate location hierarchy consistency

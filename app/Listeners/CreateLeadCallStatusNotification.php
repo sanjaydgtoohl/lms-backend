@@ -38,10 +38,11 @@ class CreateLeadCallStatusNotification
             $notifiedUserIds = [];
 
             // Notify assigned user if not the updater
-            if ($lead->current_assign_user && $lead->current_assign_user != $event->getUpdatedByUserId()) {
+            $assignedUser = $lead->current_assign_user ? \App\Models\User::find($lead->current_assign_user) : null;
+            if ($assignedUser && $assignedUser->id != $event->getUpdatedByUserId()) {
                 $this->notificationService->createNotificationForNotifiable(
                     \App\Models\User::class,
-                    $lead->current_assign_user,
+                    $assignedUser->id,
                     'lead_call_status_added',
                     [
                         'title' => 'Call Status Updated',
@@ -57,7 +58,7 @@ class CreateLeadCallStatusNotification
                         'priority_name' => $priority ? $priority->name : null
                     ]
                 );
-                $notifiedUserIds[] = $lead->current_assign_user;
+                $notifiedUserIds[] = $assignedUser->id;
             }
 
             // Notify updater if not already notified

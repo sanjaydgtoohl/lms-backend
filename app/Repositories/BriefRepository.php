@@ -432,11 +432,10 @@ class BriefRepository implements BriefRepositoryInterface
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $searchTerm
-     * @return \Illuminate\Database\Eloquent\Builder
      */
-    private function applySearchFilter($query, string $searchTerm)
+    private function applySearchFilter($query, string $searchTerm): void
     {
-        return $query->where(function ($q) use ($searchTerm) {
+        $query->where(function ($q) use ($searchTerm) {
             $q->where('name', 'LIKE', "%{$searchTerm}%")
               ->orWhere('product_name', 'LIKE', "%{$searchTerm}%")
               ->orWhereHas('brand', function ($brandQuery) use ($searchTerm) {
