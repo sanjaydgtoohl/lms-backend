@@ -29,6 +29,14 @@ class CreateLeadCallStatusNotification
             }
 
             $callStatus = \App\Models\CallStatus::find($event->getCallStatusId());
+            if (!$callStatus) {
+                Log::warning('CallStatus not found for lead call status notification', [
+                    'call_status_id' => $event->getCallStatusId(),
+                    'lead_id' => $event->getLeadId(),
+                    'updated_by_user_id' => $event->getUpdatedByUserId()
+                ]);
+                return;
+            }
             $prevCallStatus = $event->getPreviousCallStatusId() ? \App\Models\CallStatus::find($event->getPreviousCallStatusId()) : null;
             $status = $lead->lead_status ? Status::find($lead->lead_status) : null;
             $priority = $lead->priority_id ? Priority::find($lead->priority_id) : null;
@@ -48,11 +56,11 @@ class CreateLeadCallStatusNotification
                         'title' => 'Call Status Updated',
                         'lead_id' => $lead->id,
                         'previous_status' => $prevCallStatus ? $prevCallStatus->name : null,
-                        'new_status' => $callStatus ? $callStatus->name : null,
+                        'new_status' => $callStatus->name,
                         'updated_by' => $updater ? $updater->name : null,
                         'updated_by_id' => $updater ? $updater->id : null,
                         'timestamp' => $timestamp,
-                        'message' => 'Lead #' . $lead->id . ' call status changed from "' . ($prevCallStatus ? $prevCallStatus->name : 'N/A') . '" to "' . ($callStatus ? $callStatus->name : 'Unknown') . '" by ' . ($updater ? $updater->name : 'Unknown') . ' at ' . ($timestamp ? $timestamp : now()) . '.',
+                        'message' => 'Lead #' . $lead->id . ' call status changed from "' . ($prevCallStatus ? $prevCallStatus->name : 'N/A') . '" to "' . $callStatus->name . '" by ' . ($updater ? $updater->name : 'Unknown') . ' at ' . ($timestamp ? $timestamp : now()) . '.',
                         'name' => $lead->name,
                         'status_name' => $status ? $status->name : null,
                         'priority_name' => $priority ? $priority->name : null
@@ -71,11 +79,11 @@ class CreateLeadCallStatusNotification
                         'title' => 'You updated a lead call status',
                         'lead_id' => $lead->id,
                         'previous_status' => $prevCallStatus ? $prevCallStatus->name : null,
-                        'new_status' => $callStatus ? $callStatus->name : null,
+                        'new_status' => $callStatus->name,
                         'updated_by' => $updater ? $updater->name : null,
                         'updated_by_id' => $updater ? $updater->id : null,
                         'timestamp' => $timestamp,
-                        'message' => 'You changed lead #' . $lead->id . ' call status from "' . ($prevCallStatus ? $prevCallStatus->name : 'N/A') . '" to "' . ($callStatus ? $callStatus->name : 'Unknown') . '" at ' . ($timestamp ? $timestamp : now()) . '.',
+                        'message' => 'You changed lead #' . $lead->id . ' call status from "' . ($prevCallStatus ? $prevCallStatus->name : 'N/A') . '" to "' . $callStatus->name . '" at ' . ($timestamp ? $timestamp : now()) . '.',
                         'name' => $lead->name,
                         'status_name' => $status ? $status->name : null,
                         'priority_name' => $priority ? $priority->name : null
