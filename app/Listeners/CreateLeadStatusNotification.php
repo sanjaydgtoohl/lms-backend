@@ -27,7 +27,7 @@ class CreateLeadStatusNotification
 
             if (!$lead || !$lead->current_assign_user) {
                 return;
-            };
+            }
 
             $status = Status::find($event->getStatus());
 

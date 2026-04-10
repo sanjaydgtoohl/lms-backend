@@ -391,6 +391,20 @@ class BriefController extends Controller
 
             $this->validate($request, $rules);
 
+            // Validate campaign end date against existing start date if needed
+            if ($request->has('campaign_end_date') && !$request->has('campaign_start_date')) {
+                $brief = $this->briefService->getBrief($id);
+                if ($brief && $brief->campaign_start_date) {
+                    $newEndDate = \Carbon\Carbon::createFromFormat('Y-m-d', $request->input('campaign_end_date'));
+                    if ($newEndDate->isBefore($brief->campaign_start_date)) {
+                        return $this->responseService->validationError(
+                            ['campaign_end_date' => ['The campaign end date must be on or after the existing campaign start date.']],
+                            'Validation failed'
+                        );
+                    }
+                }
+            }
+
             // Validate campaign mode and media_type combination
             if ($request->has('mode_of_campaign') && $request->has('media_type')) {
                 $mode = $request->input('mode_of_campaign');
@@ -594,17 +608,21 @@ class BriefController extends Controller
             }
 
             $user = auth()->user();
-            event(new \App\Events\BriefStatusChangedEvent(
-                $brief->id,
-                $brief->name,
-                $previousStatusId,
-                $previousStatusName,
-                $briefStatus ? $briefStatus->id : null,
-                $briefStatus ? $briefStatus->name : null,
-                $user?->id,
-                $user?->name,
-                now()
-            ));
+            
+            // Only fire event if status actually changed
+            if ($previousStatusId !== $brief->brief_status_id) {
+                event(new \App\Events\BriefStatusChangedEvent(
+                    $brief->id,
+                    $brief->name,
+                    $previousStatusId,
+                    $previousStatusName,
+                    $briefStatus ? $briefStatus->id : null,
+                    $briefStatus ? $briefStatus->name : null,
+                    $user?->id,
+                    $user?->name,
+                    now()
+                ));
+            }
 
             return $this->responseService->success(
                 new BriefResource($brief),

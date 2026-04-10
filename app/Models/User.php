@@ -8,7 +8,6 @@ use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Lumen\Auth\Authorizable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
@@ -236,14 +235,6 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     {
         // Sort by login_time in descending order (latest first)
         return $this->hasMany(LoginLog::class)->latest('login_time');
-    }
-
-    /**
-     * Get all notifications for this user.
-     */
-    public function notifications(): MorphMany
-    {
-        return $this->morphMany(Notification::class, 'notifiable');
     }
 
     /**

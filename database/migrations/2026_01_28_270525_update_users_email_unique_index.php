@@ -14,6 +14,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -41,6 +42,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Normalize soft-deleted users' emails to NULL to prevent duplicate key errors when restoring unique constraint
+        DB::table('users')->whereNotNull('deleted_at')->update(['email' => null]);
+
         Schema::table('users', function (Blueprint $table) {
             // Drop unique index on generated column
             $table->dropUnique(['email_active']);

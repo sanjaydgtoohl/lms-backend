@@ -61,10 +61,10 @@ class CreateLeadCallStatusNotification
             }
 
             // Notify updater if not already notified
-            if ($event->getUpdatedByUserId() && !in_array($event->getUpdatedByUserId(), $notifiedUserIds)) {
+            if ($updater && !in_array($updater->id, $notifiedUserIds)) {
                 $this->notificationService->createNotificationForNotifiable(
                     \App\Models\User::class,
-                    $event->getUpdatedByUserId(),
+                    $updater->id,
                     'lead_call_status_added',
                     [
                         'title' => 'You updated a lead call status',
@@ -80,7 +80,7 @@ class CreateLeadCallStatusNotification
                         'priority_name' => $priority ? $priority->name : null
                     ]
                 );
-                $notifiedUserIds[] = $event->getUpdatedByUserId();
+                $notifiedUserIds[] = $updater->id;
             }
 
             // Optionally: Add logic here to notify other stakeholders (e.g., admins/managers) if needed

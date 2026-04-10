@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Contracts\Repositories\NotificationRepositoryInterface;
 use App\Models\Notification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 class NotificationRepository extends BaseRepository implements NotificationRepositoryInterface
 {
@@ -108,7 +109,7 @@ class NotificationRepository extends BaseRepository implements NotificationRepos
     /**
      * {@inheritdoc}
      */
-    public function getLatestNotificationsForNotifiable(string $notifiableType, $notifiableId, int $limit = 5)
+    public function getLatestNotificationsForNotifiable(string $notifiableType, $notifiableId, int $limit = 5): Collection
     {
         return Notification::where('notifiable_type', $notifiableType)
             ->where('notifiable_id', $notifiableId)

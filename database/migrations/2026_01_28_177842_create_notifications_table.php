@@ -31,9 +31,6 @@ class CreateNotificationsTable extends Migration
      */
     public function down()
     {
-        Schema::table('notifications', function (Blueprint $table) {
-            $table->dropIndex(['read_at']);
-        });
         Schema::dropIfExists('notifications');
     }
 }

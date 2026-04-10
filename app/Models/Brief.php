@@ -61,7 +61,6 @@ class Brief extends Model
         'status',
         'campaign_start_date',
         'campaign_end_date',
-        'campaign_duration',
     ];
 
     /**
