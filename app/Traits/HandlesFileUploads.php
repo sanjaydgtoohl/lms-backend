@@ -313,7 +313,7 @@ trait HandlesFileUploads
 
                 // Agar relative URL hai to domain add karo
                 if (!Str::startsWith($diskUrl, ['http://', 'https://'])) {
-                    $baseUrl = rtrim(config('app.url'), '/');
+                    $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
                     return $baseUrl . '/' . ltrim($diskUrl, '/');
                 }
 
