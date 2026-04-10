@@ -238,11 +238,16 @@ class LeadService
                     throw new DomainException('Lead name is required.');
                 }
 
+                // Extract current_assign_user before passing to repository to avoid double-assignment
+                $currentAssignUser = $data['current_assign_user'] ?? null;
+                unset($data['current_assign_user']);
+
                 $lead = $this->leadRepository->createLead($data);
 
-                // If current_assign_user is set, assign the lead and trigger notification
-                if (!empty($data['current_assign_user'])) {
-                    $this->assignLeadToUser($lead->id, $data['current_assign_user']);
+                // Assign the lead user if provided - this will trigger LeadAssignedEvent
+                // because lead.current_assign_user transitions from null → userId
+                if (!empty($currentAssignUser)) {
+                    $this->assignLeadToUser($lead->id, $currentAssignUser);
                 }
 
                 return $lead;
@@ -375,7 +380,10 @@ class LeadService
 
             $updatedByUserId = auth()->id();
             $result = $this->leadRepository->addCallStatus($leadId, $callStatusId);
-            if ($result) {
+            
+            // Fire event only if update was successful and we have an authenticated user
+            // Note: If updatedByUserId is null, the event still fires but listeners should handle gracefully
+            if ($result && $updatedByUserId) {
                 event(new \App\Events\LeadCallStatusAddedEvent(
                     $leadId,
                     $callStatusId,
@@ -383,6 +391,12 @@ class LeadService
                     $updatedByUserId,
                     now()
                 ));
+            } elseif ($result && !$updatedByUserId) {
+                Log::warning('Call status updated without authenticated user', [
+                    'lead_id' => $leadId,
+                    'call_status_id' => $callStatusId,
+                    'note' => 'Event not fired due to missing authentication context'
+                ]);
             }
             return $result;
         } catch (QueryException $e) {

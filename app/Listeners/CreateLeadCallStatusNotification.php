@@ -92,6 +92,19 @@ class CreateLeadCallStatusNotification
                 $notifiedUserIds[] = $updater->id;
             }
 
+            // Log when no recipients found for notification
+            if (empty($notifiedUserIds)) {
+                Log::info('Call status update recorded but no eligible recipients for notification', [
+                    'lead_id' => $lead->id,
+                    'call_status_id' => $event->getCallStatusId(),
+                    'has_assigned_user' => $assignedUser ? 'yes' : 'no',
+                    'assigned_user_id' => $lead->current_assign_user,
+                    'has_updater' => $updater ? 'yes' : 'no',
+                    'updated_by_user_id' => $event->getUpdatedByUserId(),
+                    'timestamp' => $timestamp
+                ]);
+            }
+            
             // Optionally: Add logic here to notify other stakeholders (e.g., admins/managers) if needed
         } catch (QueryException $e) {
             Log::error('Database error creating lead call status notification', [
