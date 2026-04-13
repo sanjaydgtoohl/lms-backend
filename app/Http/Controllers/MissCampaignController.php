@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * MissCampaign Controller
+ * -----------------------------------------
+ * Handles HTTP requests for miss campaign management, including CRUD operations and API responses.
+ *
+ * @package App\Http\Controllers
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-08
+ */
+
 namespace App\Http\Controllers;
 
 use App\Http\Resources\MissCampaignResource;
@@ -39,8 +50,47 @@ class MissCampaignController extends Controller
         $this->missCampaignService = $missCampaignService;
     }
 
-    /**
-     * Display a listing of the miss campaigns.
+    /**     * Validate location hierarchy consistency (country -> state -> city).
+     *
+     * @param array $data Validated data containing country_id, state_id, city_id
+     * @return array|null Returns null on success, or validation error array on failure
+     */
+    protected function validateLocationHierarchy(array $data): ?array
+    {
+        $countryId = $data['country_id'];
+        $stateId = $data['state_id'] ?? null;
+        $cityId = $data['city_id'] ?? null;
+
+        // Validate state belongs to country
+        if (!empty($stateId)) {
+            $state = \App\Models\State::find($stateId);
+            if (!$state || (int) $state->country_id !== (int) $countryId) {
+                return [
+                    'state_id' => ['The selected state does not belong to the selected country.']
+                ];
+            }
+        }
+
+        // Validate city requires state and belongs to both state and country
+        if (!empty($cityId)) {
+            if (empty($stateId)) {
+                return [
+                    'city_id' => ['A state must be selected before selecting a city.']
+                ];
+            }
+
+            $city = \App\Models\City::find($cityId);
+            if (!$city || (int) $city->state_id !== (int) $stateId || (int) $city->country_id !== (int) $countryId) {
+                return [
+                    'city_id' => ['The selected city does not belong to the selected state and country.']
+                ];
+            }
+        }
+
+        return null; // No validation errors
+    }
+
+    /**     * Display a listing of the miss campaigns.
      *
      * GET /miss-campaigns
      *
@@ -115,11 +165,22 @@ class MissCampaignController extends Controller
                 'name' => 'required|string|max:255',
                 'brand_id' => 'required|integer|exists:brands,id',
                 'lead_source_id' => 'required|integer|exists:lead_source,id',
-                'lead_sub_source_id' => 'required|integer|exists:lead_sub_source,id',
-                'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200'
+                'lead_sub_source_id' => 'nullable|integer|exists:lead_sub_source,id',
+                'media_type_id' => 'nullable|integer|exists:media_types,id',
+                'industry_id' => 'nullable|integer|exists:industries,id',
+                'country_id' => 'required|integer|exists:countries,id',
+                'state_id' => 'nullable|integer|exists:states,id',
+                'city_id' => 'nullable|integer|exists:cities,id',
+                'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
             ];
 
             $validatedData = $this->validate($request, $rules);
+
+            // Validate location hierarchy consistency
+            $locationErrors = $this->validateLocationHierarchy($validatedData);
+            if ($locationErrors) {
+                return $this->responseService->validationError($locationErrors, 'Validation failed');
+            }
 
             // Add system-generated fields
             $validatedData['slug'] = Str::slug($request->name) . '-' . uniqid();
@@ -163,12 +224,41 @@ class MissCampaignController extends Controller
                 'name' => 'sometimes|required|string|max:255',
                 'brand_id' => 'sometimes|required|integer|exists:brands,id',
                 'lead_source_id' => 'sometimes|required|integer|exists:lead_source,id',
-                'lead_sub_source_id' => 'sometimes|required|integer|exists:lead_sub_source,id',
+                'lead_sub_source_id' => 'sometimes|nullable|integer|exists:lead_sub_source,id',
+                'media_type_id' => 'sometimes|nullable|integer|exists:media_types,id',
+                'industry_id' => 'sometimes|nullable|integer|exists:industries,id',
+                'country_id' => 'sometimes|required|integer|exists:countries,id',
+                'state_id' => 'sometimes|nullable|integer|exists:states,id',
+                'city_id' => 'sometimes|nullable|integer|exists:cities,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
                 'status' => 'sometimes|required|in:1,2,15',
             ];
 
             $validatedData = $this->validate($request, $rules);
+
+            $campaign = $this->missCampaignService->getMissCampaign($id);
+            if (!$campaign) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            // Prepare location data for validation (merge validated data with existing campaign data)
+            $locationData = [
+                'country_id' => array_key_exists('country_id', $validatedData) ? $validatedData['country_id'] : $campaign->country_id,
+                'state_id' => array_key_exists('state_id', $validatedData) ? $validatedData['state_id'] : $campaign->state_id,
+                'city_id' => array_key_exists('city_id', $validatedData) ? $validatedData['city_id'] : $campaign->city_id,
+            ];
+
+            // Clear city_id when state_id is being set to null to prevent hierarchy validation errors
+            if (array_key_exists('state_id', $validatedData) && $validatedData['state_id'] === null && !array_key_exists('city_id', $validatedData)) {
+                $locationData['city_id'] = null;
+                $validatedData['city_id'] = null;
+            }
+
+            // Validate location hierarchy consistency
+            $locationErrors = $this->validateLocationHierarchy($locationData);
+            if ($locationErrors) {
+                return $this->responseService->validationError($locationErrors, 'Validation failed');
+            }
 
             // Update slug if name changed
             if ($request->has('name')) {

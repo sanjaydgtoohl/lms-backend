@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * MissCampaign Resource
+ * -----------------------------------------
+ * Transforms MissCampaign model data into JSON responses for API endpoints.
+ *
+ * @package App\Http\Resources
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-08
+ */
+
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
@@ -50,6 +61,36 @@ class MissCampaignResource extends JsonResource
                 return $this->leadSubSource ? [
                     'id' => $this->leadSubSource->id,
                     'name' => $this->leadSubSource->name,
+                ] : null;
+            }),
+            'media_type' => $this->whenLoaded('mediaType', function () {
+                return $this->mediaType ? [
+                    'id' => $this->mediaType->id,
+                    'name' => $this->mediaType->name,
+                ] : null;
+            }),
+            'industry' => $this->whenLoaded('industry', function () {
+                return $this->industry ? [
+                    'id' => $this->industry->id,
+                    'name' => $this->industry->name,
+                ] : null;
+            }),
+            'country' => $this->whenLoaded('country', function () {
+                return $this->country ? [
+                    'id' => $this->country->id,
+                    'name' => $this->country->name,
+                ] : null;
+            }),
+            'state' => $this->whenLoaded('state', function () {
+                return $this->state ? [
+                    'id' => $this->state->id,
+                    'name' => $this->state->name,
+                ] : null;
+            }),
+            'city' => $this->whenLoaded('city', function () {
+                return $this->city ? [
+                    'id' => $this->city->id,
+                    'name' => $this->city->name,
                 ] : null;
             }),
 

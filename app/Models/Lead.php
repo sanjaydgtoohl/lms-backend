@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Lead extends Model
 {
@@ -185,5 +186,13 @@ class Lead extends Model
     public function mobileNumbers()
     {
         return $this->hasMany(LeadMobileNumber::class, 'lead_id');
+    }
+
+    /**
+     * Get all notifications for this lead.
+     */
+    public function notifications(): MorphMany
+    {
+        return $this->morphMany(Notification::class, 'notifiable');
     }
 }

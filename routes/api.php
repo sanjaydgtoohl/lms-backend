@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * API Routes Definition
+ * -----------------------------------------
+ * Defines all API routes for the application, including authentication, resources, and business logic endpoints.
+ *
+ * @package Routes
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-08
+ */
+
 /** @var \Laravel\Lumen\Routing\Router $router */
 
 use App\Http\Controllers\Api\AuthController;
@@ -43,6 +54,7 @@ use App\Http\Controllers\PlannerController;
 use App\Http\Controllers\PlannerHistoryController;
 use App\Http\Controllers\PlannerStatusController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\MediaTypeController;
 use App\Models\GoogleCalender;
 use Carbon\Carbon;
 
@@ -142,6 +154,17 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('{id}', 'LeadSubSourceController@show');
         $router->put('{id}', 'LeadSubSourceController@update');
         $router->delete('{id}', 'LeadSubSourceController@destroy');
+    });
+
+    // Media Type routes
+    $router->group(['prefix' => 'media-types'], function () use ($router) {
+        $router->get('/', 'MediaTypeController@index');
+        $router->get('list', 'MediaTypeController@list');
+        $router->post('/', 'MediaTypeController@store');
+        $router->get('{id:[0-9]+}', 'MediaTypeController@show');
+        $router->put('{id:[0-9]+}', 'MediaTypeController@update');
+        $router->patch('{id:[0-9]+}', 'MediaTypeController@update');
+        $router->delete('{id:[0-9]+}', 'MediaTypeController@destroy');
     });
 
     $router->group(['prefix' => 'countries'], function () use ($router) {
@@ -264,6 +287,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('list', 'RoleController@list');
         $router->post('/', 'RoleController@store');
         $router->get('{id:[0-9]+}', 'RoleController@show');
+        $router->get('{id:[0-9]+}/users', 'RoleController@getUsers');
         $router->put('{id:[0-9]+}', 'RoleController@update');
         $router->patch('{id:[0-9]+}', 'RoleController@update');
         $router->delete('{id:[0-9]+}', 'RoleController@destroy');
@@ -529,6 +553,19 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('{id:[0-9]+}', 'ActivityLogController@show');
         $router->delete('old-logs', 'ActivityLogController@deleteOldActivityLogs');
         $router->delete('{id:[0-9]+}', 'ActivityLogController@destroy');
+    });
+
+    // Notification routes
+    $router->group(['prefix' => 'notifications'], function () use ($router) {
+        $router->get('/', 'NotificationController@index');
+        $router->post('{id:[0-9]+}/read', 'NotificationController@markAsRead');
+        $router->post('read-all', 'NotificationController@markAllAsRead');
+        $router->get('unread-count', 'NotificationController@unreadCount');
+          
+        $router->get('unread', 'NotificationController@unreadNotifications');
+        $router->get('latest', 'NotificationController@latestNotifications');
+        $router->delete('clear-all', 'NotificationController@clearAllNotifications');
+        $router->delete('{id:[0-9]+}', 'NotificationController@deleteNotification');
     });
 });
 

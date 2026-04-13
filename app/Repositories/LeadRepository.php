@@ -335,6 +335,11 @@ class LeadRepository implements LeadRepositoryInterface
             // Remove mobile_number from data as it will be stored separately
             unset($data['mobile_number']);
             
+            // Remove current_assign_user to prevent double-assignment during creation.
+            // The assignment should be handled explicitly via assignLeadToUser() in the service layer
+            // to ensure the LeadAssignedEvent is fired (detecting a change from null → userId).
+            unset($data['current_assign_user']);
+            
             // Handle call_status_id: convert to call_status and lead_status
             if (isset($data['call_status_id']) && !empty($data['call_status_id'])) {
                 $callStatusId = $data['call_status_id'];

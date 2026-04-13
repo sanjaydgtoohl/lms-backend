@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * MissCampaign Service
+ * -----------------------------------------
+ * Provides business logic for miss campaign operations, including CRUD, validation, and media handling.
+ *
+ * @package App\Services
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-08
+ */
+
 namespace App\Services;
 
 use App\Contracts\Repositories\MissCampaignRepositoryInterface;
@@ -217,6 +228,39 @@ class MissCampaignService
         } catch (Exception $e) {
             Log::error('Unexpected error deleting miss campaign', ['id' => $id, 'exception' => $e]);
             throw new DomainException('Unexpected error while deleting miss campaign.');
+        }
+    }
+
+    /**
+     * Update the status of a miss campaign.
+     *
+     * @param int $id
+     * @param string $status
+     * @return bool
+     * @throws DomainException
+     */
+    public function updateStatusMissCampaign(int $id, string $status): bool
+    {
+        try {
+            if (empty($status)) {
+                throw new DomainException('Status is required.');
+            }
+
+            // Validate status values (1 = active, 2 = inactive, 15 = completed)
+            $validStatuses = ['1', '2', '15'];
+            if (!in_array($status, $validStatuses)) {
+                throw new DomainException('Invalid status value. Allowed values: 1, 2, 15');
+            }
+
+            return $this->missCampaignRepository->updateStatus($id, $status);
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            Log::error('Database error updating miss campaign status', ['id' => $id, 'status' => $status, 'exception' => $e]);
+            throw new DomainException('Database error while updating miss campaign status.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error updating miss campaign status', ['id' => $id, 'status' => $status, 'exception' => $e]);
+            throw new DomainException('Unexpected error while updating miss campaign status.');
         }
     }
 }

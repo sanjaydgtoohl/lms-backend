@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * MissCampaign Repository
+ * -----------------------------------------
+ * Handles data access operations for miss campaigns, providing CRUD methods and query logic.
+ *
+ * @package App\Repositories
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-04-09
+ */
+
 namespace App\Repositories;
 
 use App\Contracts\Repositories\MissCampaignRepositoryInterface;
@@ -18,6 +29,11 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
         'brand',
         'leadSource',
         'leadSubSource',
+        'mediaType',
+        'industry',
+        'country',
+        'state',
+        'city',
     ];
 
     /**
@@ -34,7 +50,7 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
     {
         $query = $this->model->with(self::DEFAULT_RELATIONSHIPS)->where('status', '1');
 
-        if ($searchTerm) {
+        if ($searchTerm !== null && $searchTerm !== '') {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('slug', 'LIKE', "%{$searchTerm}%")
@@ -46,6 +62,21 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
                   })
                   ->orWhereHas('leadSubSource', function ($subSourceQuery) use ($searchTerm) {
                       $subSourceQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('mediaType', function ($mediaQuery) use ($searchTerm) {
+                      $mediaQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('industry', function ($industryQuery) use ($searchTerm) {
+                      $industryQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('country', function ($countryQuery) use ($searchTerm) {
+                      $countryQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('state', function ($stateQuery) use ($searchTerm) {
+                      $stateQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('city', function ($cityQuery) use ($searchTerm) {
+                      $cityQuery->where('name', 'LIKE', "%{$searchTerm}%");
                   });
             });
         }
@@ -89,5 +120,11 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
     {
         $item = $this->model->findOrFail($id);
         return $item->delete();
+    }
+
+    public function updateStatus(int $id, string $status): bool
+    {
+        $item = $this->model->findOrFail($id);
+        return $item->update(['status' => $status]);
     }
 }

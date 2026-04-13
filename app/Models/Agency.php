@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use App\Models\BrandAgencyRelationship;
 
 class Agency extends Model
@@ -97,5 +98,13 @@ class Agency extends Model
     public function childs(): HasMany
     {
         return $this->hasMany(Agency::class, 'is_parent', 'id');
+    }
+
+    /**
+     * Get all notifications for this agency.
+     */
+    public function notifications(): MorphMany
+    {
+        return $this->morphMany(Notification::class, 'notifiable');
     }
 }

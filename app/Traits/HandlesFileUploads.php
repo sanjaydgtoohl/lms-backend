@@ -304,16 +304,27 @@ trait HandlesFileUploads
     {
         $diskConfig = config("filesystems.disks.{$disk}", []);
         $driver = $diskConfig['driver'] ?? 'local';
-        $baseUrl = config('app.url', 'http://localhost');
-        $baseUrl = rtrim($baseUrl, '/');
-        
-        // Replace lms.dgtoohl.com with apislms.dgtoohl.com for file URLs
-        $baseUrl = str_replace('https://lms.dgtoohl.com', 'https://apislms.dgtoohl.com', $baseUrl);
-        $baseUrl = str_replace('http://lms.dgtoohl.com', 'http://apislms.dgtoohl.com', $baseUrl);
 
-        // For S3 and cloud storage, try to get URL from config or generate it
+        // First try the disk-specific URL generator if available.
+        try {
+            $diskUrl = Storage::disk($disk)->url($path);
+
+            if (!empty($diskUrl)) {
+
+                // Agar relative URL hai to domain add karo
+                if (!Str::startsWith($diskUrl, ['http://', 'https://'])) {
+                    $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
+                    return $baseUrl . '/' . ltrim($diskUrl, '/');
+                }
+
+                return $diskUrl;
+            }
+        } catch (Exception $e) {
+        }
+
+        $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
+
         if ($driver === 's3') {
-            // S3 URL generation
             if (isset($diskConfig['url'])) {
                 return rtrim($diskConfig['url'], '/') . '/' . ltrim($path, '/');
             }
@@ -324,33 +335,26 @@ trait HandlesFileUploads
             }
         }
 
-        // For public disk, files are accessible via /storage symlink
         if ($disk === 'public') {
             return $baseUrl . '/storage/' . ltrim($path, '/');
         }
 
-        // For local disk, check if it's configured as public
         if ($driver === 'local') {
             $visibility = $diskConfig['visibility'] ?? 'private';
             $root = $diskConfig['root'] ?? storage_path('app');
-            
-            // If public visibility, generate public URL
+
             if ($visibility === 'public') {
-                // Check if root is in public directory
                 $publicPath = public_path();
                 if (strpos($root, $publicPath) === 0) {
                     $relativePath = str_replace($publicPath, '', $root . DIRECTORY_SEPARATOR . $path);
                     $relativePath = str_replace('\\', '/', $relativePath);
                     return $baseUrl . '/' . ltrim($relativePath, '/');
                 }
-                
-                // Default: assume files are served via /storage route
+
                 return $baseUrl . '/storage/' . ltrim($path, '/');
             }
         }
 
-        // Default fallback: generate URL assuming /storage route
-        // Note: This assumes you have a route/symlink set up to serve storage files
         return $baseUrl . '/storage/' . ltrim($path, '/');
     }
 

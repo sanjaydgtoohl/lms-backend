@@ -137,6 +137,14 @@ class RoleService
 	}
 
 	/**
+	 * Get users for a specific role
+	 */
+	public function getUsers(int $roleId, int $perPage = 10): LengthAwarePaginator
+	{
+		return $this->roleRepository->getUsers($roleId, $perPage);
+	}
+
+	/**
 	 * Validate role data
 	 *
 	 * @param array $data

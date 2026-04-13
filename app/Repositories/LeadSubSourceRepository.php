@@ -14,7 +14,7 @@ class LeadSubSourceRepository implements LeadSubSourceRepositoryInterface
         $this->model = $leadSubSource;
     }
 
-    public function getAllLeadSubSources(array $filters = [], int $perPage = 10,)
+    public function getAllLeadSubSources(array $filters = [], int $perPage = 10)
     {
         $query = $this->model->with('leadSource'); 
 

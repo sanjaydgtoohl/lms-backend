@@ -10,6 +10,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use App\Events\BriefAssignedEvent;
 
 class BriefService
 {
@@ -257,10 +258,10 @@ class BriefService
      * @return LengthAwarePaginator
      * @throws DomainException
      */
-    public function getBriefLogs(int $perPage = 10): LengthAwarePaginator
+    public function getBriefLogs(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
         try {
-            return $this->briefRepository->getBriefLogs($perPage);
+            return $this->briefRepository->getBriefLogs($perPage, $searchTerm);
         } catch (QueryException $e) {
             Log::error('Database error fetching brief logs', ['exception' => $e]);
             throw new DomainException('Database error while fetching brief logs.');
@@ -286,7 +287,14 @@ class BriefService
     public function createBrief(array $data): Brief
     {
         try {
-            return $this->briefRepository->createBrief($data);
+            $brief = $this->briefRepository->createBrief($data);
+
+            // If assign_user_id is set, fire the assignment event to create notification
+            if (!empty($data['assign_user_id'])) {
+                event(new BriefAssignedEvent($brief->id, $data['assign_user_id']));
+            }
+
+            return $brief;
         } catch (QueryException $e) {
             Log::error('Database error creating brief', ['exception' => $e]);
             throw new DomainException('Database error while creating brief.');
@@ -307,7 +315,23 @@ class BriefService
     public function updateBrief(int $id, array $data): ?Brief
     {
         try {
-            return $this->briefRepository->updateBrief($id, $data);
+            // Check if assign_user_id is being updated
+            $fireAssignmentEvent = false;
+            if (isset($data['assign_user_id'])) {
+                $existingBrief = $this->briefRepository->getBriefById($id);
+                if ($existingBrief && $existingBrief->assign_user_id != $data['assign_user_id']) {
+                    $fireAssignmentEvent = true;
+                }
+            }
+
+            $brief = $this->briefRepository->updateBrief($id, $data);
+
+            // Fire assignment event if assign_user_id was changed
+            if ($fireAssignmentEvent && $brief && isset($data['assign_user_id'])) {
+                event(new BriefAssignedEvent($brief->id, $data['assign_user_id']));
+            }
+
+            return $brief;
         } catch (QueryException $e) {
             Log::error('Database error updating brief', ['id' => $id, 'exception' => $e]);
             throw new DomainException('Database error while updating brief.');

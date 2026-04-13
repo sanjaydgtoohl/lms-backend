@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Throwable;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class RoleController extends Controller
 {
@@ -257,6 +258,44 @@ class RoleController extends Controller
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
         } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Get users for a specific role
+     */
+    public function getUsers(Request $request, $id): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'per_page' => 'nullable|integer|min:1|max:100',
+            ]);
+            $perPage = (int) ($request->input('per_page') ?? 10);
+
+            // Check if role exists
+            $role = $this->roleService->find($id);
+            if (! $role) {
+                return $this->responseService->notFound('Role not found');
+            }
+
+            $users = $this->roleService->getUsers($id, $perPage);
+
+            // Transform paginated data safely
+            if ($users instanceof \Illuminate\Pagination\LengthAwarePaginator) {
+                $users->getCollection()->transform(function ($user) {
+                    return [
+                        'id'    => $user->id,
+                        'name'  => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                    ];
+                });
+            }
+            
+            return $this->responseService->paginated($users, 'Users retrieved successfully');
+
+        } catch (\Throwable $e) {
             return $this->responseService->handleException($e);
         }
     }

@@ -5,12 +5,16 @@ namespace App\Services;
 use App\Contracts\Repositories\LeadRepositoryInterface;
 use App\Models\Lead;
 use App\Models\LeadMobileNumber;
+use App\Models\LeadAssignHistory;
 use DomainException;
 use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Events\LeadAssignedEvent;
+use App\Events\LeadCallStatusAddedEvent;
 
 class LeadService
 {
@@ -229,11 +233,25 @@ class LeadService
     public function createLead(array $data): Lead
     {
         try {
-            if (empty($data['name'])) {
-                throw new DomainException('Lead name is required.');
-            }
+            return DB::transaction(function () use ($data) {
+                if (empty($data['name'])) {
+                    throw new DomainException('Lead name is required.');
+                }
 
-            return $this->leadRepository->createLead($data);
+                // Extract current_assign_user before passing to repository to avoid double-assignment
+                $currentAssignUser = $data['current_assign_user'] ?? null;
+                unset($data['current_assign_user']);
+
+                $lead = $this->leadRepository->createLead($data);
+
+                // Assign the lead user if provided - this will trigger LeadAssignedEvent
+                // because lead.current_assign_user transitions from null → userId
+                if (!empty($currentAssignUser)) {
+                    $this->assignLeadToUser($lead->id, $currentAssignUser);
+                }
+
+                return $lead;
+            });
         } catch (DomainException $e) {
             throw $e;
         } catch (QueryException $e) {
@@ -277,7 +295,18 @@ class LeadService
     public function assignLeadToUser(int $leadId, int $userId): bool
     {
         try {
-            return $this->leadRepository->assignLeadToUser($leadId, $userId);
+            // Fetch current assigned user before update
+            $lead = $this->leadRepository->getLeadById($leadId);
+            $currentAssignedUser = $lead ? $lead->current_assign_user : null;
+
+            $result = $this->leadRepository->assignLeadToUser($leadId, $userId);
+
+            // Fire event only if assignment successful and user changed
+            if ($result && $currentAssignedUser != $userId) {
+                event(new LeadAssignedEvent($leadId, $userId));
+            }
+
+            return $result;
         } catch (QueryException $e) {
             Log::error('Database error assigning lead to user', ['lead_id' => $leadId, 'user_id' => $userId, 'exception' => $e]);
             throw new DomainException('Database error while assigning lead to user.');
@@ -340,7 +369,36 @@ class LeadService
     public function addCallStatus(int $leadId, int $callStatusId): bool
     {
         try {
-            return $this->leadRepository->addCallStatus($leadId, $callStatusId);
+            // Get previous call status before update
+            $lead = $this->leadRepository->getLeadById($leadId);
+            $previousCallStatusId = $lead ? $lead->call_status : null;
+
+            // If status is unchanged, return true without update or event
+            if ($previousCallStatusId == $callStatusId) {
+                return true;
+            }
+
+            $updatedByUserId = auth()->id();
+            $result = $this->leadRepository->addCallStatus($leadId, $callStatusId);
+            
+            // Fire event only if update was successful and we have an authenticated user
+            // Note: If updatedByUserId is null, the event still fires but listeners should handle gracefully
+            if ($result && $updatedByUserId) {
+                event(new \App\Events\LeadCallStatusAddedEvent(
+                    $leadId,
+                    $callStatusId,
+                    $previousCallStatusId,
+                    $updatedByUserId,
+                    now()
+                ));
+            } elseif ($result && !$updatedByUserId) {
+                Log::warning('Call status updated without authenticated user', [
+                    'lead_id' => $leadId,
+                    'call_status_id' => $callStatusId,
+                    'note' => 'Event not fired due to missing authentication context'
+                ]);
+            }
+            return $result;
         } catch (QueryException $e) {
             Log::error('Database error adding call status', ['lead_id' => $leadId, 'call_status_id' => $callStatusId, 'exception' => $e]);
             throw new DomainException('Database error while adding call status.');
