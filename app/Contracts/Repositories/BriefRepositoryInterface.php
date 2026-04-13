@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * Get brief logs with pagination.
+ *
+ * `@param` int $perPage
++     * `@param` string|null $searchTerm Optional search term to filter logs.
+ * `@return` LengthAwarePaginator
+ */
+
 namespace App\Contracts\Repositories;
 
 use App\Models\Brief;
@@ -152,7 +160,7 @@ interface BriefRepositoryInterface
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    public function getBriefLogs(int $perPage = 10): LengthAwarePaginator;
+    public function getBriefLogs(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator;
 
     /**
      * Get business forecast data including total budget and business weightage.

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\BriefResource;
+use App\Http\Resources\RecentBriefResource;
 use App\Models\Brief;
 use App\Models\BriefStatus;
 use App\Services\BriefService;
@@ -146,9 +147,9 @@ class BriefController extends Controller
                 return [
                     'id' => $brief->id,
                     'brief_name' => $brief->name,
-                    'status' => $brief->briefStatus?->name,
+                    'status' => isset($brief->briefStatus) ? $brief->briefStatus->name : null,
                     'product_name' => $brief->product_name,
-                    'brand_name' => $brief->brand?->name,
+                    'brand_name' => isset($brief->brand) ? $brief->brand->name : null,
                     'comment' => $brief->comment,
                     'submission_date' => $brief->submission_date ? $brief->submission_date->format('Y-m-d H:i:s A') : null,
                     'budget' => $brief->budget,
@@ -199,10 +200,12 @@ class BriefController extends Controller
         try {
             $this->validate($request, [
                 'per_page' => 'nullable|integer|min:1',
+                'search' => 'nullable|string|max:255',
             ]);
 
             $perPage = (int) $request->input('per_page', 10);
-            $briefs = $this->briefService->getBriefLogs($perPage);
+            $searchTerm = $request->input('search', null);
+            $briefs = $this->briefService->getBriefLogs($perPage, $searchTerm);
 
             return $this->responseService->paginated(
                 BriefResource::collection($briefs),
@@ -296,6 +299,8 @@ class BriefController extends Controller
                 'comment' => 'nullable|string',
                 'submission_date' => 'required|date_format:Y-m-d H:i:s',
                 'status' => 'nullable|in:1,2,15',
+                'campaign_start_date' => 'required|date_format:Y-m-d',
+                'campaign_end_date' => 'required|date_format:Y-m-d|after_or_equal:campaign_start_date',
             ];
 
             $this->validate($request, $rules);
@@ -318,13 +323,13 @@ class BriefController extends Controller
             $data['uuid'] = (string) Str::uuid();
             $data['slug'] = Str::slug($request->input('name')) . '-' . uniqid();
             $data['created_by'] = Auth::id();
-            // Set default status if not provided
+            // Set default status if not provided (1 = active)
             if (!isset($data['status'])) {
-                $data['status'] = '2';
+                $data['status'] = '1';
             }
             // Set brief_status_id default to 1 if not provided
             if (!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) {
-                $data['brief_status_id'] = 1;
+                $data['brief_status_id'] = 1;   
             }
             // Fetch priority_id from brief status if not provided
             if (!isset($data['priority_id']) || is_null($data['priority_id'])) {
@@ -380,9 +385,25 @@ class BriefController extends Controller
                 'comment' => 'nullable|string',
                 'submission_date' => 'sometimes|required|date_format:Y-m-d H:i:s',
                 'status' => 'nullable|in:1,2,15',
+                'campaign_start_date' => 'nullable|date_format:Y-m-d',
+                'campaign_end_date' => 'nullable|date_format:Y-m-d|after_or_equal:campaign_start_date',
             ];
 
             $this->validate($request, $rules);
+
+            // Validate campaign end date against existing start date if needed
+            if ($request->has('campaign_end_date') && !$request->exists('campaign_start_date')) {
+                $brief = $this->briefService->getBrief($id);
+                if ($brief && $brief->campaign_start_date) {
+                    $newEndDate = \Carbon\Carbon::createFromFormat('Y-m-d', $request->input('campaign_end_date'));
+                    if ($newEndDate->isBefore($brief->campaign_start_date)) {
+                        return $this->responseService->validationError(
+                            ['campaign_end_date' => ['The campaign end date must be on or after the existing campaign start date.']],
+                            'Validation failed'
+                        );
+                    }
+                }
+            }
 
             // Validate campaign mode and media_type combination
             if ($request->has('mode_of_campaign') && $request->has('media_type')) {
@@ -564,6 +585,9 @@ class BriefController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
+            $previousStatusId = $brief->brief_status_id;
+            $previousStatusName = $brief->briefStatus ? $brief->briefStatus->name : null;
+
             // Get the brief status to fetch its associated priority
             $briefStatus = \App\Models\BriefStatus::find($request->input('brief_status_id'));
 
@@ -577,6 +601,28 @@ class BriefController extends Controller
             }
 
             $brief = $this->briefService->updateBrief($id, $updateData);
+
+            // Fire event for notification
+            if (!$brief) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            $user = auth()->user();
+            
+            // Only fire event if status actually changed
+            if ($previousStatusId !== $brief->brief_status_id) {
+                event(new \App\Events\BriefStatusChangedEvent(
+                    $brief->id,
+                    $brief->name,
+                    $previousStatusId,
+                    $previousStatusName,
+                    $briefStatus ? $briefStatus->id : null,
+                    $briefStatus ? $briefStatus->name : null,
+                    $user?->id,
+                    $user?->name,
+                    now()
+                ));
+            }
 
             return $this->responseService->success(
                 new BriefResource($brief),
@@ -616,11 +662,15 @@ class BriefController extends Controller
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
             }
 
-            $updateData = [
-                'assign_user_id' => $request->input('assign_user_id'),
-            ];
+            // Use the updateBrief method which will fire the event if assign_user_id changes
+            $brief = $this->briefService->updateBrief($id, ['assign_user_id' => $request->input('assign_user_id')]);
 
-            $brief = $this->briefService->updateBrief($id, $updateData);
+            if (!$brief) {
+                return $this->responseService->error(
+                    'Failed to assign brief to user',
+                    ['Assignment failed']
+                );
+            }
 
             return $this->responseService->success(
                 new BriefResource($brief),
@@ -652,32 +702,11 @@ class BriefController extends Controller
             ]);
 
             $limit = (int) $request->input('limit', 5);
-            
+
             $briefs = $this->briefService->getRecentBriefs($limit);
 
-            // Format briefs with only required fields
-            $formattedBriefs = $briefs->map(function ($brief) {
-                return [
-                    'id' => $brief->id,
-                    'name' => $brief->name,
-                    'product_name' => $brief->product_name,
-                    'budget' => $brief->budget,
-                    'brand_name' => $brief->brand?->name,
-                    'contact_person_name' => $brief->contactPerson?->name,
-                    'assign_to' => [
-                        'id' => $brief->assignedUser?->id,
-                        'name' => $brief->assignedUser?->name,
-                        'email' => $brief->assignedUser?->email,
-                    ],
-                    'brief_status' => [
-                        'name' => $brief->briefStatus?->name,
-                        'percentage' => $brief->briefStatus?->percentage,
-                    ],
-                ];
-            });
-
             return $this->responseService->success(
-                $formattedBriefs,
+                RecentBriefResource::collection($briefs),
                 'Recent briefs retrieved successfully'
             );
         } catch (ValidationException $e) {

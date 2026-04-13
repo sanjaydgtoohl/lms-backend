@@ -60,23 +60,8 @@ class BriefRepository implements BriefRepositoryInterface
             ->accessibleToUser(Auth::user());
 
         // Apply search filter if search term is provided
-        if ($searchTerm) {
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('name', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('product_name', 'LIKE', "%{$searchTerm}%")
-                  ->orWhereHas('brand', function ($brandQuery) use ($searchTerm) {
-                      $brandQuery->where('name', 'LIKE', "%{$searchTerm}%");
-                  })
-                  ->orWhereHas('contactPerson', function ($contactQuery) use ($searchTerm) {
-                      $contactQuery->where('name', 'LIKE', "%{$searchTerm}%");
-                  })
-                  ->orWhereHas('priority', function ($priorityQuery) use ($searchTerm) {
-                      $priorityQuery->where('name', 'LIKE', "%{$searchTerm}%");
-                  })
-                  ->orWhereHas('assignedUser', function ($userQuery) use ($searchTerm) {
-                      $userQuery->where('name', 'LIKE', "%{$searchTerm}%");
-                  });
-            });
+        if ($searchTerm !== null && $searchTerm !== '') {
+            $this->applySearchFilter($query, $searchTerm);
         }
 
         return $query
@@ -424,14 +409,48 @@ class BriefRepository implements BriefRepositoryInterface
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    public function getBriefLogs(int $perPage = 10): LengthAwarePaginator
+    public function getBriefLogs(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->accessibleToUser(Auth::user())
+            ->accessibleToUser(Auth::user());
+
+        // Apply search filter if search term is provided
+        if ($searchTerm !== null && $searchTerm !== '') {
+            $this->applySearchFilter($query, $searchTerm);
+        }
+
+        return $query
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->appends(request()->query());
+    }
+
+    /**
+     * Apply search filter to a query builder instance.
+     * Filters by name, product_name, and related relationships (brand, contactPerson, priority, assignedUser).
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $searchTerm
+     */
+    private function applySearchFilter($query, string $searchTerm): void
+    {
+        $query->where(function ($q) use ($searchTerm) {
+            $q->where('name', 'LIKE', "%{$searchTerm}%")
+              ->orWhere('product_name', 'LIKE', "%{$searchTerm}%")
+              ->orWhereHas('brand', function ($brandQuery) use ($searchTerm) {
+                  $brandQuery->where('name', 'LIKE', "%{$searchTerm}%");
+              })
+              ->orWhereHas('contactPerson', function ($contactQuery) use ($searchTerm) {
+                  $contactQuery->where('name', 'LIKE', "%{$searchTerm}%");
+              })
+              ->orWhereHas('priority', function ($priorityQuery) use ($searchTerm) {
+                  $priorityQuery->where('name', 'LIKE', "%{$searchTerm}%");
+              })
+              ->orWhereHas('assignedUser', function ($userQuery) use ($searchTerm) {
+                  $userQuery->where('name', 'LIKE', "%{$searchTerm}%");
+              });
+        });
     }
 
     /**

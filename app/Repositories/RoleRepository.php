@@ -146,4 +146,21 @@ class RoleRepository implements RoleRepositoryInterface
             return false;
         }
     }
+
+    /**
+     * Get users for a specific role
+     */
+    public function getUsers(int $roleId, int $perPage = 15): LengthAwarePaginator
+    {
+        $role = $this->model->find($roleId);
+
+        if (! $role) {
+            return new LengthAwarePaginator([], 0, $perPage, 1, [
+                'path' => '',
+                'pageName' => 'page'
+            ]);
+        }
+
+        return $role->users()->paginate($perPage);
+    }
 }

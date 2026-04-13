@@ -21,6 +21,26 @@ class EventServiceProvider extends ServiceProvider
         \Illuminate\Auth\Events\Login::class => [
             \App\Listeners\LogSuccessfulLogin::class,
         ],
+
+        \App\Events\LeadAssignedEvent::class => [
+            \App\Listeners\CreateLeadAssignedNotification::class,
+        ],
+
+        \App\Events\LeadStatusChangedEvent::class => [
+            \App\Listeners\CreateLeadStatusNotification::class,
+        ],
+
+        \App\Events\LeadCallStatusAddedEvent::class => [
+            \App\Listeners\CreateLeadCallStatusNotification::class,
+        ],
+
+        \App\Events\BriefAssignedEvent::class => [
+            \App\Listeners\CreateBriefAssignedNotification::class,
+        ],
+
+        \App\Events\BriefStatusChangedEvent::class => [
+            \App\Listeners\CreateBriefStatusNotification::class,
+        ],
     ];
 
     /**

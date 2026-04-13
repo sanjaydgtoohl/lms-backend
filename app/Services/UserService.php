@@ -9,6 +9,7 @@ use App\Contracts\Repositories\UserParentRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -280,11 +281,11 @@ class UserService
 
         // Add unique email rule if creating new user or updating email
         if (!$userId || isset($data['email'])) {
-            $emailRule = 'required|email|max:255|unique:users,email';
+            $emailRule = Rule::unique('users', 'email')->whereNull('deleted_at');
             if ($userId) {
-                $emailRule .= ',' . $userId;
+                $emailRule->ignore($userId);
             }
-            $rules['email'] = $emailRule;
+            $rules['email'] = ['required', 'email', 'max:255', $emailRule];
         }
 
         $validator = Validator::make($data, $rules);

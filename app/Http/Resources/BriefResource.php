@@ -7,7 +7,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class BriefResource extends JsonResource
 {
-    /**`
+    /**
      * Transform the resource into an array.
      *
      * @param Request $request
@@ -28,6 +28,9 @@ class BriefResource extends JsonResource
             'submission_date' => $this->formatSubmissionDate(),
             'status' => $this->status,
             'left_time' => $this->calculateLeftTime(),
+            'campaign_start_date' => $this->campaign_start_date ? $this->campaign_start_date->format('Y-m-d') : null,
+            'campaign_end_date' => $this->campaign_end_date ? $this->campaign_end_date->format('Y-m-d') : null,
+            'campaign_duration' => $this->campaign_duration,
 
             // Relationships
             'contact_person' => $this->whenLoaded('contactPerson', function () {
