@@ -18,6 +18,11 @@ class DatabaseSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
         $this->call([
+            RegionSeeder::class,
+            SubregionSeeder::class,
+            CountrySeeder::class,
+            StateSeeder::class,
+            CitySeeder::class,
             UserSeeder::class,
             LaratrustDummySeeder::class,
             LeadSourceSeeder::class,
