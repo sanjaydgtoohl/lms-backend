@@ -9,6 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (!Schema::hasTable('lead_assign_histories')) {
+            return;
+        }
+
         Schema::table('lead_assign_histories', function (Blueprint $table) {
             // Drop foreign keys if they exist (check database directly)
             $this->dropForeignKeyIfExists('lead_assign_histories', 'lead_assign_histories_lead_id_foreign', $table);
@@ -31,6 +35,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (!Schema::hasTable('lead_assign_histories')) {
+            return;
+        }
+
         Schema::table('lead_assign_histories', function (Blueprint $table) {
             // Re-add the FKs with correct definitions
             $table->foreign('lead_id')
