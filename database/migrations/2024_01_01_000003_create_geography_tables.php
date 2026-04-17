@@ -9,6 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('regions', function (Blueprint $table) {
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
             $table->mediumIncrements('id');
             $table->string('name', 100);
             $table->text('translations')->nullable();
@@ -19,6 +21,8 @@ return new class extends Migration
         });
 
         Schema::create('subregions', function (Blueprint $table) {
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
             $table->mediumIncrements('id');
             $table->string('name', 100);
             $table->text('translations')->nullable();
@@ -33,6 +37,8 @@ return new class extends Migration
         });
 
         Schema::create('countries', function (Blueprint $table) {
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
             $table->mediumIncrements('id');
             $table->string('name', 100);
             $table->char('iso3', 3)->nullable();
@@ -70,6 +76,8 @@ return new class extends Migration
         });
 
         Schema::create('states', function (Blueprint $table) {
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
             $table->mediumIncrements('id');
             $table->string('name');
             $table->unsignedMediumInteger('country_id');
@@ -96,6 +104,8 @@ return new class extends Migration
         });
 
         Schema::create('cities', function (Blueprint $table) {
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
             $table->mediumIncrements('id');
             $table->string('name');
             $table->unsignedMediumInteger('state_id');
