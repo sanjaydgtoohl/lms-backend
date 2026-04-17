@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('name', 100);
             $table->text('translations')->nullable();
             $table->timestamp('created_at')->nullable();
-            $table->timestamp('updated_at')->useCurrent();
+            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
             $table->boolean('flag')->default(true);
             $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
         });
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->text('translations')->nullable();
             $table->unsignedMediumInteger('region_id');
             $table->timestamp('created_at')->nullable();
-            $table->timestamp('updated_at')->useCurrent();
+            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
             $table->boolean('flag')->default(true);
             $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
 
@@ -65,7 +65,7 @@ return new class extends Migration
             $table->string('emoji', 191)->nullable();
             $table->string('emojiU', 191)->nullable();
             $table->timestamp('created_at')->nullable();
-            $table->timestamp('updated_at')->useCurrent();
+            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
             $table->boolean('flag')->default(true);
             $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
 
@@ -94,7 +94,7 @@ return new class extends Migration
             $table->string('timezone')->nullable()->comment('IANA timezone identifier (e.g., America/New_York)');
             $table->text('translations')->nullable();
             $table->timestamp('created_at')->nullable();
-            $table->timestamp('updated_at')->useCurrent();
+            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
             $table->boolean('flag')->default(true);
             $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
             $table->string('population')->nullable();
@@ -117,8 +117,8 @@ return new class extends Migration
             $table->string('native')->nullable();
             $table->string('timezone')->nullable()->comment('IANA timezone identifier (e.g., America/New_York)');
             $table->text('translations')->nullable();
-            $table->timestamp('created_at')->nullable();
-            $table->timestamp('updated_at')->useCurrent();
+            $table->timestamp('created_at')->default('2014-01-01 06:31:01');
+            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
             $table->boolean('flag')->default(true);
             $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
 

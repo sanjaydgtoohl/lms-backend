@@ -9,7 +9,7 @@ A lightweight microservice-style API built with Lumen 10 featuring:
 - Centralized response/error handling
 - Login history tracking
 - User profile management
-- Geography reference data import from `dump_db.sql`
+- Geography reference data import from `lms_staging.sql`
 
 ### Requirements
 - PHP 8.1+
@@ -56,7 +56,7 @@ php artisan db:seed --class=LaratrustDummySeeder
 ```
 
 ### Geography Data Import
-The repository includes `dump_db.sql` with reference data for:
+The repository includes `lms_staging.sql` with reference data for:
 - `regions`
 - `subregions`
 - `countries`
@@ -90,7 +90,7 @@ If you previously hit an error about `lead_assign_histories` not existing, run m
 
 - **Roles**: `admin`, `manager`, `user`
 - **Permissions**: Various user, profile, and role management permissions
-- **Geography**: Region, country, state, city, and subregion reference tables from `dump_db.sql`
+- **Geography**: Region, country, state, city, and subregion reference tables from `lms_staging.sql`
 
 ### Run Development Server
 ```bash

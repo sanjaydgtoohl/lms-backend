@@ -30,7 +30,15 @@ class GeographyDumpImporter
 
     public function __construct(?string $dumpPath = null)
     {
-        $this->dumpPath = $dumpPath ?: base_path('dump_db.sql');
+        if ($dumpPath !== null) {
+            $this->dumpPath = $dumpPath;
+            return;
+        }
+
+        $stagingDump = base_path('lms_staging.sql');
+        $legacyDump = base_path('dump_db.sql');
+
+        $this->dumpPath = is_file($stagingDump) ? $stagingDump : $legacyDump;
     }
 
     public function importAll(bool $truncate = true): array

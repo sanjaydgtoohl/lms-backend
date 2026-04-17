@@ -17,7 +17,7 @@ abstract class GeoLocationTableSeeder extends Seeder
 
         if ($count === 0) {
             throw new RuntimeException(sprintf(
-                'No geography rows were imported for table "%s". Check dump_db.sql and the import parser.',
+                'No geography rows were imported for table "%s". Check lms_staging.sql and the import parser.',
                 $this->table()
             ));
         }

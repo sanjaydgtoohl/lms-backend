@@ -9,7 +9,7 @@ class ImportGeographyDump extends Command
 {
     protected $signature = 'geography:import-dump {--table=* : Import only the selected tables} {--no-truncate : Keep existing rows instead of truncating first}';
 
-    protected $description = 'Import geography reference data from dump_db.sql';
+    protected $description = 'Import geography reference data from lms_staging.sql';
 
     public function handle(GeographyDumpImporter $importer): int
     {
