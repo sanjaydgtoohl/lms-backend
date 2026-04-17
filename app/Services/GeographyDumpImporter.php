@@ -179,9 +179,11 @@ class GeographyDumpImporter
 
         while (($line = fgets($handle)) !== false) {
             if (! $collecting) {
-                if (preg_match('/^\s*INSERT\s+(?:IGNORE\s+)?INTO\s+(?:`[^`]+`\.)?`([^`]+)`/i', ltrim($line), $matches) && isset($allowedTables[$matches[1]])) {
+                $table = $this->detectInsertedTable($line, $allowedTables);
+
+                if ($table !== null) {
                     $collecting = true;
-                    $currentTable = $matches[1];
+                    $currentTable = $table;
                     $buffer = $line;
                 }
 
@@ -201,5 +203,40 @@ class GeographyDumpImporter
         fclose($handle);
 
         $this->statementsByTable = $statementsByTable;
+    }
+
+    /**
+     * Detect the table name from an INSERT statement line.
+     *
+     * Supports both quoted and unquoted table names, with or without a schema
+     * prefix.
+     *
+     * @param array<string, bool> $allowedTables
+     */
+    private function detectInsertedTable(string $line, array $allowedTables): ?string
+    {
+        $normalizedLine = ltrim($line);
+
+        if (! preg_match('/^\xEF\xBB\xBF?/', $normalizedLine)) {
+            $normalizedLine = preg_replace('/^\xEF\xBB\xBF/', '', $normalizedLine) ?? $normalizedLine;
+        }
+
+        if (! preg_match('/^\s*INSERT\s+(?:IGNORE\s+)?INTO\s+/i', $normalizedLine)) {
+            return null;
+        }
+
+        foreach (array_keys($allowedTables) as $table) {
+            $quoted = sprintf('`%s`', $table);
+            $plainPattern = sprintf('/(^|[^A-Za-z0-9_`])%s([^A-Za-z0-9_`]|$)/i', preg_quote($table, '/'));
+
+            if (
+                str_contains($normalizedLine, $quoted) ||
+                preg_match($plainPattern, $normalizedLine) === 1
+            ) {
+                return $table;
+            }
+        }
+
+        return null;
     }
 }
