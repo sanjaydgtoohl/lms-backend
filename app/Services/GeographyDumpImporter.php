@@ -165,8 +165,6 @@ class GeographyDumpImporter
             throw new RuntimeException("Geography dump file not found: {$this->dumpPath}");
         }
 
-        $statementsByTable = [];
-        $allowedTables = array_flip($this->insertOrder);
         $contents = file_get_contents($this->dumpPath);
 
         if ($contents === false) {
@@ -178,28 +176,51 @@ class GeographyDumpImporter
         }
 
         $contents = preg_replace('/^\xEF\xBB\xBF/', '', $contents) ?? $contents;
+        $statementsByTable = [];
+        $lines = preg_split('/\R/', $contents) ?: [];
+        $headerPattern = '/^\s*INSERT\s+(?:IGNORE\s+)?INTO\s+(?:`[^`]+`\.)?`?(regions|subregions|countries|states|cities)`?\b/i';
 
-        $offset = 0;
+        $currentTable = null;
+        $currentStatement = [];
         $insertCount = 0;
 
-        while (($insertPosition = stripos($contents, 'INSERT INTO', $offset)) !== false) {
-            $statementEnd = strpos($contents, ';', $insertPosition);
+        foreach ($lines as $line) {
+            if ($currentTable === null) {
+                if (! preg_match($headerPattern, $line, $matches)) {
+                    continue;
+                }
 
-            if ($statementEnd === false) {
-                break;
-            }
+                $currentTable = strtolower($matches[1]);
+                $currentStatement = [$line];
 
-            $statement = substr($contents, $insertPosition, $statementEnd - $insertPosition + 1);
-            $offset = $statementEnd + 1;
-            $insertCount++;
+                if (str_ends_with(rtrim($line), ';')) {
+                    $statementsByTable[$currentTable][] = implode("\n", $currentStatement);
+                    $insertCount++;
+                    $currentTable = null;
+                    $currentStatement = [];
+                }
 
-            $table = $this->extractTableFromInsertStatement($statement, $allowedTables);
-
-            if ($table === null) {
                 continue;
             }
 
-            $statementsByTable[$table][] = $statement;
+            $currentStatement[] = $line;
+
+            if (! str_ends_with(rtrim($line), ';')) {
+                continue;
+            }
+
+            $statementsByTable[$currentTable][] = implode("\n", $currentStatement);
+            $insertCount++;
+            $currentTable = null;
+            $currentStatement = [];
+        }
+
+        if ($currentTable !== null && $currentStatement !== []) {
+            throw new RuntimeException(sprintf(
+                'Geography dump ended while reading an INSERT statement for table "%s" in %s.',
+                $currentTable,
+                $this->dumpPath
+            ));
         }
 
         if ($insertCount === 0) {
@@ -207,34 +228,5 @@ class GeographyDumpImporter
         }
 
         $this->statementsByTable = $statementsByTable;
-    }
-
-    /**
-     * Detect the table name from an INSERT statement line.
-     *
-     * Supports both quoted and unquoted table names, with or without a schema
-     * prefix.
-     *
-     * @param array<string, bool> $allowedTables
-     */
-    private function extractTableFromInsertStatement(string $statement, array $allowedTables): ?string
-    {
-        $normalizedStatement = ltrim($statement);
-
-        foreach (array_keys($allowedTables) as $table) {
-            $quoted = sprintf('`%s`', $table);
-            $plainPattern = sprintf('/(^|[^A-Za-z0-9_`])%s([^A-Za-z0-9_`]|$)/i', preg_quote($table, '/'));
-
-            if (
-                preg_match('/^\s*INSERT\s+(?:IGNORE\s+)?INTO\s+(?:`[^`]+`\.)?' . preg_quote($quoted, '/') . '\s+/i', $normalizedStatement) === 1 ||
-                preg_match('/^\s*INSERT\s+(?:IGNORE\s+)?INTO\s+(?:`[^`]+`\.)?' . preg_quote($table, '/') . '\s+/i', $normalizedStatement) === 1 ||
-                str_contains($normalizedStatement, $quoted) ||
-                preg_match($plainPattern, $normalizedStatement) === 1
-            ) {
-                return $table;
-            }
-        }
-
-        return null;
     }
 }
