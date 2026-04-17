@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class GeographyDumpImporter
@@ -33,6 +34,8 @@ class GeographyDumpImporter
 
     public function importAll(bool $truncate = true): array
     {
+        $this->ensureUtf8mb4Support();
+
         if ($truncate) {
             $this->truncateTables($this->truncateOrder);
         }
@@ -48,6 +51,8 @@ class GeographyDumpImporter
 
     public function importTables(array $tables, bool $truncate = true): array
     {
+        $this->ensureUtf8mb4Support();
+
         $tables = $this->normalizeTables($tables);
 
         if ($truncate) {
@@ -69,6 +74,8 @@ class GeographyDumpImporter
 
     public function importTable(string $table, bool $truncate = true): int
     {
+        $this->ensureUtf8mb4Support();
+
         $table = $this->normalizeTable($table);
 
         if ($truncate) {
@@ -120,6 +127,22 @@ class GeographyDumpImporter
             }
         } finally {
             DB::statement('SET FOREIGN_KEY_CHECKS=' . $originalForeignKeyChecks . ';');
+        }
+    }
+
+    private function ensureUtf8mb4Support(): void
+    {
+        DB::statement('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
+
+        foreach (array_unique(array_merge($this->insertOrder, $this->truncateOrder)) as $table) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
+            DB::statement(sprintf(
+                'ALTER TABLE `%s` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
+                $table
+            ));
         }
     }
 
