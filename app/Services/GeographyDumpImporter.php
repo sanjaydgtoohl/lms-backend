@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class GeographyDumpImporter
@@ -133,19 +135,6 @@ class GeographyDumpImporter
     {
         DB::connection()->getPdo()->exec('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
 
-        foreach (array_unique(array_merge($this->insertOrder, $this->truncateOrder)) as $table) {
-            try {
-                DB::statement(sprintf(
-                    'ALTER TABLE `%s` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
-                    $table
-                ));
-            } catch (\Throwable $e) {
-                if (! str_contains($e->getMessage(), 'doesn\'t exist')) {
-                    throw $e;
-                }
-            }
-        }
-
         $database = config('database.connections.mysql.database');
 
         if (is_string($database) && $database !== '') {
@@ -153,6 +142,142 @@ class GeographyDumpImporter
                 'ALTER DATABASE `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
                 $database
             ));
+        }
+
+        $this->rebuildGeographySchema();
+    }
+
+    private function rebuildGeographySchema(): void
+    {
+        $originalForeignKeyChecks = (int) DB::selectOne('SELECT @@FOREIGN_KEY_CHECKS AS value')->value;
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+        try {
+            foreach ($this->truncateOrder as $table) {
+                Schema::dropIfExists($table);
+            }
+
+            Schema::create('regions', function (Blueprint $table) {
+                $table->charset = 'utf8mb4';
+                $table->collation = 'utf8mb4_unicode_ci';
+                $table->mediumIncrements('id');
+                $table->string('name', 100);
+                $table->text('translations')->nullable();
+                $table->timestamp('created_at')->nullable();
+                $table->timestamp('updated_at')->useCurrent();
+                $table->boolean('flag')->default(true);
+                $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
+            });
+
+            Schema::create('subregions', function (Blueprint $table) {
+                $table->charset = 'utf8mb4';
+                $table->collation = 'utf8mb4_unicode_ci';
+                $table->mediumIncrements('id');
+                $table->string('name', 100);
+                $table->text('translations')->nullable();
+                $table->unsignedMediumInteger('region_id');
+                $table->timestamp('created_at')->nullable();
+                $table->timestamp('updated_at')->useCurrent();
+                $table->boolean('flag')->default(true);
+                $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
+
+                $table->index('region_id');
+                $table->foreign('region_id')->references('id')->on('regions')->onDelete('restrict');
+            });
+
+            Schema::create('countries', function (Blueprint $table) {
+                $table->charset = 'utf8mb4';
+                $table->collation = 'utf8mb4_unicode_ci';
+                $table->mediumIncrements('id');
+                $table->string('name', 100);
+                $table->char('iso3', 3)->nullable();
+                $table->char('numeric_code', 3)->nullable();
+                $table->char('iso2', 2)->nullable();
+                $table->string('phonecode')->nullable();
+                $table->string('capital')->nullable();
+                $table->string('currency')->nullable();
+                $table->string('currency_name')->nullable();
+                $table->string('currency_symbol')->nullable();
+                $table->string('tld')->nullable();
+                $table->string('native')->nullable();
+                $table->unsignedBigInteger('population')->nullable();
+                $table->unsignedBigInteger('gdp')->nullable();
+                $table->string('region')->nullable();
+                $table->unsignedMediumInteger('region_id')->nullable();
+                $table->string('subregion')->nullable();
+                $table->unsignedMediumInteger('subregion_id')->nullable();
+                $table->string('nationality')->nullable();
+                $table->text('timezones')->nullable();
+                $table->text('translations')->nullable();
+                $table->decimal('latitude', 10, 8)->nullable();
+                $table->decimal('longitude', 11, 8)->nullable();
+                $table->string('emoji', 191)->nullable();
+                $table->string('emojiU', 191)->nullable();
+                $table->timestamp('created_at')->nullable();
+                $table->timestamp('updated_at')->useCurrent();
+                $table->boolean('flag')->default(true);
+                $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
+
+                $table->index('region_id', 'country_continent');
+                $table->index('subregion_id', 'country_subregion');
+                $table->foreign('region_id')->references('id')->on('regions')->onDelete('restrict');
+                $table->foreign('subregion_id')->references('id')->on('subregions')->onDelete('restrict');
+            });
+
+            Schema::create('states', function (Blueprint $table) {
+                $table->charset = 'utf8mb4';
+                $table->collation = 'utf8mb4_unicode_ci';
+                $table->mediumIncrements('id');
+                $table->string('name');
+                $table->unsignedMediumInteger('country_id');
+                $table->char('country_code', 2);
+                $table->string('fips_code')->nullable();
+                $table->string('iso2')->nullable();
+                $table->string('iso3166_2', 10)->nullable();
+                $table->string('type', 191)->nullable();
+                $table->integer('level')->nullable();
+                $table->unsignedInteger('parent_id')->nullable();
+                $table->string('native')->nullable();
+                $table->decimal('latitude', 10, 8)->nullable();
+                $table->decimal('longitude', 11, 8)->nullable();
+                $table->string('timezone')->nullable()->comment('IANA timezone identifier (e.g., America/New_York)');
+                $table->text('translations')->nullable();
+                $table->timestamp('created_at')->nullable();
+                $table->timestamp('updated_at')->useCurrent();
+                $table->boolean('flag')->default(true);
+                $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
+                $table->string('population')->nullable();
+
+                $table->index('country_id', 'country_region');
+                $table->foreign('country_id')->references('id')->on('countries')->onDelete('restrict');
+            });
+
+            Schema::create('cities', function (Blueprint $table) {
+                $table->charset = 'utf8mb4';
+                $table->collation = 'utf8mb4_unicode_ci';
+                $table->mediumIncrements('id');
+                $table->string('name');
+                $table->unsignedMediumInteger('state_id');
+                $table->string('state_code');
+                $table->unsignedMediumInteger('country_id');
+                $table->char('country_code', 2);
+                $table->decimal('latitude', 10, 8);
+                $table->decimal('longitude', 11, 8);
+                $table->string('native')->nullable();
+                $table->string('timezone')->nullable()->comment('IANA timezone identifier (e.g., America/New_York)');
+                $table->text('translations')->nullable();
+                $table->timestamp('created_at')->nullable();
+                $table->timestamp('updated_at')->useCurrent();
+                $table->boolean('flag')->default(true);
+                $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
+
+                $table->index('state_id', 'cities_test_ibfk_1');
+                $table->index('country_id', 'cities_test_ibfk_2');
+                $table->foreign('state_id')->references('id')->on('states')->onDelete('restrict');
+                $table->foreign('country_id')->references('id')->on('countries')->onDelete('restrict');
+            });
+        } finally {
+            DB::statement('SET FOREIGN_KEY_CHECKS=' . $originalForeignKeyChecks . ';');
         }
     }
 
