@@ -168,14 +168,84 @@ class GeographyDumpImporter
             ));
         }
 
-        $count = 0;
+        $this->runStatementsThroughMysqlClient($statements);
 
-        foreach ($statements as $statement) {
-            DB::unprepared($statement);
-            $count++;
+        return count($statements);
+    }
+
+    /**
+     * Execute the import through the native mysql client when available.
+     *
+     * @param array<int, string> $statements
+     */
+    private function runStatementsThroughMysqlClient(array $statements): void
+    {
+        $binary = trim((string) shell_exec('command -v mysql'));
+
+        if ($binary === '') {
+            foreach ($statements as $statement) {
+                DB::unprepared($statement);
+            }
+
+            return;
         }
 
-        return $count;
+        $connection = config('database.connections.mysql');
+
+        if (! is_array($connection)) {
+            throw new RuntimeException('MySQL connection configuration is not available.');
+        }
+
+        $sql = "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;\n";
+        $sql .= implode(";\n\n", $statements) . ";\n";
+
+        $command = sprintf(
+            '%s --host=%s --port=%s --user=%s --default-character-set=utf8mb4 %s',
+            escapeshellarg($binary),
+            escapeshellarg((string) ($connection['host'] ?? '127.0.0.1')),
+            escapeshellarg((string) ($connection['port'] ?? '3306')),
+            escapeshellarg((string) ($connection['username'] ?? 'root')),
+            escapeshellarg((string) ($connection['database'] ?? ''))
+        );
+
+        $descriptors = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+
+        $env = $_ENV;
+        $env['MYSQL_PWD'] = (string) ($connection['password'] ?? '');
+
+        $process = proc_open($command, $descriptors, $pipes, null, $env);
+
+        if (! is_resource($process)) {
+            foreach ($statements as $statement) {
+                DB::unprepared($statement);
+            }
+
+            return;
+        }
+
+        fwrite($pipes[0], $sql);
+        fclose($pipes[0]);
+
+        $stdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
+
+        $exitCode = proc_close($process);
+
+        if ($exitCode !== 0) {
+            throw new RuntimeException(sprintf(
+                'mysql client import failed with exit code %d%s%s',
+                $exitCode,
+                trim((string) $stderr) !== '' ? ': ' : '',
+                trim((string) $stderr)
+            ));
+        }
     }
 
     /**
