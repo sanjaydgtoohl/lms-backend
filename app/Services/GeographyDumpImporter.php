@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class GeographyDumpImporter
@@ -132,16 +131,27 @@ class GeographyDumpImporter
 
     private function ensureUtf8mb4Support(): void
     {
-        DB::statement('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
+        DB::connection()->getPdo()->exec('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
 
         foreach (array_unique(array_merge($this->insertOrder, $this->truncateOrder)) as $table) {
-            if (! Schema::hasTable($table)) {
-                continue;
+            try {
+                DB::statement(sprintf(
+                    'ALTER TABLE `%s` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
+                    $table
+                ));
+            } catch (\Throwable $e) {
+                if (! str_contains($e->getMessage(), 'doesn\'t exist')) {
+                    throw $e;
+                }
             }
+        }
 
+        $database = config('database.connections.mysql.database');
+
+        if (is_string($database) && $database !== '') {
             DB::statement(sprintf(
-                'ALTER TABLE `%s` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
-                $table
+                'ALTER DATABASE `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
+                $database
             ));
         }
     }
