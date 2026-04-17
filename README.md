@@ -9,6 +9,7 @@ A lightweight microservice-style API built with Lumen 10 featuring:
 - Centralized response/error handling
 - Login history tracking
 - User profile management
+- Geography reference data import from `dump_db.sql`
 
 ### Requirements
 - PHP 8.1+
@@ -46,13 +47,40 @@ php artisan jwt:secret
 # Run migrations
 php artisan migrate
 
-# Seed database (users, roles, permissions, and other data)
+# Seed database (geography data, users, roles, permissions, and other data)
 php artisan db:seed
 
 # Or seed specific seeders
 php artisan db:seed --class=UserSeeder
 php artisan db:seed --class=LaratrustDummySeeder
 ```
+
+### Geography Data Import
+The repository includes `dump_db.sql` with reference data for:
+- `regions`
+- `subregions`
+- `countries`
+- `states`
+- `cities`
+
+These tables are seeded automatically through `php artisan db:seed`.
+
+If you need to re-import only the geography data, use the dedicated command:
+```bash
+php artisan geography:import-dump
+```
+
+Useful options:
+- `--table=regions` / `--table=countries` / etc. to import only selected tables
+- `--no-truncate` to append without clearing existing rows first
+
+Example:
+```bash
+php artisan geography:import-dump --table=regions --table=subregions
+```
+
+### Lead History Table Fix
+If you previously hit an error about `lead_assign_histories` not existing, run migrations again after pulling this version. The base migration for that table is now included, along with guards on later alter migrations so partial database states no longer break the migration chain.
 
 ### Default Seeded Data
 - **Users**: 
@@ -62,6 +90,7 @@ php artisan db:seed --class=LaratrustDummySeeder
 
 - **Roles**: `admin`, `manager`, `user`
 - **Permissions**: Various user, profile, and role management permissions
+- **Geography**: Region, country, state, city, and subregion reference tables from `dump_db.sql`
 
 ### Run Development Server
 ```bash

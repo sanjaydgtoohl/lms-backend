@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Services\GeographyDumpImporter;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
 abstract class GeoLocationTableSeeder extends Seeder
 {
@@ -11,6 +12,14 @@ abstract class GeoLocationTableSeeder extends Seeder
 
     public function run(): void
     {
-        app(GeographyDumpImporter::class)->importTable($this->table());
+        $importer = new GeographyDumpImporter();
+        $count = $importer->importTable($this->table());
+
+        if ($count === 0) {
+            throw new RuntimeException(sprintf(
+                'No geography rows were imported for table "%s". Check dump_db.sql and the import parser.',
+                $this->table()
+            ));
+        }
     }
 }
