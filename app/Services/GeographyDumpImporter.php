@@ -125,9 +125,19 @@ class GeographyDumpImporter
 
     private function importTableStatements(string $table): int
     {
+        $statements = $this->statementsForTable($table);
+
+        if ($statements === []) {
+            throw new RuntimeException(sprintf(
+                'No INSERT statements were found for geography table "%s" in %s.',
+                $table,
+                $this->dumpPath
+            ));
+        }
+
         $count = 0;
 
-        foreach ($this->statementsForTable($table) as $statement) {
+        foreach ($statements as $statement) {
             DB::unprepared($statement);
             $count++;
         }
@@ -169,7 +179,7 @@ class GeographyDumpImporter
 
         while (($line = fgets($handle)) !== false) {
             if (! $collecting) {
-                if (preg_match('/^INSERT INTO `([^`]+)`/', $line, $matches) && isset($allowedTables[$matches[1]])) {
+                if (preg_match('/^\s*INSERT\s+(?:IGNORE\s+)?INTO\s+(?:`[^`]+`\.)?`([^`]+)`/i', ltrim($line), $matches) && isset($allowedTables[$matches[1]])) {
                     $collecting = true;
                     $currentTable = $matches[1];
                     $buffer = $line;
