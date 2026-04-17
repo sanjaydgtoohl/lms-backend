@@ -2,10 +2,25 @@
 
 namespace Database\Seeders;
 
-class RegionSeeder extends GeoLocationTableSeeder
+use App\Services\GeographyDumpImporter;
+use Illuminate\Database\Seeder;
+use RuntimeException;
+
+class RegionSeeder extends Seeder
 {
-    protected function table(): string
+    public function run(): void
     {
-        return 'regions';
+        $table = 'regions';
+        $sourceFile = base_path('sql/regions.sql');
+        $importer = new GeographyDumpImporter();
+        $count = $importer->importTableFromFile($table, $sourceFile, true);
+
+        if ($count < 1) {
+            throw new RuntimeException(sprintf(
+                'No geography rows were imported for table "%s" from %s.',
+                $table,
+                $sourceFile
+            ));
+        }
     }
 }

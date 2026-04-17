@@ -2,10 +2,25 @@
 
 namespace Database\Seeders;
 
-class SubregionSeeder extends GeoLocationTableSeeder
+use App\Services\GeographyDumpImporter;
+use Illuminate\Database\Seeder;
+use RuntimeException;
+
+class SubregionSeeder extends Seeder
 {
-    protected function table(): string
+    public function run(): void
     {
-        return 'subregions';
+        $table = 'subregions';
+        $sourceFile = base_path('sql/subregions.sql');
+        $importer = new GeographyDumpImporter();
+        $count = $importer->importTableFromFile($table, $sourceFile, true);
+
+        if ($count < 1) {
+            throw new RuntimeException(sprintf(
+                'No geography rows were imported for table "%s" from %s.',
+                $table,
+                $sourceFile
+            ));
+        }
     }
 }

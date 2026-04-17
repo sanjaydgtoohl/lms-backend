@@ -2,48 +2,32 @@
 
 namespace App\Services;
 
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class GeographyDumpImporter
 {
-    private string $dumpPath;
-
-    /**
-     * Parsed INSERT statements grouped by table.
-     *
-     * @var array<string, array<int, string>>|null
-     */
-    private ?array $statementsByTable = null;
-
     /**
      * Tables in dependency order for inserts.
+     *
+     * @var array<int, string>
      */
     private array $insertOrder = ['regions', 'subregions', 'countries', 'states', 'cities'];
 
     /**
      * Tables in reverse dependency order for truncation.
+     *
+     * @var array<int, string>
      */
     private array $truncateOrder = ['cities', 'states', 'countries', 'subregions', 'regions'];
 
-    public function __construct(?string $dumpPath = null)
+    public function __construct()
     {
-        if ($dumpPath !== null) {
-            $this->dumpPath = $dumpPath;
-            return;
-        }
-
-        $stagingDump = base_path('lms_staging.sql');
-        $legacyDump = base_path('dump_db.sql');
-
-        $this->dumpPath = is_file($stagingDump) ? $stagingDump : $legacyDump;
     }
 
     public function importAll(bool $truncate = true): array
     {
-        $this->ensureUtf8mb4Support();
+        $this->ensureUtf8mb4Connection();
 
         if ($truncate) {
             $this->truncateTables($this->truncateOrder);
@@ -52,7 +36,7 @@ class GeographyDumpImporter
         $imported = [];
 
         foreach ($this->insertOrder as $table) {
-            $imported[$table] = $this->importTableStatements($table);
+            $imported[$table] = $this->importTableFromFile($table, $this->sourcePathForTable($table), false);
         }
 
         return $imported;
@@ -60,7 +44,7 @@ class GeographyDumpImporter
 
     public function importTables(array $tables, bool $truncate = true): array
     {
-        $this->ensureUtf8mb4Support();
+        $this->ensureUtf8mb4Connection();
 
         $tables = $this->normalizeTables($tables);
 
@@ -75,7 +59,7 @@ class GeographyDumpImporter
                 continue;
             }
 
-            $imported[$table] = $this->importTableStatements($table);
+            $imported[$table] = $this->importTableFromFile($table, $this->sourcePathForTable($table), false);
         }
 
         return $imported;
@@ -83,7 +67,7 @@ class GeographyDumpImporter
 
     public function importTable(string $table, bool $truncate = true): int
     {
-        $this->ensureUtf8mb4Support();
+        $this->ensureUtf8mb4Connection();
 
         $table = $this->normalizeTable($table);
 
@@ -91,7 +75,7 @@ class GeographyDumpImporter
             $this->truncateTables([$table]);
         }
 
-        return $this->importTableStatements($table);
+        return $this->importTableFromFile($table, $this->sourcePathForTable($table), false);
     }
 
     public function availableTables(): array
@@ -121,6 +105,11 @@ class GeographyDumpImporter
         return $table;
     }
 
+    private function ensureUtf8mb4Connection(): void
+    {
+        DB::connection()->getPdo()->exec('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
+    }
+
     private function truncateTables(array $tables): void
     {
         if ($tables === []) {
@@ -139,300 +128,99 @@ class GeographyDumpImporter
         }
     }
 
-    private function ensureUtf8mb4Support(): void
+    public function importTableFromFile(string $table, string $sourcePath, bool $truncate = false): int
     {
-        DB::connection()->getPdo()->exec('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
+        $table = $this->normalizeTable($table);
 
-        $database = config('database.connections.mysql.database');
-
-        if (is_string($database) && $database !== '') {
-            DB::statement(sprintf(
-                'ALTER DATABASE `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
-                $database
-            ));
-        }
-
-        $this->rebuildGeographySchema();
-    }
-
-    private function rebuildGeographySchema(): void
-    {
-        $originalForeignKeyChecks = (int) DB::selectOne('SELECT @@FOREIGN_KEY_CHECKS AS value')->value;
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-        try {
-            foreach ($this->truncateOrder as $table) {
-                Schema::dropIfExists($table);
-            }
-
-            Schema::create('regions', function (Blueprint $table) {
-                $table->charset = 'utf8mb4';
-                $table->collation = 'utf8mb4_unicode_ci';
-                $table->mediumIncrements('id');
-                $table->string('name', 100);
-                $table->text('translations')->nullable();
-                $table->timestamp('created_at')->nullable();
-                $table->timestamp('updated_at')->useCurrent();
-                $table->boolean('flag')->default(true);
-                $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
-            });
-
-            Schema::create('subregions', function (Blueprint $table) {
-                $table->charset = 'utf8mb4';
-                $table->collation = 'utf8mb4_unicode_ci';
-                $table->mediumIncrements('id');
-                $table->string('name', 100);
-                $table->text('translations')->nullable();
-                $table->unsignedMediumInteger('region_id');
-                $table->timestamp('created_at')->nullable();
-                $table->timestamp('updated_at')->useCurrent();
-                $table->boolean('flag')->default(true);
-                $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
-
-                $table->index('region_id');
-                $table->foreign('region_id')->references('id')->on('regions')->onDelete('restrict');
-            });
-
-            Schema::create('countries', function (Blueprint $table) {
-                $table->charset = 'utf8mb4';
-                $table->collation = 'utf8mb4_unicode_ci';
-                $table->mediumIncrements('id');
-                $table->string('name', 100);
-                $table->char('iso3', 3)->nullable();
-                $table->char('numeric_code', 3)->nullable();
-                $table->char('iso2', 2)->nullable();
-                $table->string('phonecode')->nullable();
-                $table->string('capital')->nullable();
-                $table->string('currency')->nullable();
-                $table->string('currency_name')->nullable();
-                $table->string('currency_symbol')->nullable();
-                $table->string('tld')->nullable();
-                $table->string('native')->nullable();
-                $table->unsignedBigInteger('population')->nullable();
-                $table->unsignedBigInteger('gdp')->nullable();
-                $table->string('region')->nullable();
-                $table->unsignedMediumInteger('region_id')->nullable();
-                $table->string('subregion')->nullable();
-                $table->unsignedMediumInteger('subregion_id')->nullable();
-                $table->string('nationality')->nullable();
-                $table->text('timezones')->nullable();
-                $table->text('translations')->nullable();
-                $table->decimal('latitude', 10, 8)->nullable();
-                $table->decimal('longitude', 11, 8)->nullable();
-                $table->string('emoji', 191)->nullable();
-                $table->string('emojiU', 191)->nullable();
-                $table->timestamp('created_at')->nullable();
-                $table->timestamp('updated_at')->useCurrent();
-                $table->boolean('flag')->default(true);
-                $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
-
-                $table->index('region_id', 'country_continent');
-                $table->index('subregion_id', 'country_subregion');
-                $table->foreign('region_id')->references('id')->on('regions')->onDelete('restrict');
-                $table->foreign('subregion_id')->references('id')->on('subregions')->onDelete('restrict');
-            });
-
-            Schema::create('states', function (Blueprint $table) {
-                $table->charset = 'utf8mb4';
-                $table->collation = 'utf8mb4_unicode_ci';
-                $table->mediumIncrements('id');
-                $table->string('name');
-                $table->unsignedMediumInteger('country_id');
-                $table->char('country_code', 2);
-                $table->string('fips_code')->nullable();
-                $table->string('iso2')->nullable();
-                $table->string('iso3166_2', 10)->nullable();
-                $table->string('type', 191)->nullable();
-                $table->integer('level')->nullable();
-                $table->unsignedInteger('parent_id')->nullable();
-                $table->string('native')->nullable();
-                $table->decimal('latitude', 10, 8)->nullable();
-                $table->decimal('longitude', 11, 8)->nullable();
-                $table->string('timezone')->nullable()->comment('IANA timezone identifier (e.g., America/New_York)');
-                $table->text('translations')->nullable();
-                $table->timestamp('created_at')->nullable();
-                $table->timestamp('updated_at')->useCurrent();
-                $table->boolean('flag')->default(true);
-                $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
-                $table->string('population')->nullable();
-
-                $table->index('country_id', 'country_region');
-                $table->foreign('country_id')->references('id')->on('countries')->onDelete('restrict');
-            });
-
-            Schema::create('cities', function (Blueprint $table) {
-                $table->charset = 'utf8mb4';
-                $table->collation = 'utf8mb4_unicode_ci';
-                $table->mediumIncrements('id');
-                $table->string('name');
-                $table->unsignedMediumInteger('state_id');
-                $table->string('state_code');
-                $table->unsignedMediumInteger('country_id');
-                $table->char('country_code', 2);
-                $table->decimal('latitude', 10, 8);
-                $table->decimal('longitude', 11, 8);
-                $table->string('native')->nullable();
-                $table->string('timezone')->nullable()->comment('IANA timezone identifier (e.g., America/New_York)');
-                $table->text('translations')->nullable();
-                $table->timestamp('created_at')->nullable();
-                $table->timestamp('updated_at')->useCurrent();
-                $table->boolean('flag')->default(true);
-                $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
-
-                $table->index('state_id', 'cities_test_ibfk_1');
-                $table->index('country_id', 'cities_test_ibfk_2');
-                $table->foreign('state_id')->references('id')->on('states')->onDelete('restrict');
-                $table->foreign('country_id')->references('id')->on('countries')->onDelete('restrict');
-            });
-        } finally {
-            DB::statement('SET FOREIGN_KEY_CHECKS=' . $originalForeignKeyChecks . ';');
-        }
-    }
-
-    private function importTableStatements(string $table): int
-    {
-        $statements = $this->statementsForTable($table);
+        $statements = $this->statementsForFile($table, $sourcePath);
 
         if ($statements === []) {
             throw new RuntimeException(sprintf(
                 'No INSERT statements were found for geography table "%s" in %s.',
                 $table,
-                $this->dumpPath
+                $sourcePath
             ));
         }
 
-        $this->runStatementsThroughMysqlClient($statements);
-
-        return count($statements);
-    }
-
-    /**
-     * Execute the import through the native mysql client when available.
-     *
-     * @param array<int, string> $statements
-     */
-    private function runStatementsThroughMysqlClient(array $statements): void
-    {
-        $binary = trim((string) shell_exec('command -v mysql'));
-
-        if ($binary === '') {
-            foreach ($statements as $statement) {
-                DB::unprepared($statement);
-            }
-
-            return;
+        if ($truncate) {
+            $this->truncateTables([$table]);
         }
 
-        $connection = config('database.connections.mysql');
+        $count = 0;
 
-        if (! is_array($connection)) {
-            throw new RuntimeException('MySQL connection configuration is not available.');
+        foreach ($statements as $statement) {
+            DB::unprepared($statement);
+            $count++;
         }
 
-        $sql = "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;\n";
-        $sql .= implode(";\n\n", $statements) . ";\n";
-
-        $command = sprintf(
-            '%s --host=%s --port=%s --user=%s --default-character-set=utf8mb4 %s',
-            escapeshellarg($binary),
-            escapeshellarg((string) ($connection['host'] ?? '127.0.0.1')),
-            escapeshellarg((string) ($connection['port'] ?? '3306')),
-            escapeshellarg((string) ($connection['username'] ?? 'root')),
-            escapeshellarg((string) ($connection['database'] ?? ''))
-        );
-
-        $descriptors = [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ];
-
-        $env = $_ENV;
-        $env['MYSQL_PWD'] = (string) ($connection['password'] ?? '');
-
-        $process = proc_open($command, $descriptors, $pipes, null, $env);
-
-        if (! is_resource($process)) {
-            foreach ($statements as $statement) {
-                DB::unprepared($statement);
-            }
-
-            return;
-        }
-
-        fwrite($pipes[0], $sql);
-        fclose($pipes[0]);
-
-        $stdout = stream_get_contents($pipes[1]);
-        fclose($pipes[1]);
-
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[2]);
-
-        $exitCode = proc_close($process);
-
-        if ($exitCode !== 0) {
-            throw new RuntimeException(sprintf(
-                'mysql client import failed with exit code %d%s%s',
-                $exitCode,
-                trim((string) $stderr) !== '' ? ': ' : '',
-                trim((string) $stderr)
-            ));
-        }
+        return $count;
     }
 
     /**
      * @return array<int, string>
      */
-    private function statementsForTable(string $table): array
+    /**
+     * @return array<int, string>
+     */
+    private function statementsForFile(string $table, string $sourcePath): array
     {
-        $this->loadStatements();
-
-        return $this->statementsByTable[$table] ?? [];
-    }
-
-    private function loadStatements(): void
-    {
-        if ($this->statementsByTable !== null) {
-            return;
-        }
-
-        if (! is_file($this->dumpPath)) {
-            throw new RuntimeException("Geography dump file not found: {$this->dumpPath}");
-        }
-
-        $contents = file_get_contents($this->dumpPath);
+        $contents = file_get_contents($sourcePath);
 
         if ($contents === false) {
-            throw new RuntimeException("Unable to read geography dump: {$this->dumpPath}");
+            throw new RuntimeException("Unable to read geography SQL file: {$sourcePath}");
         }
 
         if ($contents === '') {
-            throw new RuntimeException("Geography dump file is empty: {$this->dumpPath}");
+            throw new RuntimeException("Geography SQL file is empty: {$sourcePath}");
         }
 
         $contents = preg_replace('/^\xEF\xBB\xBF/', '', $contents) ?? $contents;
-        $statementsByTable = [];
-        $lines = preg_split('/\R/', $contents) ?: [];
-        $headerPattern = '/^\s*INSERT\s+(?:IGNORE\s+)?INTO\s+(?:`[^`]+`\.)?`?(regions|subregions|countries|states|cities)`?\b/i';
 
-        $currentTable = null;
+        return $this->parseInsertStatements($contents, $table);
+    }
+
+    private function sourcePathForTable(string $table): string
+    {
+        $tableFile = base_path('sql/' . $table . '.sql');
+
+        if (is_file($tableFile)) {
+            return $tableFile;
+        }
+
+        throw new RuntimeException(sprintf(
+            'Unable to find a geography SQL source for table "%s". Looked for %s.',
+            $table,
+            $tableFile
+        ));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function parseInsertStatements(string $contents, string $table): array
+    {
+        $statements = [];
+        $lines = preg_split('/\R/', $contents) ?: [];
+        $headerPattern = sprintf(
+            '/^\s*INSERT\s+(?:IGNORE\s+)?INTO\s+(?:`[^`]+`\.)?`?%s`?\b/i',
+            preg_quote($table, '/')
+        );
+
         $currentStatement = [];
-        $insertCount = 0;
+        $collecting = false;
 
         foreach ($lines as $line) {
-            if ($currentTable === null) {
-                if (! preg_match($headerPattern, $line, $matches)) {
+            if (! $collecting) {
+                if (! preg_match($headerPattern, $line)) {
                     continue;
                 }
 
-                $currentTable = strtolower($matches[1]);
+                $collecting = true;
                 $currentStatement = [$line];
 
                 if (str_ends_with(rtrim($line), ';')) {
-                    $statementsByTable[$currentTable][] = implode("\n", $currentStatement);
-                    $insertCount++;
-                    $currentTable = null;
+                    $statements[] = implode("\n", $currentStatement);
+                    $collecting = false;
                     $currentStatement = [];
                 }
 
@@ -445,24 +233,18 @@ class GeographyDumpImporter
                 continue;
             }
 
-            $statementsByTable[$currentTable][] = implode("\n", $currentStatement);
-            $insertCount++;
-            $currentTable = null;
+            $statements[] = implode("\n", $currentStatement);
+            $collecting = false;
             $currentStatement = [];
         }
 
-        if ($currentTable !== null && $currentStatement !== []) {
+        if ($collecting && $currentStatement !== []) {
             throw new RuntimeException(sprintf(
-                'Geography dump ended while reading an INSERT statement for table "%s" in %s.',
-                $currentTable,
-                $this->dumpPath
+                'Geography SQL ended while reading an INSERT statement for table "%s".',
+                $table
             ));
         }
 
-        if ($insertCount === 0) {
-            throw new RuntimeException("No INSERT statements were found in {$this->dumpPath}.");
-        }
-
-        $this->statementsByTable = $statementsByTable;
+        return $statements;
     }
 }
