@@ -8,6 +8,7 @@ use App\Services\ResponseService;
 use App\Traits\HandlesFileUploads;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -292,6 +293,11 @@ class BriefAssignHistoryController extends Controller
                     'uploads/brief-attachments',
                     ['sizeLimit' => 10240]
                 );
+
+                if (!empty($briefAssignHistory->attachment)) {
+                    Storage::delete($briefAssignHistory->attachment);
+                }
+
                 $data['attachment'] = $uploaded['path'];
             }
 

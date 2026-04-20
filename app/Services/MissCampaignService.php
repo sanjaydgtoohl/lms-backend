@@ -304,11 +304,11 @@ class MissCampaignService
     public function assignUserToMissCampaign(int $id, int $userId, int $assignBy): bool
     {
         try {
-            if (empty($userId)) {
+            if (filter_var($userId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
                 throw new DomainException('User ID is required.');
             }
 
-            if (empty($assignBy)) {
+            if (filter_var($assignBy, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
                 throw new DomainException('Assign by user ID is required.');
             }
 
