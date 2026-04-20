@@ -209,15 +209,17 @@ class BriefAssignHistoryController extends Controller
                 'brief_status_time' => 'nullable|date_format:Y-m-d H:i:s',
                 'submission_date' => 'nullable|date_format:Y-m-d H:i:s',
                 'comment' => 'nullable|string',
-                'attachment' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,rtf|max:10240',
+                'attachment' => 'nullable|file|max:10240',
                 'status' => 'nullable|in:1,2,15',
             ]);
 
             $data = $request->all();
             if ($request->hasFile('attachment')) {
+                $file = $request->file('attachment');
+                $fileType = $this->detectFileType($file);
                 $uploaded = $this->uploadFile(
-                    $request->file('attachment'),
-                    'document',
+                    $file,
+                    $fileType,
                     'uploads/brief-attachments',
                     ['sizeLimit' => 10240]
                 );
@@ -271,15 +273,17 @@ class BriefAssignHistoryController extends Controller
                 'brief_status_time' => 'nullable|date_format:Y-m-d H:i:s',
                 'submission_date' => 'nullable|date_format:Y-m-d H:i:s',
                 'comment' => 'nullable|string',
-                'attachment' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,rtf|max:10240',
+                'attachment' => 'nullable|file|max:10240',
                 'status' => 'nullable|in:1,2,15',
             ]);
 
             $data = $request->all();
             if ($request->hasFile('attachment')) {
+                $file = $request->file('attachment');
+                $fileType = $this->detectFileType($file);
                 $uploaded = $this->uploadFile(
-                    $request->file('attachment'),
-                    'document',
+                    $file,
+                    $fileType,
                     'uploads/brief-attachments',
                     ['sizeLimit' => 10240]
                 );

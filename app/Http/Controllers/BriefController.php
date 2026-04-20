@@ -298,7 +298,7 @@ class BriefController extends Controller
                 'brief_status_id' => 'nullable|integer|exists:brief_statuses,id',
                 'priority_id' => 'nullable|integer|exists:priorities,id',
                 'comment' => 'nullable|string',
-                'attachment' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,rtf|max:10240',
+                'attachment' => 'nullable|file|max:10240',
                 'submission_date' => 'required|date_format:Y-m-d H:i:s',
                 'status' => 'nullable|in:1,2,15',
                 'campaign_start_date' => 'required|date_format:Y-m-d',
@@ -323,9 +323,11 @@ class BriefController extends Controller
 
             $data = $request->all();
             if ($request->hasFile('attachment')) {
+                $file = $request->file('attachment');
+                $fileType = $this->detectFileType($file);
                 $uploaded = $this->uploadFile(
-                    $request->file('attachment'),
-                    'document',
+                    $file,
+                    $fileType,
                     'uploads/brief-attachments',
                     ['sizeLimit' => 10240]
                 );
@@ -394,7 +396,7 @@ class BriefController extends Controller
                 'brief_status_id' => 'nullable|integer|exists:brief_statuses,id',
                 'priority_id' => 'nullable|integer|exists:priorities,id',
                 'comment' => 'nullable|string',
-                'attachment' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,rtf|max:10240',
+                'attachment' => 'nullable|file|max:10240',
                 'submission_date' => 'sometimes|required|date_format:Y-m-d H:i:s',
                 'status' => 'nullable|in:1,2,15',
                 'campaign_start_date' => 'nullable|date_format:Y-m-d',
@@ -433,9 +435,11 @@ class BriefController extends Controller
 
             $data = $request->all();
             if ($request->hasFile('attachment')) {
+                $file = $request->file('attachment');
+                $fileType = $this->detectFileType($file);
                 $uploaded = $this->uploadFile(
-                    $request->file('attachment'),
-                    'document',
+                    $file,
+                    $fileType,
                     'uploads/brief-attachments',
                     ['sizeLimit' => 10240]
                 );

@@ -153,9 +153,9 @@ class MissCampaignController extends Controller
             // Check if user can view assignment fields using service layer
             $canViewAssignments = $this->missCampaignService->canViewAssignmentFields($campaign, $user);
 
-            // Load assignment relationships only if user has permission
-            if ($canViewAssignments) {
-                $campaign->load(['assignBy', 'assignTo']);
+            // Remove assignment relationships if user is not authorized
+            if (!$canViewAssignments) {
+                $campaign->unsetRelation('assignBy')->unsetRelation('assignTo');
             }
 
             return $this->responseService->success(
@@ -259,6 +259,17 @@ class MissCampaignController extends Controller
             $campaign = $this->missCampaignService->getMissCampaign($id);
             if (!$campaign) {
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            // If assign_to is being updated, ensure assign_by is set to current user
+            if (array_key_exists('assign_to', $validatedData)) {
+                $currentAssignTo = $campaign->assign_to;
+                $newAssignTo = $validatedData['assign_to'];
+                
+                // Only update assign_by if assign_to actually changes
+                if ($currentAssignTo != $newAssignTo) {
+                    $validatedData['assign_by'] = $newAssignTo ? Auth::id() : null;
+                }
             }
 
             // Prepare location data for validation (merge validated data with existing campaign data)

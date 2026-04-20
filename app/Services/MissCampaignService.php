@@ -312,15 +312,21 @@ class MissCampaignService
                 throw new DomainException('Assign by user ID is required.');
             }
 
+            // Fetch current assigned user before update
+            $campaign = $this->missCampaignRepository->getMissCampaignById($id);
+            $currentAssignedUser = $campaign ? $campaign->assign_to : null;
+
             $result = $this->missCampaignRepository->assignUser($id, $userId, $assignBy);
             
-            // Dispatch event to create notification
-            Log::info('Dispatching MissCampaignAssignedEvent on assign', [
-                'campaign_id' => $id,
-                'user_id' => $userId,
-                'assigned_by' => $assignBy
-            ]);
-            event(new MissCampaignAssignedEvent($id, $userId));
+            // Dispatch event only if assignment successful and user changed
+            if ($result && $currentAssignedUser != $userId) {
+                Log::info('Dispatching MissCampaignAssignedEvent on assign', [
+                    'campaign_id' => $id,
+                    'user_id' => $userId,
+                    'assigned_by' => $assignBy
+                ]);
+                event(new MissCampaignAssignedEvent($id, $userId));
+            }
             
             return $result;
         } catch (DomainException $e) {
