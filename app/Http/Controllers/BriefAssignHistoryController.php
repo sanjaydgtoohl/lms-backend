@@ -279,6 +279,11 @@ class BriefAssignHistoryController extends Controller
 
             $data = $request->all();
             if ($request->hasFile('attachment')) {
+                // Delete old attachment if it exists
+                if (!empty($briefAssignHistory->attachment)) {
+                    $this->deleteFile($briefAssignHistory->attachment);
+                }
+
                 $file = $request->file('attachment');
                 $fileType = $this->detectFileType($file);
                 $uploaded = $this->uploadFile(
