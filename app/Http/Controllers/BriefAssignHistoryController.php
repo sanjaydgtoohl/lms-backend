@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\BriefAssignHistoryResource;
 use App\Services\BriefAssignHistoryService;
 use App\Services\ResponseService;
+use App\Traits\HandlesFileUploads;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -12,6 +13,7 @@ use Throwable;
 
 class BriefAssignHistoryController extends Controller
 {
+    use HandlesFileUploads;
 
     /**
      * @var ResponseService
@@ -207,10 +209,20 @@ class BriefAssignHistoryController extends Controller
                 'brief_status_time' => 'nullable|date_format:Y-m-d H:i:s',
                 'submission_date' => 'nullable|date_format:Y-m-d H:i:s',
                 'comment' => 'nullable|string',
+                'attachment' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,rtf|max:10240',
                 'status' => 'nullable|in:1,2,15',
             ]);
 
             $data = $request->all();
+            if ($request->hasFile('attachment')) {
+                $uploaded = $this->uploadFile(
+                    $request->file('attachment'),
+                    'document',
+                    'uploads/brief-attachments',
+                    ['sizeLimit' => 10240]
+                );
+                $data['attachment'] = $uploaded['path'];
+            }
             $data['status'] = $data['status'] ?? '2';
 
             $briefAssignHistory = $this->briefAssignHistoryService->createBriefAssignHistory($data);
@@ -259,10 +271,22 @@ class BriefAssignHistoryController extends Controller
                 'brief_status_time' => 'nullable|date_format:Y-m-d H:i:s',
                 'submission_date' => 'nullable|date_format:Y-m-d H:i:s',
                 'comment' => 'nullable|string',
+                'attachment' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,rtf|max:10240',
                 'status' => 'nullable|in:1,2,15',
             ]);
 
-            $briefAssignHistory = $this->briefAssignHistoryService->updateBriefAssignHistory($id, $request->all());
+            $data = $request->all();
+            if ($request->hasFile('attachment')) {
+                $uploaded = $this->uploadFile(
+                    $request->file('attachment'),
+                    'document',
+                    'uploads/brief-attachments',
+                    ['sizeLimit' => 10240]
+                );
+                $data['attachment'] = $uploaded['path'];
+            }
+
+            $briefAssignHistory = $this->briefAssignHistoryService->updateBriefAssignHistory($id, $data);
 
             return $this->responseService->success(
                 BriefAssignHistoryResource::make($briefAssignHistory),

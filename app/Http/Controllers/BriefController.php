@@ -8,6 +8,7 @@ use App\Models\Brief;
 use App\Models\BriefStatus;
 use App\Services\BriefService;
 use App\Services\ResponseService;
+use App\Traits\HandlesFileUploads;
 use App\Traits\ValidatesRequests;
 use DomainException;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ use Illuminate\Validation\ValidationException;
 
 class BriefController extends Controller
 {
-    use ValidatesRequests;
+    use ValidatesRequests, HandlesFileUploads;
 
     /**
      * @var ResponseService
@@ -297,6 +298,7 @@ class BriefController extends Controller
                 'brief_status_id' => 'nullable|integer|exists:brief_statuses,id',
                 'priority_id' => 'nullable|integer|exists:priorities,id',
                 'comment' => 'nullable|string',
+                'attachment' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,rtf|max:10240',
                 'submission_date' => 'required|date_format:Y-m-d H:i:s',
                 'status' => 'nullable|in:1,2,15',
                 'campaign_start_date' => 'required|date_format:Y-m-d',
@@ -320,6 +322,15 @@ class BriefController extends Controller
             }
 
             $data = $request->all();
+            if ($request->hasFile('attachment')) {
+                $uploaded = $this->uploadFile(
+                    $request->file('attachment'),
+                    'document',
+                    'uploads/brief-attachments',
+                    ['sizeLimit' => 10240]
+                );
+                $data['attachment'] = $uploaded['path'];
+            }
             $data['uuid'] = (string) Str::uuid();
             $data['slug'] = Str::slug($request->input('name')) . '-' . uniqid();
             $data['created_by'] = Auth::id();
@@ -383,6 +394,7 @@ class BriefController extends Controller
                 'brief_status_id' => 'nullable|integer|exists:brief_statuses,id',
                 'priority_id' => 'nullable|integer|exists:priorities,id',
                 'comment' => 'nullable|string',
+                'attachment' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,rtf|max:10240',
                 'submission_date' => 'sometimes|required|date_format:Y-m-d H:i:s',
                 'status' => 'nullable|in:1,2,15',
                 'campaign_start_date' => 'nullable|date_format:Y-m-d',
@@ -420,6 +432,15 @@ class BriefController extends Controller
             }
 
             $data = $request->all();
+            if ($request->hasFile('attachment')) {
+                $uploaded = $this->uploadFile(
+                    $request->file('attachment'),
+                    'document',
+                    'uploads/brief-attachments',
+                    ['sizeLimit' => 10240]
+                );
+                $data['attachment'] = $uploaded['path'];
+            }
             // Set brief_status_id default to 1 if not provided
             if (!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) {
                 $data['brief_status_id'] = 1;
