@@ -41,6 +41,10 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\BriefStatusChangedEvent::class => [
             \App\Listeners\CreateBriefStatusNotification::class,
         ],
+
+        \App\Events\MissCampaignAssignedEvent::class => [
+            \App\Listeners\CreateMissCampaignAssignedNotification::class,
+        ],
     ];
 
     /**

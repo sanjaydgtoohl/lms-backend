@@ -34,6 +34,8 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
         'country',
         'state',
         'city',
+        'assignBy',
+        'assignTo',
     ];
 
     /**
@@ -126,5 +128,14 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
     {
         $item = $this->model->findOrFail($id);
         return $item->update(['status' => $status]);
+    }
+
+    public function assignUser(int $id, int $userId, int $assignBy): bool
+    {
+        $item = $this->model->findOrFail($id);
+        return $item->update([
+            'assign_to' => $userId,
+            'assign_by' => $assignBy,
+        ]);
     }
 }

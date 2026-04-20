@@ -64,7 +64,8 @@ class CreateLeadCallStatusNotification
                         'name' => $lead->name,
                         'status_name' => $status ? $status->name : null,
                         'priority_name' => $priority ? $priority->name : null
-                    ]
+                    ],
+                    'lead'
                 );
                 $notifiedUserIds[] = $assignedUser->id;
             }
@@ -87,7 +88,8 @@ class CreateLeadCallStatusNotification
                         'name' => $lead->name,
                         'status_name' => $status ? $status->name : null,
                         'priority_name' => $priority ? $priority->name : null
-                    ]
+                    ],
+                    'lead'
                 );
                 $notifiedUserIds[] = $updater->id;
             }

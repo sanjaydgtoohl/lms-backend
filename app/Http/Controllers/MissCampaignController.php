@@ -126,6 +126,7 @@ class MissCampaignController extends Controller
 
     /**
      * Display the specified miss campaign.
+     * Authorization: Super Admin, assign_by user, or assign_to user can view assignment fields
      *
      * GET /miss-campaigns/{id}
      *
@@ -139,6 +140,22 @@ class MissCampaignController extends Controller
 
             if (!$campaign) {
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            // Get authenticated user
+            /** @var \App\Models\User $user */
+            $user = auth()->user();
+
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            // Check if user can view assignment fields using service layer
+            $canViewAssignments = $this->missCampaignService->canViewAssignmentFields($campaign, $user);
+
+            // Remove assignment relationships if user is not authorized
+            if (!$canViewAssignments) {
+                $campaign->unsetRelation('assignBy')->unsetRelation('assignTo');
             }
 
             return $this->responseService->success(
@@ -171,6 +188,7 @@ class MissCampaignController extends Controller
                 'country_id' => 'required|integer|exists:countries,id',
                 'state_id' => 'nullable|integer|exists:states,id',
                 'city_id' => 'nullable|integer|exists:cities,id',
+                'assign_to' => 'nullable|integer|exists:users,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
             ];
 
@@ -185,6 +203,7 @@ class MissCampaignController extends Controller
             // Add system-generated fields
             $validatedData['slug'] = Str::slug($request->name) . '-' . uniqid();
             $validatedData['status'] = '1'; // Default active status
+            $validatedData['assign_by'] = Auth::id(); // Set assign_by to the authenticated user
 
             // Handle image upload if present
             if ($request->hasFile('image_path')) {
@@ -230,6 +249,7 @@ class MissCampaignController extends Controller
                 'country_id' => 'sometimes|required|integer|exists:countries,id',
                 'state_id' => 'sometimes|nullable|integer|exists:states,id',
                 'city_id' => 'sometimes|nullable|integer|exists:cities,id',
+                'assign_to' => 'sometimes|nullable|integer|exists:users,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
                 'status' => 'sometimes|required|in:1,2,15',
             ];
@@ -239,6 +259,17 @@ class MissCampaignController extends Controller
             $campaign = $this->missCampaignService->getMissCampaign($id);
             if (!$campaign) {
                 throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            // If assign_to is being updated, ensure assign_by is set to current user
+            if (array_key_exists('assign_to', $validatedData)) {
+                $currentAssignTo = $campaign->assign_to;
+                $newAssignTo = $validatedData['assign_to'];
+                
+                // Only update assign_by if assign_to actually changes
+                if ($currentAssignTo != $newAssignTo) {
+                    $validatedData['assign_by'] = $newAssignTo ? Auth::id() : null;
+                }
             }
 
             // Prepare location data for validation (merge validated data with existing campaign data)
@@ -326,6 +357,52 @@ class MissCampaignController extends Controller
             return $this->responseService->success(
                 $campaignsList,
                 'Miss campaign list retrieved successfully'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Assign a user to the specified miss campaign.
+     *
+     * PUT /miss-campaigns/{id}/assign-user
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function assignUser(Request $request, int $id): JsonResponse
+    {
+        try {
+            $rules = [
+                'user_id' => 'required|integer|exists:users,id',
+            ];
+
+            $validatedData = $this->validate($request, $rules);
+
+            $campaign = $this->missCampaignService->getMissCampaign($id);
+            if (!$campaign) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            $this->missCampaignService->assignUserToMissCampaign($id, $validatedData['user_id'], Auth::id());
+
+            // Fetch updated campaign with relationships
+            $campaign = $this->missCampaignService->getMissCampaign($id);
+
+            if (!$campaign) {
+                throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            }
+
+            return $this->responseService->updated(
+                new MissCampaignResource($campaign),
+                'User assigned to miss campaign successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
             );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);

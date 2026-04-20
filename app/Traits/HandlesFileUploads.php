@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Exception;
+use Illuminate\Filesystem\FilesystemAdapter;
 
 trait HandlesFileUploads
 {
@@ -78,6 +79,25 @@ trait HandlesFileUploads
             'audio/x-ms-wma',
         ],
     ];
+
+    /**
+     * Detect file type based on its extension
+     *
+     * @param UploadedFile $file
+     * @return string File type (image, pdf, video, document, audio)
+     */
+    protected function detectFileType(UploadedFile $file): string
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        
+        foreach ($this->allowedExtensions as $type => $extensions) {
+            if (in_array($extension, $extensions)) {
+                return $type;
+            }
+        }
+        
+        return 'document'; // Default fallback
+    }
 
     /**
      * Upload a single file
@@ -171,6 +191,7 @@ trait HandlesFileUploads
     {
         $extension = strtolower($file->getClientOriginalExtension());
         $mimeType = $file->getMimeType();
+        $clientMimeType = $file->getClientMimeType();
 
         // Get allowed extensions for this type
         $allowedExtensions = $options['allowedExtensions'] 
@@ -182,15 +203,31 @@ trait HandlesFileUploads
             ?? $this->allowedMimeTypes[$type] 
             ?? [];
 
-        // Check extension
+        // Check extension first
         if (!empty($allowedExtensions) && !in_array($extension, $allowedExtensions)) {
             throw ValidationException::withMessages([
                 'file' => "File extension '{$extension}' is not allowed. Allowed extensions: " . implode(', ', $allowedExtensions)
             ]);
         }
 
-        // Check MIME type
-        if (!empty($allowedMimeTypes) && !in_array($mimeType, $allowedMimeTypes)) {
+        if (empty($allowedMimeTypes)) {
+            return;
+        }
+
+        $mimeTypeAllowed = in_array($mimeType, $allowedMimeTypes)
+            || in_array($clientMimeType, $allowedMimeTypes);
+
+        $fallbackMimeTypes = [
+            'application/octet-stream',
+            'text/html',
+            'application/force-download',
+            'application/x-msdownload'
+        ];
+
+        if (!$mimeTypeAllowed
+            && !in_array($mimeType, $fallbackMimeTypes)
+            && !in_array($clientMimeType, $fallbackMimeTypes)
+        ) {
             throw ValidationException::withMessages([
                 'file' => "File type '{$mimeType}' is not allowed. Allowed types: " . implode(', ', $allowedMimeTypes)
             ]);
@@ -307,7 +344,9 @@ trait HandlesFileUploads
 
         // First try the disk-specific URL generator if available.
         try {
-            $diskUrl = Storage::disk($disk)->url($path);
+            /** @var FilesystemAdapter $storage */
+            $storage = Storage::disk($disk);
+            $diskUrl = $storage->url($path);
 
             if (!empty($diskUrl)) {
 
