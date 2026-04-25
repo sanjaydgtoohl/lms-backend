@@ -131,15 +131,17 @@ class NotificationService
      * @param int|string $notifiableId
      * @param string $type
      * @param array $data
+     * @param string|null $category
      * @return Notification
      */
-    public function createNotificationForNotifiable(string $notifiableType, $notifiableId, string $type, array $data): Notification
+    public function createNotificationForNotifiable(string $notifiableType, $notifiableId, string $type, array $data, ?string $category = null): Notification
     {
         $notification = $this->repository->create([
             'type' => $type,
             'notifiable_type' => $notifiableType,
             'notifiable_id' => $notifiableId,
             'data' => $data,
+            'category' => $category,
         ]);
 
         return $notification;
@@ -148,12 +150,12 @@ class NotificationService
     /**
      * Convenience helper to send a notification to an Eloquent model instance.
      */
-    public function sendToNotifiable($notifiable, string $type, array $data): Notification
+    public function sendToNotifiable($notifiable, string $type, array $data, ?string $category = null): Notification
     {
         $class = get_class($notifiable);
         $id = $notifiable->id;
         // createNotificationForNotifiable dispatches event already
-        return $this->createNotificationForNotifiable($class, $id, $type, $data);
+        return $this->createNotificationForNotifiable($class, $id, $type, $data, $category);
     }
 
     /**
@@ -162,13 +164,14 @@ class NotificationService
      * @param iterable $notifiables  Collection or array of models
      * @param string $type
      * @param array $data
+     * @param string|null $category
      * @return \Illuminate\Support\Collection<Notification>
      */
-    public function sendToMany(iterable $notifiables, string $type, array $data)
+    public function sendToMany(iterable $notifiables, string $type, array $data, ?string $category = null)
     {
         $created = collect();
         foreach ($notifiables as $notifiable) {
-            $created->push($this->sendToNotifiable($notifiable, $type, $data));
+            $created->push($this->sendToNotifiable($notifiable, $type, $data, $category));
         }
         return $created;
     }

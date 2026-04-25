@@ -15,6 +15,7 @@ namespace App\Services;
 
 use App\Contracts\Repositories\MissCampaignRepositoryInterface;
 use App\Models\MissCampaign;
+use App\Events\MissCampaignAssignedEvent;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Exception;
@@ -178,7 +179,18 @@ class MissCampaignService
                 $data['slug'] = Str::slug($data['name']) . '-' . uniqid();
             }
 
-            return $this->missCampaignRepository->createMissCampaign($data);
+            $campaign = $this->missCampaignRepository->createMissCampaign($data);
+            
+            // Dispatch event if assign_to is provided during creation
+            if (isset($data['assign_to']) && !empty($data['assign_to'])) {
+                Log::info('Dispatching MissCampaignAssignedEvent on create', [
+                    'campaign_id' => $campaign->id,
+                    'user_id' => $data['assign_to']
+                ]);
+                event(new MissCampaignAssignedEvent($campaign->id, $data['assign_to']));
+            }
+            
+            return $campaign;
         } catch (DomainException $e) {
             throw $e;
         } catch (QueryException $e) {
@@ -201,7 +213,23 @@ class MissCampaignService
     public function updateMissCampaign(int $id, array $data): bool
     {
         try {
-            return $this->missCampaignRepository->updateMissCampaign($id, $data);
+            // Get the current campaign to check if assign_to is changing
+            $campaign = $this->missCampaignRepository->getMissCampaignById($id);
+            $oldAssignTo = $campaign ? $campaign->assign_to : null;
+            
+            $updated = $this->missCampaignRepository->updateMissCampaign($id, $data);
+            
+            // Dispatch event if assign_to is being updated and is not empty
+            if ($updated && isset($data['assign_to']) && !empty($data['assign_to']) && $data['assign_to'] != $oldAssignTo) {
+                Log::info('Dispatching MissCampaignAssignedEvent on update', [
+                    'campaign_id' => $id,
+                    'user_id' => $data['assign_to'],
+                    'old_assign_to' => $oldAssignTo
+                ]);
+                event(new MissCampaignAssignedEvent($id, $data['assign_to']));
+            }
+            
+            return $updated;
         } catch (QueryException $e) {
             Log::error('Database error updating miss campaign', ['id' => $id, 'data' => $data, 'exception' => $e]);
             throw new DomainException('Database error while updating miss campaign.');
@@ -262,5 +290,89 @@ class MissCampaignService
             Log::error('Unexpected error updating miss campaign status', ['id' => $id, 'status' => $status, 'exception' => $e]);
             throw new DomainException('Unexpected error while updating miss campaign status.');
         }
+    }
+
+    /**
+     * Assign a user to a miss campaign.
+     *
+     * @param int $id
+     * @param int $userId
+     * @param int $assignBy
+     * @return bool
+     * @throws DomainException
+     */
+    public function assignUserToMissCampaign(int $id, int $userId, int $assignBy): bool
+    {
+        try {
+            if (filter_var($userId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
+                throw new DomainException('User ID is required.');
+            }
+
+            if (filter_var($assignBy, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
+                throw new DomainException('Assign by user ID is required.');
+            }
+
+            // Fetch current assigned user before update
+            $campaign = $this->missCampaignRepository->getMissCampaignById($id);
+            $currentAssignedUser = $campaign ? $campaign->assign_to : null;
+
+            $result = $this->missCampaignRepository->assignUser($id, $userId, $assignBy);
+            
+            // Dispatch event only if assignment successful and user changed
+            if ($result && $currentAssignedUser != $userId) {
+                Log::info('Dispatching MissCampaignAssignedEvent on assign', [
+                    'campaign_id' => $id,
+                    'user_id' => $userId,
+                    'assigned_by' => $assignBy
+                ]);
+                event(new MissCampaignAssignedEvent($id, $userId));
+            }
+            
+            return $result;
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            Log::error('Database error assigning user to miss campaign', ['id' => $id, 'userId' => $userId, 'assignBy' => $assignBy, 'exception' => $e]);
+            throw new DomainException('Database error while assigning user to miss campaign.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error assigning user to miss campaign', ['id' => $id, 'userId' => $userId, 'assignBy' => $assignBy, 'exception' => $e]);
+            throw new DomainException('Unexpected error while assigning user to miss campaign.');
+        }
+    }
+
+    // ============================================================================
+    // AUTHORIZATION OPERATIONS
+    // ============================================================================
+
+    /**
+     * Check if the authenticated user can view assignment fields for a miss campaign.
+     * 
+     * Permission granted to:
+     * - Super Admin role
+     * - User who assigned the campaign (assign_by)
+     * - User who is assigned to the campaign (assign_to)
+     *
+     * @param MissCampaign $campaign
+     * @param \App\Models\User $user
+     * @return bool
+     */
+    public function canViewAssignmentFields(MissCampaign $campaign, \App\Models\User $user): bool
+    {
+        // Super Admin can always view assignment fields
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        // User who assigned this campaign can view
+        if ($campaign->assign_by && $campaign->assign_by == $user->id) {
+            return true;
+        }
+
+        // User who is assigned to this campaign can view
+        if ($campaign->assign_to && $campaign->assign_to == $user->id) {
+            return true;
+        }
+
+        return false;
     }
 }

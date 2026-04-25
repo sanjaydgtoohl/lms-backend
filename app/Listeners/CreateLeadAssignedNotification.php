@@ -50,7 +50,8 @@ class CreateLeadAssignedNotification
                     'lead_id' => $lead->id,
                     'lead_name' => $lead->name ?? 'Unknown',
                     'assigned_at' => now()->format('Y-m-d h:i:s A'),
-                ]
+                ],
+                'lead'
             );
 
             Log::info('Lead assigned notification created successfully', [

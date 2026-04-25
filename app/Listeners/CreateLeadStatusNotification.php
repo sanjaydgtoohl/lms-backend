@@ -40,7 +40,8 @@ class CreateLeadStatusNotification
                     'message' => 'Lead status has been updated to "' . ($status ? $status->name : 'Unknown') . '" for lead "' . $lead->name . '".',
                     'name' => $lead->name,
                     'status_name' => $status ? $status->name : 'Unknown'
-                ]
+                ],
+                'lead'
             );
         } catch (QueryException $e) {
             Log::error('Database error creating lead status notification', [

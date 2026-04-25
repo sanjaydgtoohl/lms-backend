@@ -388,6 +388,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->post('/', 'MissCampaignController@store');
         $router->get('/list', 'MissCampaignController@list');
         $router->get('/{id:[0-9]+}', 'MissCampaignController@show');      
+        $router->put('/{id:[0-9]+}/assign-user', 'MissCampaignController@assignUser');
         $router->put('/{id:[0-9]+}', 'MissCampaignController@update');     
         $router->patch('/{id:[0-9]+}', 'MissCampaignController@update'); 
         $router->delete('/{id:[0-9]+}', 'MissCampaignController@destroy');

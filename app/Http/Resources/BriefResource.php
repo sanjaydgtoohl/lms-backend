@@ -25,6 +25,7 @@ class BriefResource extends JsonResource
             'media_type' => $this->media_type,
             'budget' => $this->budget,
             'comment' => $this->comment,
+            'attachment' => $this->attachment,
             'submission_date' => $this->formatSubmissionDate(),
             'status' => $this->status,
             'left_time' => $this->calculateLeftTime(),

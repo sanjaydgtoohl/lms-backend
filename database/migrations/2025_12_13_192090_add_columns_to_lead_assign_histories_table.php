@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('lead_assign_histories')) {
+            return;
+        }
+
         Schema::table('lead_assign_histories', function (Blueprint $table) {
             // Add new columns
             $table->dateTime('last_call_status_date_time')->nullable()->after('call_status_id');
@@ -25,6 +29,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('lead_assign_histories')) {
+            return;
+        }
+
         Schema::table('lead_assign_histories', function (Blueprint $table) {
             // Drop columns
             $table->dropColumn(['last_call_status_date_time', 'lead_comment', 'meeting_date', 'meeting_time']);

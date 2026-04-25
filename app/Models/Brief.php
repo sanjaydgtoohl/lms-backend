@@ -57,6 +57,7 @@ class Brief extends Model
         'brief_status_id',
         'priority_id',
         'comment',
+        'attachment',
         'submission_date',
         'status',
         'campaign_start_date',
@@ -73,6 +74,7 @@ class Brief extends Model
         'campaign_start_date' => 'date',
         'campaign_end_date' => 'date',
         'budget' => 'decimal:2',
+        'attachment' => 'string',
         'campaign_duration' => 'integer',
     ];
 
