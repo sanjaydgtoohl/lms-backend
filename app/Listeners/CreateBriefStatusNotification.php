@@ -43,7 +43,8 @@ class CreateBriefStatusNotification
                         'updated_by' => $event->getUpdatedByUserName(),
                         'updated_by_id' => $event->getUpdatedByUserId(),
                         'message' => 'Brief #' . $brief->id . ' ("' . $brief->name . '") status changed from "' . ($event->getPreviousStatusName() ?? 'N/A') . '" to "' . ($event->getNewStatusName() ?? 'Unknown') . '" by ' . ($event->getUpdatedByUserName() ?? 'Unknown') . ' at ' . ($event->getTimestamp() ?? now()) . '.',
-                    ]
+                    ],
+                    'brief'
                 );
                 $notifiedUserIds[] = $brief->assign_user_id;
             }
@@ -64,7 +65,8 @@ class CreateBriefStatusNotification
                         'updated_by_id' => $event->getUpdatedByUserId(),
                         'timestamp' => $event->getTimestamp(),
                         'message' => 'You changed brief #' . $brief->id . ' ("' . $brief->name . '") status from "' . ($event->getPreviousStatusName() ?? 'N/A') . '" to "' . ($event->getNewStatusName() ?? 'Unknown') . '" at ' . ($event->getTimestamp() ?? now()) . '.',
-                    ]
+                    ],
+                    'brief'
                 );
                 $notifiedUserIds[] = $event->getUpdatedByUserId();
             }

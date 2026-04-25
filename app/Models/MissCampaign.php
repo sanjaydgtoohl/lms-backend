@@ -40,6 +40,8 @@ class MissCampaign extends BaseModel
         'name',
         'slug',
         'status',
+        'assign_by',
+        'assign_to',
         'brand_id',
         'lead_source_id',
         'lead_sub_source_id',
@@ -58,6 +60,8 @@ class MissCampaign extends BaseModel
      */
     protected $casts = [
         'status' => 'string',
+        'assign_by' => 'integer',
+        'assign_to' => 'integer',
         'brand_id' => 'integer',
         'lead_source_id' => 'integer',
         'lead_sub_source_id' => 'integer',
@@ -149,6 +153,26 @@ class MissCampaign extends BaseModel
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class, 'city_id');
+    }
+
+    /**
+     * Get the user who assigned the campaign.
+     *
+     * @return BelongsTo
+     */
+    public function assignBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assign_by');
+    }
+
+    /**
+     * Get the user to whom the campaign is assigned.
+     *
+     * @return BelongsTo
+     */
+    public function assignTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assign_to');
     }
 
 }

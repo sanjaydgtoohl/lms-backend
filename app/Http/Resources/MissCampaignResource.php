@@ -15,9 +15,44 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class MissCampaignResource extends JsonResource
 {
+    /**
+     * Check if the authenticated user can view assignment fields.
+     *
+     * @return bool
+     */
+    private function canViewAssignmentFields(): bool
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+        
+        if (!$user) {
+            return false;
+        }
+
+        // Super Admin can always view assignment fields
+        /** @noinspection PhpUndefinedMethodInspection */
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        // User who assigned this campaign can view
+        if ($this->assign_by && $this->assign_by == $user->id) {
+            return true;
+        }
+
+        // User who is assigned to this campaign can view
+        if ($this->assign_to && $this->assign_to == $user->id) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Transform the resource into an array.
      *
@@ -93,6 +128,24 @@ class MissCampaignResource extends JsonResource
                     'name' => $this->city->name,
                 ] : null;
             }),
+            'assign_by' => $this->when(
+                $this->relationLoaded('assignBy') && $this->canViewAssignmentFields(),
+                function () {
+                    return $this->assignBy ? [
+                        'id' => $this->assignBy->id,
+                        'name' => $this->assignBy->name,
+                    ] : null;
+                }
+            ),
+            'assign_to' => $this->when(
+                $this->relationLoaded('assignTo') && $this->canViewAssignmentFields(),
+                function () {
+                    return $this->assignTo ? [
+                        'id' => $this->assignTo->id,
+                        'name' => $this->assignTo->name,
+                    ] : null;
+                }
+            ),
 
             // Timestamps
             'created_at' => $this->created_at->format('Y-m-d H:i:s A'),

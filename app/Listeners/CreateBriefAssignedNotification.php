@@ -51,7 +51,8 @@ class CreateBriefAssignedNotification
                     'brief_id' => $brief->id,
                     'budget' => $brief->budget ?? 0,
                     'assigned_at' => now()->format('Y-m-d h:i:s A'),
-                ]
+                ],
+                'brief'
             );
 
             Log::info('Brief assigned notification created successfully', [
