@@ -8,9 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('regions', function (Blueprint $table) {
-            $table->charset = 'utf8mb4';
-            $table->collation = 'utf8mb4_unicode_ci';
+        $this->createTableIfMissing('regions', function (Blueprint $table) {
             $table->mediumIncrements('id');
             $table->string('name', 100);
             $table->text('translations')->nullable();
@@ -20,9 +18,7 @@ return new class extends Migration
             $table->string('wikiDataId')->nullable()->comment('Rapid API GeoDB Cities');
         });
 
-        Schema::create('subregions', function (Blueprint $table) {
-            $table->charset = 'utf8mb4';
-            $table->collation = 'utf8mb4_unicode_ci';
+        $this->createTableIfMissing('subregions', function (Blueprint $table) {
             $table->mediumIncrements('id');
             $table->string('name', 100);
             $table->text('translations')->nullable();
@@ -36,9 +32,7 @@ return new class extends Migration
             $table->foreign('region_id')->references('id')->on('regions')->onDelete('restrict');
         });
 
-        Schema::create('countries', function (Blueprint $table) {
-            $table->charset = 'utf8mb4';
-            $table->collation = 'utf8mb4_unicode_ci';
+        $this->createTableIfMissing('countries', function (Blueprint $table) {
             $table->mediumIncrements('id');
             $table->string('name', 100);
             $table->char('iso3', 3)->nullable();
@@ -75,9 +69,7 @@ return new class extends Migration
             $table->foreign('subregion_id')->references('id')->on('subregions')->onDelete('restrict');
         });
 
-        Schema::create('states', function (Blueprint $table) {
-            $table->charset = 'utf8mb4';
-            $table->collation = 'utf8mb4_unicode_ci';
+        $this->createTableIfMissing('states', function (Blueprint $table) {
             $table->mediumIncrements('id');
             $table->string('name');
             $table->unsignedMediumInteger('country_id');
@@ -103,9 +95,7 @@ return new class extends Migration
             $table->foreign('country_id')->references('id')->on('countries')->onDelete('restrict');
         });
 
-        Schema::create('cities', function (Blueprint $table) {
-            $table->charset = 'utf8mb4';
-            $table->collation = 'utf8mb4_unicode_ci';
+        $this->createTableIfMissing('cities', function (Blueprint $table) {
             $table->mediumIncrements('id');
             $table->string('name');
             $table->unsignedMediumInteger('state_id');
@@ -136,5 +126,18 @@ return new class extends Migration
         Schema::dropIfExists('countries');
         Schema::dropIfExists('subregions');
         Schema::dropIfExists('regions');
+    }
+
+    private function createTableIfMissing(string $tableName, \Closure $callback): void
+    {
+        if (Schema::hasTable($tableName)) {
+            return;
+        }
+
+        Schema::create($tableName, function (Blueprint $table) use ($callback): void {
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
+            $callback($table);
+        });
     }
 };
