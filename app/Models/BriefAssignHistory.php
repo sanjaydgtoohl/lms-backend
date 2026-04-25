@@ -31,6 +31,7 @@ class BriefAssignHistory extends Model
         'brief_status_time',
         'submission_date',
         'comment',
+        'attachment',
         'status',
     ];
 
@@ -51,6 +52,7 @@ class BriefAssignHistory extends Model
     protected $casts = [
         'brief_status_time' => 'datetime',
         'submission_date' => 'datetime',
+        'attachment' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
