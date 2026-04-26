@@ -373,6 +373,17 @@ class LeadService
             $lead = $this->leadRepository->getLeadById($leadId);
             $previousCallStatusId = $lead ? $lead->call_status : null;
 
+            // Restrict update if last call status was updated within 1 hour
+            $lastHistory = \App\Models\LeadAssignHistory::where('lead_id', $leadId)
+                ->orderByDesc('last_call_status_date_time')
+                ->first();
+            if ($lastHistory && $lastHistory->last_call_status_date_time) {
+                $lastUpdate = $lastHistory->last_call_status_date_time;
+                if (now()->diffInMinutes($lastUpdate) < 60) {
+                    throw new DomainException('Call status can only be updated once every 1 hour.');
+                }
+            }
+
             // If status is unchanged, return true without update or event
             if ($previousCallStatusId == $callStatusId) {
                 return true;
@@ -380,7 +391,7 @@ class LeadService
 
             $updatedByUserId = auth()->id();
             $result = $this->leadRepository->addCallStatus($leadId, $callStatusId);
-            
+
             // Fire event only if update was successful and we have an authenticated user
             // Note: If updatedByUserId is null, the event still fires but listeners should handle gracefully
             if ($result && $updatedByUserId) {

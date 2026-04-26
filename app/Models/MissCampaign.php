@@ -175,4 +175,34 @@ class MissCampaign extends BaseModel
         return $this->belongsTo(User::class, 'assign_to');
     }
 
+    /**
+     * Scope to filter miss campaigns accessible to the given user.
+     * Super Admin (role_id = 8) can view all campaigns.
+     * Others can see campaigns where they are the assign_by or assign_to.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param mixed $user
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeAccessibleToUser(\Illuminate\Database\Eloquent\Builder $query, $user = null): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = $user ?? auth()->user();
+
+        // If no user is authenticated, return empty query
+        if (!$user) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        // Super Admin (role_id = 8) can view all campaigns
+        if ($user->roles()->where('id', 8)->exists()) {
+            return $query;
+        }
+
+        // Others can see campaigns where they are the assign_by or assign_to
+        return $query->where(function (\Illuminate\Database\Eloquent\Builder $q) use ($user) {
+            $q->where('assign_by', $user->id)
+              ->orWhere('assign_to', $user->id);
+        });
+    }
+
 }
