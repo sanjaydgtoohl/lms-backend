@@ -369,47 +369,52 @@ class LeadService
     public function addCallStatus(int $leadId, int $callStatusId): bool
     {
         try {
-            // Get previous call status before update
-            $lead = $this->leadRepository->getLeadById($leadId);
-            $previousCallStatusId = $lead ? $lead->call_status : null;
+            // Use DB transaction with row-level locking to prevent race condition
+            return DB::transaction(function () use ($leadId, $callStatusId) {
+                // Get previous call status before update
+                $lead = $this->leadRepository->getLeadById($leadId);
+                $previousCallStatusId = $lead ? $lead->call_status : null;
 
-            // Restrict update if last call status was updated within 1 hour
-            $lastHistory = \App\Models\LeadAssignHistory::where('lead_id', $leadId)
-                ->orderByDesc('last_call_status_date_time')
-                ->first();
-            if ($lastHistory && $lastHistory->last_call_status_date_time) {
-                $lastUpdate = $lastHistory->last_call_status_date_time;
-                if (now()->diffInMinutes($lastUpdate) < 60) {
-                    throw new DomainException('Call status can only be updated once every 1 hour.');
+                // Restrict update if last call status was updated within 1 hour
+                // Use lockForUpdate to prevent concurrent modifications
+                $lastHistory = \App\Models\LeadAssignHistory::where('lead_id', $leadId)
+                    ->orderByDesc('last_call_status_date_time')
+                    ->lockForUpdate()
+                    ->first();
+                if ($lastHistory && $lastHistory->last_call_status_date_time) {
+                    $lastUpdate = $lastHistory->last_call_status_date_time;
+                    if (now()->diffInMinutes($lastUpdate) < 60) {
+                        throw new DomainException('Call status can only be updated once every 1 hour.');
+                    }
                 }
-            }
 
-            // If status is unchanged, return true without update or event
-            if ($previousCallStatusId == $callStatusId) {
-                return true;
-            }
+                // If status is unchanged, return true without update or event
+                if ($previousCallStatusId == $callStatusId) {
+                    return true;
+                }
 
-            $updatedByUserId = auth()->id();
-            $result = $this->leadRepository->addCallStatus($leadId, $callStatusId);
+                $updatedByUserId = auth()->id();
+                $result = $this->leadRepository->addCallStatus($leadId, $callStatusId);
 
-            // Fire event only if update was successful and we have an authenticated user
-            // Note: If updatedByUserId is null, the event still fires but listeners should handle gracefully
-            if ($result && $updatedByUserId) {
-                event(new \App\Events\LeadCallStatusAddedEvent(
-                    $leadId,
-                    $callStatusId,
-                    $previousCallStatusId,
-                    $updatedByUserId,
-                    now()
-                ));
-            } elseif ($result && !$updatedByUserId) {
-                Log::warning('Call status updated without authenticated user', [
-                    'lead_id' => $leadId,
-                    'call_status_id' => $callStatusId,
-                    'note' => 'Event not fired due to missing authentication context'
-                ]);
-            }
-            return $result;
+                // Fire event only if update was successful and we have an authenticated user
+                // Note: If updatedByUserId is null, the event still fires but listeners should handle gracefully
+                if ($result && $updatedByUserId) {
+                    event(new \App\Events\LeadCallStatusAddedEvent(
+                        $leadId,
+                        $callStatusId,
+                        $previousCallStatusId,
+                        $updatedByUserId,
+                        now()
+                    ));
+                } elseif ($result && !$updatedByUserId) {
+                    Log::warning('Call status updated without authenticated user', [
+                        'lead_id' => $leadId,
+                        'call_status_id' => $callStatusId,
+                        'note' => 'Event not fired due to missing authentication context'
+                    ]);
+                }
+                return $result;
+            });
         } catch (DomainException $e) {
             // Re-throw DomainException as-is to preserve the original message
             throw $e;
