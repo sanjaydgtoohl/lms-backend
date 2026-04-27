@@ -94,8 +94,8 @@ class Lead extends Model
         }
 
         // Get all parent user IDs (including transitive parents)
-        $parentIds = $this->getAllParentIds($user->id);
-
+        $parentIds = $this->getDirectChildsIds($user->id);
+        
         // Build the query to include:
         // 1. Leads created by the current user
         // 2. Leads assigned to the current user
@@ -131,6 +131,7 @@ class Lead extends Model
             if (isset($visited[$currentUserId])) {
                 continue;
             }
+            
             $visited[$currentUserId] = true;
 
             // Get direct parents of current user
@@ -148,6 +149,11 @@ class Lead extends Model
         }
 
         return $parentIds;
+    }
+    
+    private function getDirectChildsIds(int $userId): array
+    {
+        return UserParent::where('is_parent', $userId)->pluck('user_id')->toArray();
     }
 
     public function brand()
