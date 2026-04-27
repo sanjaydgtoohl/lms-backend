@@ -50,6 +50,14 @@ class LeadSourceSeeder extends Seeder
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ],
+            [
+                'name' => 'Direct',
+                'slug' => 'direct',
+                'description' => 'Leads acquired directly without intermediaries.',
+                'status' => '1',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
         ]);
     }
 }
