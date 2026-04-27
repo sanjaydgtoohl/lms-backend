@@ -410,6 +410,9 @@ class LeadService
                 ]);
             }
             return $result;
+        } catch (DomainException $e) {
+            // Re-throw DomainException as-is to preserve the original message
+            throw $e;
         } catch (QueryException $e) {
             Log::error('Database error adding call status', ['lead_id' => $leadId, 'call_status_id' => $callStatusId, 'exception' => $e]);
             throw new DomainException('Database error while adding call status.');

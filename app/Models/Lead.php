@@ -72,7 +72,7 @@ class Lead extends Model
 
     /**
      * Scope to filter leads accessible to the given user.
-     * Super Admin (role_id = 8) sees all. Others see only leads where they are creator or assigned user.
+     * Super Admin sees all. Others see only leads where they are creator or assigned user.
      *
      * @param Builder $query
      * @param mixed $user
@@ -87,8 +87,8 @@ class Lead extends Model
             return $query->whereRaw('0 = 1');
         }
 
-        // Super Admin (role_id = 8) can view all leads
-        if ($user->roles()->where('id', 8)->exists()) {
+        // Super Admin can view all leads
+        if ($user->hasRole('Super Admin')) {
             return $query;
         }
 

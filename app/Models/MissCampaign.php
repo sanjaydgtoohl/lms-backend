@@ -177,7 +177,7 @@ class MissCampaign extends BaseModel
 
     /**
      * Scope to filter miss campaigns accessible to the given user.
-     * Super Admin (role_id = 8) can view all campaigns.
+     * Super Admin can view all campaigns.
      * Others can see campaigns where they are the assign_by or assign_to.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
@@ -193,8 +193,8 @@ class MissCampaign extends BaseModel
             return $query->whereRaw('0 = 1');
         }
 
-        // Super Admin (role_id = 8) can view all campaigns
-        if ($user->roles()->where('id', 8)->exists()) {
+        // Super Admin can view all campaigns
+        if ($user->hasRole('Super Admin')) {
             return $query;
         }
 

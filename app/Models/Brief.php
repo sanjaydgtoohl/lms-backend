@@ -108,7 +108,7 @@ class Brief extends Model
 
     /**
      * Scope to filter briefs accessible to the given user.
-     * Super Admin (role_id = 8) sees all. Others see only briefs where they are creator or assigned user.
+     * Super Admin sees all. Others see only briefs where they are creator or assigned user.
      *
      * @param Builder $query
      * @param mixed $user
@@ -123,8 +123,8 @@ class Brief extends Model
             return $query->whereRaw('0 = 1');
         }
 
-        // Super Admin (role_id = 8) can view all briefs
-        if ($user->roles()->where('id', 8)->exists()) {
+        // Super Admin can view all briefs
+        if ($user->hasRole('Super Admin')) {
             return $query;
         }
 
