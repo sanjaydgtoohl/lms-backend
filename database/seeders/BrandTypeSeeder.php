@@ -23,7 +23,8 @@ class BrandTypeSeeder extends Seeder
         $types = [
             'National',
             'Regional',
-            'Local'
+            'Local',
+            'International'
         ];
 
         foreach ($types as $type) {
