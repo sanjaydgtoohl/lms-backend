@@ -221,11 +221,11 @@ class LeadController extends Controller
             if (!$lead) {
                 return $this->responseService->notFound('Lead not found');
             }
-
+            
             // Get authenticated user
             /** @var \App\Models\User $user */
             $user = auth()->user();
-
+            
             if (!$user) {
                 return $this->responseService->unauthorized('User not authenticated');
             }
