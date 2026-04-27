@@ -108,7 +108,6 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     });
 
     // Industry routes
-    
     $router->group(['prefix' => 'industries'], function () use ($router) {
     
         $router->get('/', 'IndustryController@index');
@@ -208,6 +207,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->patch('{id:[0-9]+}', 'AgencyController@update');
         $router->delete('{id:[0-9]+}', 'AgencyController@destroy');
     });
+    
     // Brand routes
     $router->group(['prefix' => 'brands'], function () use ($router) {
         $router->get('/', 'BrandController@index');
@@ -219,6 +219,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->patch('/{id:[0-9]+}', 'BrandController@update'); 
         $router->delete('/{id:[0-9]+}', 'BrandController@destroy');
     });
+    
     // --- Brand Type Routes ---
     $router->group(['prefix' => 'brand-types'], function () use ($router) {
         $router->get('/', 'BrandTypeController@index');
@@ -228,6 +229,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->patch('/{id:[0-9]+}', 'BrandTypeController@update');
         $router->delete('/{id:[0-9]+}', 'BrandTypeController@destroy');
     });
+    
     $router->group(['prefix' => 'regions'], function () use ($router) {
         $router->get('/', 'RegionController@index');
         $router->post('/', 'RegionController@store');
