@@ -150,18 +150,23 @@ class MissCampaignController extends Controller
                 return $this->responseService->unauthorized('User not authenticated');
             }
 
-            // Check if user can view assignment fields using service layer
-            $canViewAssignments = $this->missCampaignService->canViewAssignmentFields($campaign, $user);
+            // Authorization: Allow if Super Admin role OR assign_by OR assign_to
+            $isSuperAdmin = $user->hasRole('Super Admin');
+            $isAssignBy = $user->id == $campaign->assign_by;
+            $isAssignTo = $user->id == $campaign->assign_to;
 
-            // Remove assignment relationships if user is not authorized
-            if (!$canViewAssignments) {
-                $campaign->unsetRelation('assignBy')->unsetRelation('assignTo');
+            if (!$isSuperAdmin && !$isAssignBy && !$isAssignTo) {
+                return $this->responseService->forbidden(
+                    'You are not authorized to view this miss campaign. Only Super Admin, the user who assigned this campaign, or the user assigned to this campaign can view it.'
+                );
             }
 
             return $this->responseService->success(
                 new MissCampaignResource($campaign),
                 'Miss campaign retrieved successfully'
             );
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->responseService->notFound('Miss campaign not found');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

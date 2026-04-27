@@ -50,7 +50,10 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
 
     public function getAllMissCampaigns(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
-        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS)->where('status', '1');
+        $query = $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->accessibleToUser()
+            ->where('status', '1');
 
         if ($searchTerm !== null && $searchTerm !== '') {
             $query->where(function ($q) use ($searchTerm) {
