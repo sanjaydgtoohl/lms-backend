@@ -72,7 +72,8 @@ class Lead extends Model
 
     /**
      * Scope to filter leads accessible to the given user.
-     * Super Admin sees all. Others see only leads where they are creator or assigned user.
+     * Super Admin sees all. Others see leads where they are creator, assigned user,
+     * or where their parent users are the creator/assigned user.
      *
      * @param Builder $query
      * @param mixed $user
@@ -92,11 +93,61 @@ class Lead extends Model
             return $query;
         }
 
-        // Others can see leads where they are the creator (assigned_by) or assigned user (assigned_to)
-        return $query->where(function (Builder $q) use ($user) {
+        // Get all parent user IDs (including transitive parents)
+        $parentIds = $this->getAllParentIds($user->id);
+
+        // Build the query to include:
+        // 1. Leads created by the current user
+        // 2. Leads assigned to the current user
+        // 3. Leads created by parent users
+        // 4. Leads assigned to parent users
+        return $query->where(function (Builder $q) use ($user, $parentIds) {
             $q->where('created_by', $user->id)
               ->orWhere('current_assign_user', $user->id);
+
+            // Include leads from parent users
+            if (!empty($parentIds)) {
+                $q->orWhereIn('created_by', $parentIds)
+                  ->orWhereIn('current_assign_user', $parentIds);
+            }
         });
+    }
+
+    /**
+     * Get all parent IDs (including transitive parents) for a user.
+     *
+     * @param int $userId
+     * @return array
+     */
+    private function getAllParentIds(int $userId): array
+    {
+        $parentIds = [];
+        $visited = [];
+        $queue = [$userId];
+
+        while (!empty($queue)) {
+            $currentUserId = array_shift($queue);
+
+            if (isset($visited[$currentUserId])) {
+                continue;
+            }
+            $visited[$currentUserId] = true;
+
+            // Get direct parents of current user
+            $directParents = \DB::table('user_parent')
+                ->where('user_id', $currentUserId)
+                ->pluck('is_parent')
+                ->toArray();
+
+            foreach ($directParents as $parentId) {
+                if (!isset($visited[$parentId])) {
+                    $parentIds[] = $parentId;
+                    $queue[] = $parentId;
+                }
+            }
+        }
+
+        return $parentIds;
     }
 
     public function brand()
