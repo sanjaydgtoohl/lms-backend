@@ -18,12 +18,12 @@ $router->get('/', function () use ($router) {
 });
 
 // Storage route to serve files from storage/app/public
-$router->get('/storage/{path:.*}', function ($path) {
-    $fullPath = storage_path('app/public/' . $path);
+// $router->get('/storage/{path:.*}', function ($path) {
+//     $fullPath = storage_path('app/public/' . $path);
     
-    if (!file_exists($fullPath)) {
-        return response('File not found', 404);
-    }
+//     if (!file_exists($fullPath)) {
+//         return response('File not found', 404);
+//     }
     
-    return response()->file($fullPath);
-});
+//     return response()->file($fullPath);
+// });
