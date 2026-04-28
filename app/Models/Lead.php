@@ -72,8 +72,7 @@ class Lead extends Model
 
     /**
      * Scope to filter leads accessible to the given user.
-     * Super Admin sees all. Others see leads where they are creator, assigned user,
-     * or where their parent users are the creator/assigned user.
+     * Super Admin sees all. Others see only leads where they are creator or assigned user.
      *
      * @param Builder $query
      * @param mixed $user
