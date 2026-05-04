@@ -50,6 +50,7 @@ class Lead extends Model
         'postal_code',
         'comment',
         'status',
+        'pre_lead_id',
     ];
 
     /**

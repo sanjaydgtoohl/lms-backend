@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Throwable;
 use Illuminate\Validation\ValidationException;
+use App\Models\Lead;
 
 class MissCampaignController extends Controller
 {
@@ -216,18 +217,37 @@ class MissCampaignController extends Controller
                 $validatedData['image_path'] = $uploadResult['path'] ?? null;
             }
 
+        
+            $leads = new Lead();
+            $leads->name = $validatedData['name'];
+            $leads->uuid = Str::uuid();
+            $leads->brand_id = $validatedData['brand_id'];  
+            $leads->sub_source_id = $validatedData['lead_sub_source_id'];
+            $leads->country_id = $validatedData['country_id'];
+            $leads->state_id = $validatedData['state_id'];
+            $leads->city_id = $validatedData['city_id'];
+            $leads->current_assign_user = $validatedData['assign_to'];
+            $leads->slug = $validatedData['slug'];
+            $leads->statuses = 6; // Assuming 6 represents a specific status for leads created from miss campaigns
+            $leads->created_by = Auth::id();
+            $leads->save();
+
+            $validatedData['leads_id'] = $leads->id;
             $campaign = $this->missCampaignService->createMissCampaign($validatedData);
+            Lead::where('id', $leads->id)->update(['pre_lead_id' => $campaign->id]);
 
             return $this->responseService->created(
                 new MissCampaignResource($campaign),
                 'Miss campaign created successfully'
             );
         } catch (ValidationException $e) {
+            dd($e->errors());
             return $this->responseService->validationError(
                 $e->errors(),
                 'Validation failed'
             );
         } catch (Throwable $e) {
+            dd($e->getMessage());
             return $this->responseService->handleException($e);
         }
     }
