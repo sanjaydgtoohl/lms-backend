@@ -226,7 +226,7 @@ class MissCampaignController extends Controller
             $leads->country_id = $validatedData['country_id'];
             $leads->state_id = $validatedData['state_id'];
             $leads->city_id = $validatedData['city_id'];
-            $leads->current_assign_user = $validatedData['assign_to'];
+            $leads->current_assign_user = $validatedData['assign_to'] ?? null;
             $leads->slug = $validatedData['slug'];
             $leads->statuses = 6; // Assuming 6 represents a specific status for leads created from miss campaigns
             $leads->created_by = Auth::id();
@@ -287,13 +287,15 @@ class MissCampaignController extends Controller
             }
 
             // If assign_to is being updated, ensure assign_by is set to current user
-            if (array_key_exists('assign_to', $validatedData)) {
-                $currentAssignTo = $campaign->assign_to;
-                $newAssignTo = $validatedData['assign_to'];
-                
-                // Only update assign_by if assign_to actually changes
-                if ($currentAssignTo != $newAssignTo) {
-                    $validatedData['assign_by'] = $newAssignTo ? Auth::id() : null;
+            if(!empty($request->assign_to)){
+                if (array_key_exists('assign_to', $validatedData)) {
+                    $currentAssignTo = $campaign->assign_to;
+                    $newAssignTo = $validatedData['assign_to'];
+                    
+                    // Only update assign_by if assign_to actually changes
+                    if ($currentAssignTo != $newAssignTo) {
+                        $validatedData['assign_by'] = $newAssignTo ? Auth::id() : null;
+                    }
                 }
             }
 
