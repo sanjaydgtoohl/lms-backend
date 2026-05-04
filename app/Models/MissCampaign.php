@@ -51,6 +51,7 @@ class MissCampaign extends BaseModel
         'country_id',
         'state_id',
         'city_id',
+        'leads_id',
     ];
 
     /**

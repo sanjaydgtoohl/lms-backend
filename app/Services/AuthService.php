@@ -65,34 +65,39 @@ class AuthService
      */
     public function login(array $credentials): array
     {
-        $this->validateLoginData($credentials);
- 
-        $user = $this->userService->authenticateUser($credentials);
-       
-        if (!$user) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.']
-            ]);
-        }
-
-        // Generate token
-        $token = $user->generateToken();
+        try {
+            $this->validateLoginData($credentials);
     
+            $user = $this->userService->authenticateUser($credentials);
         
-        // Generate refresh token
-        $refreshToken = Str::random(64);
+            if (!$user) {
+                throw ValidationException::withMessages([
+                    'email' => ['The provided credentials are incorrect.']
+                ]);
+            }
+
+            // Generate token
+            $token = $user->generateToken();
         
-        // Save refresh token to database
-        $user->refresh_token = $refreshToken;
-        $user->save();
- 
-        return [
-            'user' => $user,
-            'token' => $token,
-            'refresh_token' => $refreshToken,
-            'token_type' => 'bearer',
-            'expires_in' => JWTAuth::factory()->getTTL() * 60
-        ];
+            
+            // Generate refresh token
+            $refreshToken = Str::random(64);
+            
+            // Save refresh token to database
+            $user->refresh_token = $refreshToken;
+            $user->save();
+    
+            return [
+                'user' => $user,
+                'token' => $token,
+                'refresh_token' => $refreshToken,
+                'token_type' => 'bearer',
+                'expires_in' => JWTAuth::factory()->getTTL() * 60
+            ];
+            
+        } catch (ValidationException $e) {
+            throw new ValidationException($e->validator, 'Invalid login data');
+        }
     }
 
     /**
