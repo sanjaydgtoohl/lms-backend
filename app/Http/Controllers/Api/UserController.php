@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use Auth;
 
 class UserController extends Controller
 {
@@ -379,15 +380,10 @@ class UserController extends Controller
     public function getChildUsers(Request $request): JsonResponse
     {
         try {
-            $user = $request->user ?? auth()->user();
-            
-            if (!$user) {
-                return $this->responseService->unauthorized('User not authenticated');
-            }
-
             // Get all descendants in nested tree format
-            $childTree = $this->buildChildTree($user);
-            
+            $childTree = $this->buildChildTree(Auth::user());
+
+        
             return $this->responseService->success(
                 $childTree,
                 'Child users hierarchy retrieved successfully'
