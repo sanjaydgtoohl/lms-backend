@@ -381,8 +381,7 @@ class UserController extends Controller
     {
         try {
             // Get all descendants in nested tree format
-            $childTree = $this->buildChildTree(Auth::user());
-
+            $childTree = User::with('isChildOf')->firstorFail(Auth::id());
         
             return $this->responseService->success(
                 $childTree,
@@ -405,7 +404,7 @@ class UserController extends Controller
             $tree[] = [
                 'id' => $child->id,
                 'name' => $child->name,
-                'children' => $this->buildChildTree($child)
+                //'children' => $this->buildChildTree($child)
             ];
         }
         

@@ -228,6 +228,13 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
         )->withTimestamps();
     }
 
+    public function isChildOf(User $potentialParent): bool
+    {
+        return $this->hasMany(UserParent::class, 'user_id')
+            ->where('is_parent', $potentialParent->id)
+            ->exists();
+    }
+
     /**
      * Get the login logs for the user.
      */
