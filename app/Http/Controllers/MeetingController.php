@@ -161,6 +161,7 @@ class MeetingController extends Controller
                 $validatedData['status'] = '1';
             }
 
+            // store the meeting in database
             $meeting = $this->meetingService->createMeeting($validatedData);
 
             /**
@@ -216,17 +217,20 @@ class MeetingController extends Controller
             $getEmailIdsForAttendees = $this->meetingService->getEmailIdsForAttendees($validatedData['attendees_id']);
             $getLeadidByEmail = $this->meetingService->getLeadidByEmail($validatedData['lead_id']);
 
-            $meetingData = $this->googleCalendarService->createEvent([
-                'summary' => $validatedData['title'],
-                'description' => $validatedData['agenda'] ?? '',
-                'start' => $validatedData['meeting_start_date'],
-                'end' => $validatedData['meeting_end_date'],
-                'attendees' => array_merge($getEmailIdsForAttendees, $getLeadidByEmail),
-            ], 1);
+            if(!empty($request->type) && ($request->type == 'online')){
+                $meetingData = $this->googleCalendarService->createEvent([
+                    'summary' => $validatedData['title'],
+                    'description' => $validatedData['agenda'] ?? '',
+                    'start' => $validatedData['meeting_start_date'],
+                    'end' => $validatedData['meeting_end_date'],
+                    'attendees' => array_merge($getEmailIdsForAttendees, $getLeadidByEmail),
+                ], 1);
 
-            $meeting->update(['google_event' => json_encode($meetingData)]);
+                $meeting->update(['google_event' => json_encode($meetingData)]);
+            }
 
             $data = new MeetingResource($meeting);
+            
             return $this->responseService->created($data, 'Meeting created successfully');
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
