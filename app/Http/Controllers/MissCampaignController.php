@@ -194,7 +194,7 @@ class MissCampaignController extends Controller
                 'country_id' => 'required|integer|exists:countries,id',
                 'state_id' => 'nullable|integer|exists:states,id',
                 'city_id' => 'nullable|integer|exists:cities,id',
-                'assign_to' => 'nullable|integer|exists:users,id',
+                // 'assign_to' => 'nullable|integer|exists:users,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
             ];
 
@@ -274,7 +274,7 @@ class MissCampaignController extends Controller
                 'country_id' => 'sometimes|required|integer|exists:countries,id',
                 'state_id' => 'sometimes|nullable|integer|exists:states,id',
                 'city_id' => 'sometimes|nullable|integer|exists:cities,id',
-                'assign_to' => 'sometimes|nullable|integer|exists:users,id',
+                // 'assign_to' => 'sometimes|nullable|integer|exists:users,id',
                 'image_path' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,svg|max:51200',
                 'status' => 'sometimes|required|in:1,2,15',
             ];
