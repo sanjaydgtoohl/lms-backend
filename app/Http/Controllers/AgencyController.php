@@ -119,8 +119,8 @@ class AgencyController extends Controller
                 'name.*' => 'string|max:255|distinct|unique:agency,name,NULL,id,deleted_at,NULL',
                 'type' => 'required|array', 
                 'type.*' => 'integer|exists:agency_type,id', 
-                'client'  => 'required|array',
-                'client.*.*' => 'integer|exists:brands,id'
+                // 'client'  => 'required|array',
+                // 'client.*.*' => 'integer|exists:brands,id'
             ];
 
             $validatedData = $this->validate($request, $rules);
