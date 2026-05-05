@@ -127,6 +127,8 @@ use App\Repositories\MediaTypeRepository;
 
 use App\Contracts\Repositories\OrganisationRepositoryInterface;
 use App\Repositories\OrganisationRepository;
+use App\Contracts\Repositories\LeadTypeRepositoryInterface;
+use App\Repositories\LeadTypeRepository;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -311,6 +313,11 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             OrganisationRepositoryInterface::class,
             OrganisationRepository::class
+        );
+
+        $this->app->bind(
+            LeadTypeRepositoryInterface::class,
+            LeadTypeRepository::class
         );
     }
     /**
