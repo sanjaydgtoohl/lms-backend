@@ -20,13 +20,13 @@ class UserResource extends BaseResource
             'phone' => $this->phone,
             'avatar' => $this->avatar,
             
-            'organisation_name' => $this->whenLoaded('organisation', function () {
-                return $this->organisation?->name;
-            }),
+            'organisation_name' => $this->relationLoaded('organisation')
+                ? $this->organisation?->name
+                : null,
             
-            'zone_name' => $this->whenLoaded('zone', function () {
-                return $this->zone?->name;
-            }),
+            'zone_name' => $this->relationLoaded('zone')
+                ? $this->zone?->name
+                : null,
             'avatar_url' => $this->avatar_url,
             'roles' => $this->whenLoaded('roles', function () {
                 return $this->roles->map(function ($role) {
