@@ -156,6 +156,12 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->delete('{id}', 'LeadSubSourceController@destroy');
     });
 
+    $router->group(['prefix' => 'lead-types'], function () use ($router) {
+        $router->get('/', 'LeadTypeController@index');
+        $router->get('list', 'LeadTypeController@list');
+        $router->post('/', 'LeadTypeController@store');
+    });
+
     // Media Type routes
     $router->group(['prefix' => 'media-types'], function () use ($router) {
         $router->get('/', 'MediaTypeController@index');
