@@ -136,6 +136,8 @@ class UserController extends Controller
                 'status' => 'sometimes|in:1,2,3',
                 'is_parent' => 'nullable|array',
                 'is_parent.*' => 'integer|exists:users,id',
+                'organisation_id' => 'nullable|integer|exists:organisations,id',
+                'zone_id' => 'nullable|integer|exists:zones,id',
             ];
 
             $validated = \Illuminate\Support\Facades\Validator::make($request->all(), $rules);

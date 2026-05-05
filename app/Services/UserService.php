@@ -62,7 +62,7 @@ class UserService
      */
     public function getUserById(int $id): ?User
     {
-        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children']);
+        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children', 'organisation', 'zone']);
     }
 
     /**
@@ -95,6 +95,12 @@ class UserService
         // Set default values
         $data['status'] = $data['status'] ?? '1';
 
+        // Map 'organisation' to 'organisation_id'
+        if (isset($data['organisation'])) {
+            $data['organisation_id'] = $data['organisation'];
+            unset($data['organisation']);
+        }
+
         // Extract role_id or role (accept both formats)
         $roleIds = $data['role_id'] ?? $data['role'] ?? [];
         unset($data['role_id'], $data['role']);
@@ -116,7 +122,7 @@ class UserService
         }
 
         // Reload user with relationships
-        return $this->userRepository->findWithRelations($user->id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children']);
+        return $this->userRepository->findWithRelations($user->id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children', 'organisation', 'zone']);
     }
 
     /**
@@ -137,6 +143,12 @@ class UserService
 
         // Validate data for update (includes role_id validation)
         $this->validateUserData($data, $id);
+
+        // Map 'organisation' to 'organisation_id'
+        if (isset($data['organisation'])) {
+            $data['organisation_id'] = $data['organisation'];
+            unset($data['organisation']);
+        }
 
         // Extract role_id or role (accept both formats)
         $roleIds = $data['role_id'] ?? $data['role'] ?? null;
@@ -277,6 +289,8 @@ class UserService
             'status' => 'sometimes|in:1,2,3',
             'is_parent' => 'nullable|array',
             'is_parent.*' => 'integer|exists:users,id',
+            'organisation_id' => 'nullable|integer|exists:organisations,id',
+            'zone_id' => 'nullable|integer|exists:zones,id',
         ];
 
         // Add unique email rule if creating new user or updating email
