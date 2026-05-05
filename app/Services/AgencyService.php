@@ -1,4 +1,17 @@
 <?php
+/**
+ * AgencyService
+ * -----------------------------------------
+ * This service class provides methods to manage agencies, including
+ * creating, updating, retrieving, and deleting agency records. It also
+ * handles relationships between agencies and brands.
+ *
+ * @package App\Services
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-05-05
+ */
+
 namespace App\Services;
 
 use App\Contracts\Repositories\AgencyRepositoryInterface;
@@ -6,8 +19,10 @@ use App\Models\Agency;
 use App\Models\BrandAgencyRelationship;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use App\Services\ResponseService;
+use DomainException;
 
 class AgencyService
 {
@@ -171,6 +186,55 @@ class AgencyService
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+    }
+
+    public function createBasicAgency(array $data): Agency
+    {
+        try {
+            if (empty($data['name'])) {
+                throw new DomainException('Agency name is required.');
+            }
+
+            if (Agency::where('name', $data['name'])->whereNull('deleted_at')->exists()) {
+                throw new DomainException('Agency name must be unique. This agency name already exists.');
+            }
+
+            $baseSlug = Str::slug($data['name']);
+            if ($baseSlug === '') {
+                $baseSlug = 'agency';
+            }
+
+            $slug = $baseSlug;
+            $counter = 1;
+            while (Agency::where('slug', $slug)->whereNull('deleted_at')->exists()) {
+                $slug = $baseSlug . '-' . $counter;
+                $counter++;
+            }
+
+            $agencyData = [
+                'name' => $data['name'],
+                'slug' => $slug,
+                'status' => $data['status'] ?? '1',
+                'agency_type' => $data['agency_type'] ?? null,
+                'is_parent' => $data['is_parent'] ?? null,
+            ];
+
+            return $this->repo->createAgency($agencyData);
+        } catch (QueryException $e) {
+            $isDuplicateKey = ($e->getCode() === '23000')
+                && isset($e->errorInfo[1])
+                && (int) $e->errorInfo[1] === 1062;
+
+            if ($isDuplicateKey) {
+                throw new DomainException('Agency name must be unique. This agency name already exists.');
+            }
+
+            throw new DomainException('Unable to create agency: ' . $e->getMessage());
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw new DomainException('Unable to create agency: ' . $e->getMessage());
         }
     }
     

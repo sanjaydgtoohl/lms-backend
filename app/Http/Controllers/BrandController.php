@@ -1,5 +1,18 @@
 <?php
 
+/**
+ * BrandController
+ * -----------------------------------------
+ * This controller manages CRUD operations for brands, including listing,
+ * creating, updating, and deleting brand records. It also handles
+ * relationships between brands and agencies.
+ *
+ * @package App\Http\Controllers
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-05-05
+ */
+
 namespace App\Http\Controllers;
 
 use App\Http\Resources\BrandResource;
@@ -148,6 +161,45 @@ class BrandController extends Controller
             );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Store a new brand with only name.
+     *
+     * POST /brands/name
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function storeByName(Request $request): JsonResponse
+    {
+        try {
+            $nameInput = $request->input('name');
+
+            $validatedData = $this->validate($request, [
+                'name' => 'required|string|max:255|unique:brands,name,NULL,id,deleted_at,NULL',
+            ]);
+
+            $validatedData['name'] = trim($nameInput);
+            $validatedData['created_by'] = Auth::id();
+            $validatedData['status'] = '1';
+
+            $brand = $this->brandService->createBasicBrand($validatedData);
+
+            return $this->responseService->created(
+                new BrandResource($brand),
+                'Brand created successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->validationError(
+                ['brand' => [$e->getMessage()]],
+                $e->getMessage()
+            );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }

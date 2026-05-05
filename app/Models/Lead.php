@@ -38,7 +38,7 @@ class Lead extends Model
         'slug',
         'profile_url',
         'email',
-        'type',
+        'lead_type_id',
         'designation_id',
         'department_id',
         'sub_source_id',
@@ -164,6 +164,11 @@ class Lead extends Model
     public function agency()
     {
         return $this->belongsTo(Agency::class, 'agency_id');
+    }
+
+    public function leadType()
+    {
+        return $this->belongsTo(LeadType::class, 'lead_type_id');
     }
 
     public function assignedUser()

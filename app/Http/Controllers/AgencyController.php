@@ -1,5 +1,19 @@
 <?php
 
+/**
+ * AgencyController
+ * -----------------------------------------
+ * This controller manages CRUD operations for agencies, including
+ * listing, creating, updating, and deleting agency records. It also
+ * provides functionality to retrieve brands associated with a specific
+ * agency.
+ *
+ * @package App\Http\Controllers
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-05-05
+ */
+
 namespace App\Http\Controllers;
 
 use App\Http\Resources\AgencyResource;
@@ -11,6 +25,7 @@ use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
+use DomainException;
 use Throwable;
 
 class AgencyController extends Controller
@@ -139,6 +154,44 @@ class AgencyController extends Controller
             );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Create a new agency with only name.
+     *
+     * POST /agencies/name
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function storeByName(Request $request): JsonResponse
+    {
+        try {
+            $nameInput = $request->input('name');
+
+            $validatedData = $this->validate($request, [
+                'name' => 'required|string|max:255|unique:agency,name,NULL,id,deleted_at,NULL',
+            ]);
+
+            $validatedData['name'] = trim($nameInput);
+            $validatedData['status'] = '1';
+
+            $agency = $this->agencyService->createBasicAgency($validatedData);
+
+            return $this->responseService->created(
+                new AgencyResource($agency),
+                'Agency created successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (DomainException $e) {
+            return $this->responseService->validationError(
+                ['agency' => [$e->getMessage()]],
+                $e->getMessage()
+            );
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
