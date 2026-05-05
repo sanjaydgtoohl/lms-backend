@@ -27,6 +27,7 @@ class LeadRepository implements LeadRepositoryInterface
     protected const DEFAULT_RELATIONSHIPS = [
         'brand',
         'agency',
+        'leadType',
         'assignedUser',
         'createdByUser',
         'priority',
@@ -255,8 +256,8 @@ class LeadRepository implements LeadRepositoryInterface
             $query->where('status', '1');
         }
 
-        if (isset($filters['type'])) {
-            $query->where('type', $filters['type']);
+        if (isset($filters['lead_type_id'])) {
+            $query->where('lead_type_id', $filters['lead_type_id']);
         }
 
         if (isset($filters['country_id'])) {
