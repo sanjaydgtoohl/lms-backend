@@ -289,9 +289,16 @@ class UserService
             'status' => 'sometimes|in:1,2,3',
             'is_parent' => 'nullable|array',
             'is_parent.*' => 'integer|exists:users,id',
-            'organisation_id' => 'nullable|integer|exists:organisations,id',
-            'zone_id' => 'nullable|integer|exists:zones,id',
         ];
+
+        // Make organisation_id and zone_id required for new users, nullable for updates
+        if (!$userId) {
+            $rules['organisation_id'] = 'required|integer|exists:organisations,id';
+            $rules['zone_id'] = 'required|integer|exists:zones,id';
+        } else {
+            $rules['organisation_id'] = 'nullable|integer|exists:organisations,id';
+            $rules['zone_id'] = 'nullable|integer|exists:zones,id';
+        }
 
         // Add unique email rule if creating new user or updating email
         if (!$userId || isset($data['email'])) {
