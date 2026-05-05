@@ -1,4 +1,16 @@
 <?php
+/**
+ * BrandService
+ * -----------------------------------------
+ * This service class provides methods to manage brands, including
+ * creating, updating, retrieving, and deleting brand records. It also
+ * handles relationships between brands and agencies.
+ *
+ * @package App\Services
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-05-05
+ */
 
 namespace App\Services;
 
@@ -11,6 +23,7 @@ use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class BrandService
 {
@@ -166,6 +179,67 @@ class BrandService
         } catch (Exception $e) {
             Log::error('Unexpected error creating brand', ['data' => $data, 'exception' => $e]);
             throw new DomainException('Unexpected error while creating brand.');
+        }
+    }
+
+    /**
+     * Create a brand with minimal fields (name and slug).
+     *
+     * @param array $data
+     * @return Brand
+     * @throws DomainException
+     */
+    public function createBasicBrand(array $data): Brand
+    {
+        try {
+            if (empty($data['name'])) {
+                throw new DomainException('Brand name is required.');
+            }
+
+            if (Brand::where('name', $data['name'])->whereNull('deleted_at')->exists()) {
+                throw new DomainException('Brand name must be unique. This brand name already exists.');
+            }
+
+            $baseSlug = Str::slug($data['name']);
+            if ($baseSlug === '') {
+                $baseSlug = 'brand';
+            }
+
+            $slug = $baseSlug;
+            $counter = 1;
+            while (Brand::where('slug', $slug)->whereNull('deleted_at')->exists()) {
+                $slug = $baseSlug . '-' . $counter;
+                $counter++;
+            }
+
+            $payload = [
+                'name' => $data['name'],
+                'slug' => $slug,
+                'status' => $data['status'] ?? '1',
+                'created_by' => $data['created_by'] ?? null,
+            ];
+
+            $brand = $this->brandRepository->createBrand($payload);
+
+            // Keep behavior consistent with full brand creation:
+            // always attach the new brand to default "Direct" agency.
+            $directAgencyId = $this->getOrCreateDirectAgency();
+            $brand->agencies()->attach([
+                $directAgencyId => [
+                    'created_at' => \Carbon\Carbon::now(),
+                    'updated_at' => \Carbon\Carbon::now(),
+                ],
+            ]);
+
+            return $brand;
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            Log::error('Database error creating basic brand', ['data' => $data, 'exception' => $e]);
+            throw new DomainException('Database error while creating basic brand.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error creating basic brand', ['data' => $data, 'exception' => $e]);
+            throw new DomainException('Unexpected error while creating basic brand.');
         }
     }
 
