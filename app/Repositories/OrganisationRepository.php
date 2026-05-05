@@ -49,10 +49,21 @@ class OrganisationRepository implements OrganisationRepositoryInterface
     {
         $query = $this->model->newQuery();
 
-        if ($searchTerm) {
+        if ($searchTerm !== null && $searchTerm !== '') {
             $query->where('name', 'LIKE', '%' . $searchTerm . '%');
         }
 
-        return $query->paginate($perPage);
+        return $query->orderBy('id', 'desc')->paginate($perPage);
+    }
+
+    /**
+     * Fetch a single organisation by ID.
+     *
+     * @param int $id
+     * @return Organisation|null
+     */
+    public function getOrganisationById(int $id)
+    {
+        return $this->model->find($id);
     }
 }

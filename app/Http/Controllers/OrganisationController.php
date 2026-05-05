@@ -42,7 +42,8 @@ class OrganisationController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $perPage = $request->get('per_page', 10);
+            $perPage = (int) $request->get('per_page', 10);
+            $perPage = max(1, min($perPage, 100));
             $searchTerm = $request->get('search', null);
             $organisations = $this->organisationService->getAllOrganisations($perPage, $searchTerm);
 

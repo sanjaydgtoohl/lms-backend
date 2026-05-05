@@ -26,6 +26,7 @@ class OrganisationSeeder extends Seeder
      */
     public function run(): void
     {
+        
         $organisations = [
             'DGTOOHL',
             'MOBIYOUNG',
@@ -46,6 +47,6 @@ class OrganisationSeeder extends Seeder
             ];
         }
 
-        Organisation::insert($data);
+        Organisation::upsert($data, ['name', 'slug'], ['status', 'updated_at']);
     }
 }

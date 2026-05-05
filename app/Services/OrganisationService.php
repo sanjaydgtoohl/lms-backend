@@ -61,6 +61,8 @@ class OrganisationService
                 throw new DomainException('Organisation not found.');
             }
             return $organisation;
+        } catch (DomainException $e) {
+            throw $e;
         } catch (QueryException $e) {
             Log::error('Database error fetching organisation: ' . $e->getMessage());
             throw new DomainException('Database error while fetching organisation.');

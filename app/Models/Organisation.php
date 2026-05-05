@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Organisation Model
@@ -19,5 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Organisation extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = ['name', 'slug', 'status'];
 }
