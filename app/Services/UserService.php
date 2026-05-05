@@ -62,7 +62,7 @@ class UserService
      */
     public function getUserById(int $id): ?User
     {
-        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children']);
+        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children', 'organisation', 'zone']);
     }
 
     /**
@@ -85,6 +85,12 @@ class UserService
      */
     public function createUser(array $data): User
     {
+        // Map 'organisation' to 'organisation_id'
+        if (isset($data['organisation'])) {
+            $data['organisation_id'] = $data['organisation'];
+            unset($data['organisation']);
+        }
+
         $this->validateUserData($data);
     
         // Hash password if provided
@@ -116,7 +122,7 @@ class UserService
         }
 
         // Reload user with relationships
-        return $this->userRepository->findWithRelations($user->id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children']);
+        return $this->userRepository->findWithRelations($user->id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children', 'organisation', 'zone']);
     }
 
     /**
@@ -133,6 +139,12 @@ class UserService
         
         if (!$user) {
             return false;
+        }
+
+        // Map 'organisation' to 'organisation_id'
+        if (isset($data['organisation'])) {
+            $data['organisation_id'] = $data['organisation'];
+            unset($data['organisation']);
         }
 
         // Validate data for update (includes role_id validation)
@@ -278,6 +290,15 @@ class UserService
             'is_parent' => 'nullable|array',
             'is_parent.*' => 'integer|exists:users,id',
         ];
+
+        // Make organisation_id and zone_id required for new users, nullable for updates
+        if (!$userId) {
+            $rules['organisation_id'] = 'required|integer|exists:organisations,id';
+            $rules['zone_id'] = 'required|integer|exists:zones,id';
+        } else {
+            $rules['organisation_id'] = 'nullable|integer|exists:organisations,id';
+            $rules['zone_id'] = 'nullable|integer|exists:zones,id';
+        }
 
         // Add unique email rule if creating new user or updating email
         if (!$userId || isset($data['email'])) {

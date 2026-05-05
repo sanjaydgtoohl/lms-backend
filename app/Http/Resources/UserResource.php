@@ -19,6 +19,14 @@ class UserResource extends BaseResource
             'email' => $this->email,
             'phone' => $this->phone,
             'avatar' => $this->avatar,
+            
+            'organisation_name' => $this->relationLoaded('organisation')
+                ? $this->organisation?->name
+                : null,
+            
+            'zone_name' => $this->relationLoaded('zone')
+                ? $this->zone?->name
+                : null,
             'avatar_url' => $this->avatar_url,
             'roles' => $this->whenLoaded('roles', function () {
                 return $this->roles->map(function ($role) {

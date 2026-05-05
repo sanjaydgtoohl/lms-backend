@@ -15,7 +15,10 @@ use App\Traits\HasTimestamps;
 use App\Traits\HasUuid;
 use App\Traits\HasApiTokens;
 use App\Models\LoginLog;
+use App\Models\Organisation;
+use App\Models\Zone;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\NotificationTrait;
 
 class User extends Model implements AuthenticatableContract, AuthorizableContract, JWTSubject
@@ -44,6 +47,8 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
         'status',
         'email_verified_at',
         'last_login_at',
+        'organisation_id',
+        'zone_id',    
     ];
 
     /**
@@ -164,6 +169,22 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     public function scopeVerified($query)
     {
         return $query->whereNotNull('email_verified_at');
+    }
+
+    /**
+     * Get the organisation that the user belongs to
+     */
+    public function organisation(): BelongsTo
+    {
+        return $this->belongsTo(Organisation::class);
+    }
+
+    /**
+     * Get the zone that the user belongs to
+     */
+    public function zone(): BelongsTo
+    {
+        return $this->belongsTo(Zone::class);
     }
 
     /**
