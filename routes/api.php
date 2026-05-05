@@ -55,6 +55,7 @@ use App\Http\Controllers\PlannerHistoryController;
 use App\Http\Controllers\PlannerStatusController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\MediaTypeController;
+use App\Http\Controllers\OrganisationController;
 use App\Models\GoogleCalender;
 use Carbon\Carbon;
 
@@ -164,6 +165,12 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->put('{id:[0-9]+}', 'MediaTypeController@update');
         $router->patch('{id:[0-9]+}', 'MediaTypeController@update');
         $router->delete('{id:[0-9]+}', 'MediaTypeController@destroy');
+    });
+
+    // Organisation routes
+    $router->group(['prefix' => 'organisations'], function () use ($router) {
+        $router->get('/', 'OrganisationController@index');
+        $router->get('list', 'OrganisationController@list');
     });
 
     $router->group(['prefix' => 'countries'], function () use ($router) {
