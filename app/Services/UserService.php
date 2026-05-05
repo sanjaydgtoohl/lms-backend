@@ -85,6 +85,12 @@ class UserService
      */
     public function createUser(array $data): User
     {
+        // Map 'organisation' to 'organisation_id'
+        if (isset($data['organisation'])) {
+            $data['organisation_id'] = $data['organisation'];
+            unset($data['organisation']);
+        }
+
         $this->validateUserData($data);
     
         // Hash password if provided
@@ -94,12 +100,6 @@ class UserService
 
         // Set default values
         $data['status'] = $data['status'] ?? '1';
-
-        // Map 'organisation' to 'organisation_id'
-        if (isset($data['organisation'])) {
-            $data['organisation_id'] = $data['organisation'];
-            unset($data['organisation']);
-        }
 
         // Extract role_id or role (accept both formats)
         $roleIds = $data['role_id'] ?? $data['role'] ?? [];
@@ -141,14 +141,14 @@ class UserService
             return false;
         }
 
-        // Validate data for update (includes role_id validation)
-        $this->validateUserData($data, $id);
-
         // Map 'organisation' to 'organisation_id'
         if (isset($data['organisation'])) {
             $data['organisation_id'] = $data['organisation'];
             unset($data['organisation']);
         }
+
+        // Validate data for update (includes role_id validation)
+        $this->validateUserData($data, $id);
 
         // Extract role_id or role (accept both formats)
         $roleIds = $data['role_id'] ?? $data['role'] ?? null;
