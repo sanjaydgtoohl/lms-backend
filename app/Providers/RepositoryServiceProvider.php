@@ -2,6 +2,20 @@
 
 namespace App\Providers;
 
+/**
+ * Repository Service Provider
+ * -----------------------------------------
+ * Registers repository bindings in the service container,
+ * mapping interfaces to their concrete implementations.
+ * Supports dependency injection and repository pattern
+ * for clean and maintainable architecture.
+ *
+ * @package App\Providers
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-05-05
+ */
+
 use Illuminate\Support\ServiceProvider;
 
 use App\Contracts\Repositories\IndustryRepositoryInterface;
@@ -110,6 +124,9 @@ use App\Repositories\NotificationRepository;
 
 use App\Contracts\Repositories\MediaTypeRepositoryInterface;
 use App\Repositories\MediaTypeRepository;
+
+use App\Contracts\Repositories\OrganisationRepositoryInterface;
+use App\Repositories\OrganisationRepository;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -289,6 +306,11 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             MediaTypeRepositoryInterface::class,
             MediaTypeRepository::class
+        );
+
+        $this->app->bind(
+            OrganisationRepositoryInterface::class,
+            OrganisationRepository::class
         );
     }
     /**
