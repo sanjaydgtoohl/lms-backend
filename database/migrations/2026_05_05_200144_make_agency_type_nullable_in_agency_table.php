@@ -14,6 +14,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -30,6 +31,18 @@ return new class extends Migration
 
     public function down(): void
     {
+        $defaultAgencyTypeId = DB::table('agency_type')->min('id');
+
+        if ($defaultAgencyTypeId !== null) {
+            DB::table('agency')
+                ->whereNull('agency_type')
+                ->update(['agency_type' => $defaultAgencyTypeId]);
+        } else {
+            DB::table('agency')
+                ->whereNull('agency_type')
+                ->delete();
+        }
+
         Schema::table('agency', function (Blueprint $table) {
             $table->unsignedBigInteger('agency_type')->nullable(false)->change();
         });

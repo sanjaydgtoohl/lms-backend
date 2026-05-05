@@ -14,6 +14,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -37,6 +38,14 @@ return new class extends Migration
      */
     public function down(): void
     {
+        DB::table('brands')
+            ->whereNull('brand_type_id')
+            ->orWhereNull('industry_id')
+            ->orWhereNull('country_id')
+            ->orWhereNull('state_id')
+            ->orWhereNull('city_id')
+            ->delete();
+
         Schema::table('brands', function (Blueprint $table) {
             $table->unsignedBigInteger('brand_type_id')->nullable(false)->change();
             $table->unsignedBigInteger('industry_id')->nullable(false)->change();

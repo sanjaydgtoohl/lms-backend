@@ -178,15 +178,12 @@ class BrandController extends Controller
     {
         try {
             $nameInput = $request->input('name');
-            if (is_array($nameInput)) {
-                $request->merge(['name' => $nameInput[0] ?? null]);
-            }
 
             $validatedData = $this->validate($request, [
                 'name' => 'required|string|max:255|unique:brands,name,NULL,id,deleted_at,NULL',
             ]);
 
-            $validatedData['name'] = trim($validatedData['name']);
+            $validatedData['name'] = trim($nameInput);
             $validatedData['created_by'] = Auth::id();
             $validatedData['status'] = '1';
 

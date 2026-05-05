@@ -171,15 +171,12 @@ class AgencyController extends Controller
     {
         try {
             $nameInput = $request->input('name');
-            if (is_array($nameInput)) {
-                $request->merge(['name' => $nameInput[0] ?? null]);
-            }
 
             $validatedData = $this->validate($request, [
                 'name' => 'required|string|max:255|unique:agency,name,NULL,id,deleted_at,NULL',
             ]);
 
-            $validatedData['name'] = trim($validatedData['name']);
+            $validatedData['name'] = trim($nameInput);
             $validatedData['status'] = '1';
 
             $agency = $this->agencyService->createBasicAgency($validatedData);
