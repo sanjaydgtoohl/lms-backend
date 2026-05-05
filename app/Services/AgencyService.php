@@ -19,6 +19,7 @@ use App\Models\Agency;
 use App\Models\BrandAgencyRelationship;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use App\Services\ResponseService;
 use DomainException;
@@ -220,6 +221,16 @@ class AgencyService
             ];
 
             return $this->repo->createAgency($agencyData);
+        } catch (QueryException $e) {
+            $isDuplicateKey = ($e->getCode() === '23000')
+                && isset($e->errorInfo[1])
+                && (int) $e->errorInfo[1] === 1062;
+
+            if ($isDuplicateKey) {
+                throw new DomainException('Agency name must be unique. This agency name already exists.');
+            }
+
+            throw new DomainException('Unable to create agency: ' . $e->getMessage());
         } catch (DomainException $e) {
             throw $e;
         } catch (\Exception $e) {

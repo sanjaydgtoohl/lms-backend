@@ -33,7 +33,10 @@ class LeadResource extends JsonResource
                     ];
                 })->toArray();
             }),
-            'lead_type_id' => $this->lead_type_id,
+            'type' => $this-> whenLoaded('leadType', function () {
+                return $this->leadType->name ?? null;
+            }),
+            //'lead_type_id' => $this->lead_type_id,
             'status' => $this->status,
             'comment' => $this->comment,
 
