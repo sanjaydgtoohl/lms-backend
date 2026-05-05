@@ -8,7 +8,7 @@
  * @package Routes
  * @author Achal Sharma
  * @version 1.0.0
- * @since 2026-04-08
+ * @since 2026-05-06
  */
 
 /** @var \Laravel\Lumen\Routing\Router $router */
@@ -150,6 +150,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('/', 'LeadSubSourceController@index');
         $router->get('list', 'LeadSubSourceController@list');
         $router->get('by-source/{sourceId}', 'LeadSubSourceController@getBySourceId');
+        $router->post('name', 'LeadSubSourceController@storeUnderDirect');
         $router->post('/', 'LeadSubSourceController@store');
         $router->get('{id}', 'LeadSubSourceController@show');
         $router->put('{id}', 'LeadSubSourceController@update');
