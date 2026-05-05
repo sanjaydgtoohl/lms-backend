@@ -1,5 +1,18 @@
 <?php
 
+/**
+ * LeadTypeController
+ * -----------------------------------------
+ * This controller manages lead types, providing endpoints to create,
+ * retrieve, and list lead types. It utilizes the LeadTypeService for
+ * business logic and ResponseService for consistent API responses.
+ *
+ * @package App\Http\Controllers
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-05-05
+ */
+
 namespace App\Http\Controllers;
 
 use App\Http\Resources\LeadTypeResource;

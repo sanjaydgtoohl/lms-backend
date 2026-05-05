@@ -277,7 +277,7 @@ class LeadController extends Controller
                 'current_assign_user' => 'nullable|integer|exists:users,id',
                 'priority_id' => 'nullable|integer|exists:priorities,id',
                 'call_status_id' => 'nullable|integer|exists:call_statuses,id',
-                'type' => 'required|in:Agency,Brand',
+                'lead_type_id' => 'required|integer|exists:lead_types,id',
                 'designation_id' => 'required|integer|exists:designations,id',
                 'department_id' => 'required|integer|exists:departments,id',
                 'sub_source_id' => 'required|integer|exists:lead_sub_source,id',
@@ -375,7 +375,7 @@ class LeadController extends Controller
                 'current_assign_user' => 'sometimes|nullable|integer|exists:users,id',
                 'priority_id' => 'sometimes|nullable|integer|exists:priorities,id',
                 'call_status_id' => 'sometimes|nullable|integer|exists:call_statuses,id',
-                'type' => 'sometimes|nullable|in:Agency,Brand',
+                'lead_type_id' => 'sometimes|nullable|integer|exists:lead_types,id',
                 'designation_id' => 'sometimes|nullable|integer|exists:designations,id',
                 'department_id' => 'sometimes|nullable|integer|exists:departments,id',
                 'sub_source_id' => 'sometimes|nullable|integer|exists:lead_sub_source,id',
@@ -767,7 +767,7 @@ class LeadController extends Controller
                 'current_assign_user' => 'nullable|integer|exists:users,id',
                 'priority_id' => 'nullable|integer|exists:priorities,id',
                 'status' => 'nullable|in:1,2,15', 
-                'type' => 'nullable|string|max:50',
+                'lead_type_id' => 'nullable|integer|exists:lead_types,id',
                 'country_id' => 'nullable|integer|exists:countries,id',
                 'state_id' => 'nullable|integer|exists:states,id',
                 'city_id' => 'nullable|integer|exists:cities,id',
@@ -1005,4 +1005,5 @@ class LeadController extends Controller
             return $this->responseService->handleException($e);
         }
     }
+
 }

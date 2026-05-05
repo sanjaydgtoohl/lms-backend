@@ -209,6 +209,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     $router->group(['prefix' => 'agencies'], function () use ($router) {
         $router->get('/', 'AgencyController@index');
         $router->get('list', 'AgencyController@list');
+        $router->post('name', 'AgencyController@storeByName');
         $router->get('create-data', 'AgencyController@create');
         $router->post('batch', 'AgencyController@storeBatch');
         $router->post('/', 'AgencyController@store');
@@ -224,6 +225,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Brand routes
     $router->group(['prefix' => 'brands'], function () use ($router) {
         $router->get('/', 'BrandController@index');
+        $router->post('name', 'BrandController@storeByName');
         $router->post('/', 'BrandController@store');
         $router->get('/list', 'BrandController@list');
         $router->get('/{id:[0-9]+}/agencies', 'BrandController@agencies');
