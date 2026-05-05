@@ -19,6 +19,7 @@ use App\Services\ResponseService;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
@@ -162,16 +163,20 @@ class LeadSubSourceController extends Controller
         try {
             $directSourceId = $this->leadSubSourceService->getDirectLeadSourceId();
         } catch (InvalidArgumentException $e) {
+            Log::warning('Lead sub-source: default direct lead source missing or invalid', ['exception' => $e]);
+
             return $this->responseService->error(
                 'The default direct lead source is not available.',
-                ['lead_source' => [$e->getMessage()]],
+                ['lead_source' => ['Unable to configure default lead source.']],
                 ResponseService::HTTP_UNPROCESSABLE_ENTITY,
                 'DIRECT_LEAD_SOURCE_UNAVAILABLE'
             );
         } catch (Exception $e) {
+            Log::error('Lead sub-source: internal error resolving default lead source', ['exception' => $e]);
+
             return $this->responseService->error(
-                'Failed to resolve the default lead source.',
-                ['lead_source' => [$e->getMessage()]],
+                'An internal error occurred while resolving the default lead source.',
+                ['lead_source' => ['Unable to resolve default lead source']],
                 ResponseService::HTTP_SERVER_ERROR,
                 'DIRECT_LEAD_SOURCE_LOOKUP_FAILED'
             );
