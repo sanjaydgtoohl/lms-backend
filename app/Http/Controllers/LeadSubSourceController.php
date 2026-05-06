@@ -1,14 +1,27 @@
 <?php
+/*
+ * LeadSubSourceController
+ * -----------------------------------------
+ * This controller handles the API endpoints for managing lead sub-sources,
+ * including listing, creating, updating, and deleting sub-source records.
+ *
+ * @package App\Http\Controllers
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-05-06
+ */
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\LeadSubSourceResource;
 use App\Services\LeadSubSourceService;
 use App\Services\ResponseService;
-use App\Http\Resources\LeadSubSourceResource;
-use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Validation\ValidationException;
 use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class LeadSubSourceController extends Controller
 {
@@ -134,6 +147,65 @@ class LeadSubSourceController extends Controller
             return $this->responseService->validationError($e->errors());
         } catch (Exception $e) {
             return $this->responseService->error('Failed to create lead sub-source.', [$e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Store a newly created lead sub-source under the default "direct" lead source (no lead_source_id in body).
+     *
+     * POST /lead-sub-sources/name
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeUnderDirect(Request $request)
+    {
+        try {
+            $directSourceId = $this->leadSubSourceService->getDirectLeadSourceId();
+        } catch (InvalidArgumentException $e) {
+            Log::warning('Lead sub-source: default direct lead source missing or invalid', ['exception' => $e]);
+
+            return $this->responseService->error(
+                'The default direct lead source is not available.',
+                ['lead_source' => ['Unable to configure default lead source.']],
+                ResponseService::HTTP_UNPROCESSABLE_ENTITY,
+                'DIRECT_LEAD_SOURCE_UNAVAILABLE'
+            );
+        } catch (Exception $e) {
+            Log::error('Lead sub-source: internal error resolving default lead source', ['exception' => $e]);
+
+            return $this->responseService->error(
+                'An internal error occurred while resolving the default lead source.',
+                ['lead_source' => ['Unable to resolve default lead source']],
+                ResponseService::HTTP_SERVER_ERROR,
+                'DIRECT_LEAD_SOURCE_LOOKUP_FAILED'
+            );
+        }
+
+        try {
+            $this->validate($request, [
+                'name' => 'required|string|max:255|unique:lead_sub_source,name,NULL,id,lead_source_id,' . $directSourceId . ',deleted_at,NULL',
+                'description' => 'nullable|string',
+                'status' => 'nullable|in:1,2,15',
+            ], [
+                'name.unique' => 'This sub source already exists for the selected lead source.',
+            ]);
+
+            $payload = array_merge($request->all(), ['lead_source_id' => $directSourceId]);
+            $leadSubSource = $this->leadSubSourceService->createNewLeadSubSource($payload);
+
+            return $this->responseService->created(
+                new LeadSubSourceResource($leadSubSource),
+                'Lead sub-source created successfully.'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors());
+        } catch (Exception $e) {
+            return $this->responseService->error(
+                'Failed to create lead sub-source.',
+                [$e->getMessage()],
+                ResponseService::HTTP_SERVER_ERROR
+            );
         }
     }
 
