@@ -1,12 +1,25 @@
 <?php
+/*
+ * LeadSubSourceService
+ * -----------------------------------------
+ * This service class provides methods to manage lead sub-sources,
+ * including listing, creating, updating, and deleting sub-source records.
+ *
+ * @package App\Services
+ * @author Achal Sharma
+ * @version 1.0.0
+ * @since 2026-05-06
+ */
 
 namespace App\Services;
 
 use App\Contracts\Repositories\LeadSubSourceRepositoryInterface;
-use Illuminate\Support\Str;
+use App\Models\LeadSource;
+use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
-use Exception;
+use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 class LeadSubSourceService
 {
@@ -29,6 +42,27 @@ class LeadSubSourceService
         } catch (Exception $e) {
             throw new Exception('An unexpected error occurred while fetching lead sub-sources: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * ID of the default "direct" lead source (slug: direct).
+     *
+     * @throws InvalidArgumentException when no matching lead source exists
+     * @throws Exception when the lookup fails due to the database layer
+     */
+    public function getDirectLeadSourceId(): int
+    {
+        try {
+            $source = LeadSource::query()->where('slug', 'direct')->first();
+        } catch (QueryException $e) {
+            throw new Exception('Database error while resolving default lead source: ' . $e->getMessage(), 0, $e);
+        }
+
+        if ($source === null) {
+            throw new InvalidArgumentException('Default lead source "direct" is not configured. Ensure lead sources are seeded.');
+        }
+
+        return (int) $source->id;
     }
 
     /**
