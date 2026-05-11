@@ -134,8 +134,8 @@ class AgencyController extends Controller
                 'name.*' => 'string|max:255|distinct|unique:agency,name,NULL,id,deleted_at,NULL',
                 'type' => 'required|array', 
                 'type.*' => 'integer|exists:agency_type,id', 
-                // 'client'  => 'required|array',
-                // 'client.*.*' => 'integer|exists:brands,id'
+                'client'  => 'required|array',
+                'client.*.*' => 'integer|exists:brands,id'
             ];
 
             $validatedData = $this->validate($request, $rules);
@@ -229,11 +229,11 @@ class AgencyController extends Controller
 
             $rules = [
                 'name' => 'sometimes|required|array',
-                'name.*' => 'string|max:255|distinct|unique:agency,name,NULL,' . $id . ',deleted_at,NULL',
+                'name.*' => 'string|max:255|distinct|unique:agency,name,' . $id . ',id,deleted_at,NULL',
                 'type' => 'sometimes|required|array', 
                 'type.*' => 'integer|exists:agency_type,id', 
-                // 'client' => 'sometimes|required|array',
-                // 'client.*.*' => 'integer|exists:brands,id'
+                'client' => 'sometimes|required|array',
+                'client.*.*' => 'integer|exists:brands,id'
             ];
 
             $validatedData = $this->validate($request, $rules);
