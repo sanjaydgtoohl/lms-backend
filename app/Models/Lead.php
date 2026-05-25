@@ -13,6 +13,13 @@ class Lead extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'deleted_at',
+    ];
+
+    /**
      * The table associated with the model.
      *
      * @var string
@@ -79,6 +86,11 @@ class Lead extends Model
      * @param mixed $user
      * @return Builder
      */
+    public function scopeNotDeleted(Builder $query): Builder
+    {
+        return $query->whereNull($this->getTable() . '.deleted_at');
+    }
+
     public function scopeAccessibleToUser(Builder $query, $user = null): Builder
     {
         $user = $user ?? auth()->user();

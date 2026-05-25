@@ -20,29 +20,34 @@ use Illuminate\Support\Str;
 class LeadRepository implements LeadRepositoryInterface
 {
     /**
-     * Default relationships to eager load.
+     * Eager-load relations; skip soft-deleted related records where applicable.
      *
-     * @var array<string>
+     * @return array<string|callable>
      */
-    protected const DEFAULT_RELATIONSHIPS = [
-        'brand',
-        'agency',
-        'leadType',
-        'assignedUser',
-        'createdByUser',
-        'priority',
-        'designation',
-        'department',
-        'subSource',
-        'country',
-        'state',
-        'city',
-        'zone',
-        'statusRelation',
-        'callStatusRelation',
-        'leadStatusRelation',
-        'mobileNumbers',
-    ];
+    protected function eagerLoadRelations(): array
+    {
+        $notTrashed = static fn (string $table) => static fn ($query) => $query->whereNull($table . '.deleted_at');
+
+        return [
+            'brand' => $notTrashed('brands'),
+            'agency' => $notTrashed('agency'),
+            'leadType' => $notTrashed('lead_types'),
+            'assignedUser' => $notTrashed('users'),
+            'createdByUser' => $notTrashed('users'),
+            'priority' => $notTrashed('priorities'),
+            'designation' => $notTrashed('designations'),
+            'department' => $notTrashed('departments'),
+            'subSource' => $notTrashed('lead_sub_source'),
+            'country',
+            'state',
+            'city',
+            'zone' => $notTrashed('zones'),
+            'statusRelation' => $notTrashed('statuses'),
+            'callStatusRelation' => $notTrashed('call_statuses'),
+            'leadStatusRelation' => $notTrashed('statuses'),
+            'mobileNumbers',
+        ];
+    }
 
     /**
      * @var Lead
@@ -74,7 +79,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getAllLeads(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
         $query = $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->accessibleToUser(Auth::user());
 
         // Apply search filter if search term is provided
@@ -83,13 +89,13 @@ class LeadRepository implements LeadRepositoryInterface
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('email', 'LIKE', "%{$searchTerm}%")
                   ->orWhereHas('brand', function ($brandQuery) use ($searchTerm) {
-                      $brandQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $brandQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('agency', function ($agencyQuery) use ($searchTerm) {
-                      $agencyQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $agencyQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('assignedUser', function ($userQuery) use ($searchTerm) {
-                      $userQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $userQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('mobileNumbers', function ($mobileQuery) use ($searchTerm) {
                       $mobileQuery->where('mobile_number', 'LIKE', "%{$searchTerm}%");
@@ -115,7 +121,9 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadById(int $id): ?Lead
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
+            ->accessibleToUser(Auth::user())
             ->find($id);
     }
 
@@ -232,7 +240,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator
     {
         $query = $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->accessibleToUser(Auth::user());
 
         $this->applyIdFilter($query, 'brand_id', $filters['brand_id'] ?? null);
@@ -260,7 +269,7 @@ class LeadRepository implements LeadRepositoryInterface
                   ->orWhere('email', 'LIKE', "%{$search}%")
                   ->orWhere('profile_url', 'LIKE', "%{$search}%")
                   ->orWhereHas('agency', function ($agencyQuery) use ($search) {
-                      $agencyQuery->where('name', 'LIKE', "%{$search}%");
+                      $agencyQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$search}%");
                   })
                   ->orWhereHas('mobileNumbers', function ($mobileQuery) use ($search) {
                       $mobileQuery->where('mobile_number', 'LIKE', "%{$search}%");

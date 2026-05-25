@@ -12,6 +12,15 @@ class BaseModel extends Model
     use EloquentSoftDeletes, HasTimestamps, HasUuid;
 
     /**
+     * Never expose soft-delete timestamp in API payloads.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'deleted_at',
+    ];
+
+    /**
      * The attributes that should be cast.
      *
      * @var array<string, string>
@@ -40,6 +49,14 @@ class BaseModel extends Model
     public static function getTableName(): string
     {
         return (new static)->getTable();
+    }
+
+    /**
+     * Exclude soft-deleted rows (explicit for list/filter/export queries).
+     */
+    public function scopeNotDeleted($query)
+    {
+        return $query->whereNull($this->getTable() . '.deleted_at');
     }
 
     /**

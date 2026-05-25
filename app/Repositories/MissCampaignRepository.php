@@ -21,22 +21,27 @@ use Illuminate\Support\Collection;
 class MissCampaignRepository implements MissCampaignRepositoryInterface
 {
     /**
-     * Default relationships to eager load.
+     * Eager-load relations; skip soft-deleted related records where applicable.
      *
-     * @var array<string>
+     * @return array<string|callable>
      */
-    protected const DEFAULT_RELATIONSHIPS = [
-        'brand',
-        'leadSource',
-        'leadSubSource',
-        'mediaType',
-        'industry',
-        'country',
-        'state',
-        'city',
-        'assignBy',
-        'assignTo',
-    ];
+    protected function eagerLoadRelations(): array
+    {
+        $notTrashed = static fn (string $table) => static fn ($query) => $query->whereNull($table . '.deleted_at');
+
+        return [
+            'brand' => $notTrashed('brands'),
+            'leadSource' => $notTrashed('lead_source'),
+            'leadSubSource' => $notTrashed('lead_sub_source'),
+            'mediaType' => $notTrashed('media_types'),
+            'industry' => $notTrashed('industries'),
+            'country',
+            'state',
+            'city',
+            'assignBy' => $notTrashed('users'),
+            'assignTo' => $notTrashed('users'),
+        ];
+    }
 
     /**
      * @var MissCampaign
@@ -75,8 +80,9 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
     protected function buildListingQuery(?string $searchTerm = null)
     {
         $query = $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
             ->accessibleToUser()
+            ->notDeleted()
             ->where('status', '1');
 
         if ($searchTerm !== null && $searchTerm !== '') {
@@ -84,19 +90,19 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('slug', 'LIKE', "%{$searchTerm}%")
                   ->orWhereHas('brand', function ($brandQuery) use ($searchTerm) {
-                      $brandQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $brandQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('leadSource', function ($sourceQuery) use ($searchTerm) {
-                      $sourceQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $sourceQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('leadSubSource', function ($subSourceQuery) use ($searchTerm) {
-                      $subSourceQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $subSourceQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('mediaType', function ($mediaQuery) use ($searchTerm) {
-                      $mediaQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $mediaQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('industry', function ($industryQuery) use ($searchTerm) {
-                      $industryQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $industryQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('country', function ($countryQuery) use ($searchTerm) {
                       $countryQuery->where('name', 'LIKE', "%{$searchTerm}%");
@@ -117,6 +123,7 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
     {
         return $this->model
             ->select('id', 'name')
+            ->notDeleted()
             ->where('status', '1')
             ->orderBy('id', 'asc')
             ->get();
@@ -124,12 +131,23 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
 
     public function getMissCampaignById(int $id): ?MissCampaign
     {
-        return $this->model->with(self::DEFAULT_RELATIONSHIPS)->find($id);
+        return $this->model
+            ->with($this->eagerLoadRelations())
+            ->accessibleToUser()
+            ->notDeleted()
+            ->where('status', '1')
+            ->find($id);
     }
 
     public function getMissCampaignBySlug(string $slug): ?MissCampaign
     {
-        return $this->model->with(self::DEFAULT_RELATIONSHIPS)->where('slug', $slug)->first();
+        return $this->model
+            ->with($this->eagerLoadRelations())
+            ->accessibleToUser()
+            ->notDeleted()
+            ->where('status', '1')
+            ->where('slug', $slug)
+            ->first();
     }
 
     public function createMissCampaign(array $data): MissCampaign
