@@ -35,10 +35,14 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string $role)
     {
-        $user = $request->user ?? $request->user();
+        $user = $request->user();
 
         if (!$user) {
             return $this->responseService->unauthorized('Unauthenticated');
+        }
+
+        if ($user->hasRole('admin')) {
+            return $next($request);
         }
 
         if (!$user->hasRole($role)) {

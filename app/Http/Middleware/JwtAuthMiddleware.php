@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
@@ -52,8 +53,7 @@ class JwtAuthMiddleware
                 return $this->responseService->unauthorized('User account is inactive');
             }
 
-            // Add user to request
-            $request->merge(['user' => $user]);
+            $this->setAuthenticatedUser($request, $user);
 
         } catch (TokenExpiredException $e) {
             // For refresh endpoint, allow expired tokens to pass through
@@ -66,7 +66,7 @@ class JwtAuthMiddleware
                     $user = User::find($userId);
                     
                     if ($user && $user->isActive()) {
-                        $request->merge(['user' => $user]);
+                        $this->setAuthenticatedUser($request, $user);
                         return $next($request);
                     }
                 } catch (\Exception $e) {
@@ -84,5 +84,16 @@ class JwtAuthMiddleware
         }
 
         return $next($request);
+    }
+
+    /**
+     * Attach the JWT user to the request and Laravel auth guard.
+     */
+    protected function setAuthenticatedUser(Request $request, User $user): void
+    {
+        $request->setUserResolver(fn () => $user);
+        $request->merge(['user' => $user]);
+        Auth::setUser($user);
+        JWTAuth::setUser($user);
     }
 }

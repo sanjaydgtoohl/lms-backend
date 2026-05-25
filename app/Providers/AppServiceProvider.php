@@ -24,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->app->singleton(ResponseService::class);
+
         // Bind services
         $this->app->bind(RoleService::class, function ($app) {
             return new RoleService(
