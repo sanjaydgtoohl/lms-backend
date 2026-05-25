@@ -62,9 +62,11 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
 
     public function eachMissCampaignExportChunk(?string $searchTerm, int $chunkSize, callable $callback): void
     {
-        $this->buildListingQuery($searchTerm)->chunkById($chunkSize, function ($campaigns) use ($callback) {
-            $callback($campaigns);
-        });
+        $this->buildListingQuery($searchTerm)
+            ->reorder('miss_campaigns.id')
+            ->chunkById($chunkSize, function ($campaigns) use ($callback) {
+                $callback($campaigns);
+            }, 'miss_campaigns.id', 'id');
     }
 
     /**

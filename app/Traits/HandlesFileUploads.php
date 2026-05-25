@@ -383,7 +383,9 @@ trait HandlesFileUploads
             $root = $diskConfig['root'] ?? storage_path('app');
 
             if ($visibility === 'public') {
-                $publicPath = public_path();
+                $publicPath = function_exists('public_path')
+                    ? public_path()
+                    : app()->basePath('public');
                 if (strpos($root, $publicPath) === 0) {
                     $relativePath = str_replace($publicPath, '', $root . DIRECTORY_SEPARATOR . $path);
                     $relativePath = str_replace('\\', '/', $relativePath);
