@@ -27,10 +27,40 @@ use Illuminate\Support\Str;
 
 class MissCampaignService
 {
+    /** Records loaded per DB chunk when streaming CSV (keeps memory flat). */
+    public const EXPORT_CHUNK_SIZE = 500;
+
+    /** Max rows per JSON export page (client should paginate for full export). */
+    public const JSON_EXPORT_MAX_PER_PAGE = 2000;
+
     /**
      * @var MissCampaignRepositoryInterface
      */
     protected MissCampaignRepositoryInterface $missCampaignRepository;
+
+    /**
+     * CSV column headers for miss campaign export.
+     *
+     * @var array<int, string>
+     */
+    protected const EXPORT_CSV_HEADERS = [
+        'ID',
+        'Name',
+        'Brand',
+        'Lead Source',
+        'Lead Sub Source',
+        'Media Type',
+        'Industry',
+        'Country',
+        'State',
+        'City',
+        'Assigned By',
+        'Assigned To',
+        'Lead ID',
+        'Image URL',
+        'Created At',
+        'Updated At',
+    ];
 
     /**
      * Create a new MissCampaignService instance.
@@ -65,6 +95,88 @@ class MissCampaignService
             Log::error('Unexpected error fetching miss campaigns', ['exception' => $e]);
             throw new DomainException('Unexpected error while fetching miss campaigns.');
         }
+    }
+
+    /**
+     * Get all miss campaigns for export (no pagination, same filters as index).
+     *
+     * @param string|null $searchTerm
+     * @return Collection
+     * @throws DomainException
+     */
+    public function getMissCampaignsForExport(?string $searchTerm = null): Collection
+    {
+        try {
+            return $this->missCampaignRepository->getMissCampaignsForExport($searchTerm);
+        } catch (QueryException $e) {
+            Log::error('Database error exporting miss campaigns', ['exception' => $e]);
+            throw new DomainException('Database error while exporting miss campaigns.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error exporting miss campaigns', ['exception' => $e]);
+            throw new DomainException('Unexpected error while exporting miss campaigns.');
+        }
+    }
+
+    /**
+     * Build CSV content for miss campaign export.
+     *
+     * @param Collection $campaigns
+     * @return string
+     */
+    public function buildMissCampaignExportCsv(Collection $campaigns): string
+    {
+        $handle = fopen('php://temp', 'r+');
+
+        fputcsv($handle, [
+            'ID',
+            'Name',
+            'Brand',
+            'Lead Source',
+            'Lead Sub Source',
+            'Media Type',
+            'Industry',
+            'Country',
+            'State',
+            'City',
+            'Assigned By',
+            'Assigned To',
+            'Lead ID',
+            'Image URL',
+            'Created At',
+            'Updated At',
+        ]);
+
+        foreach ($campaigns as $campaign) {
+            /** @var MissCampaign $campaign */
+            $imageUrl = $campaign->image_path
+                ? $campaign->getFileUrl($campaign->image_path)
+                : '';
+
+            fputcsv($handle, [
+                $campaign->id,
+                $campaign->name,
+                $campaign->brand?->name ?? '',
+                $campaign->leadSource?->name ?? '',
+                $campaign->leadSubSource?->name ?? '',
+                $campaign->mediaType?->name ?? '',
+                $campaign->industry?->name ?? '',
+                $campaign->country?->name ?? '',
+                $campaign->state?->name ?? '',
+                $campaign->city?->name ?? '',
+                $campaign->assignBy?->name ?? '',
+                $campaign->assignTo?->name ?? '',
+                $campaign->leads_id ?? '',
+                $imageUrl,
+                $campaign->created_at?->format('Y-m-d H:i:s') ?? '',
+                $campaign->updated_at?->format('Y-m-d H:i:s') ?? '',
+            ]);
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return $csv === false ? '' : $csv;
     }
 
     /**

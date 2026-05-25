@@ -392,6 +392,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Miss Campaign routes
     $router->group(['prefix' => 'miss-campaigns'], function () use ($router) {
         $router->get('/', 'MissCampaignController@index');
+        $router->get('/export', 'MissCampaignController@export');
         $router->post('/', 'MissCampaignController@store');
         $router->get('/list', 'MissCampaignController@list');
         $router->get('/{id:[0-9]+}', 'MissCampaignController@show');      

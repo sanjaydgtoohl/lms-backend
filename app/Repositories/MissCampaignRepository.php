@@ -50,6 +50,34 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
 
     public function getAllMissCampaigns(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
+        return $this->buildListingQuery($searchTerm)
+            ->paginate($perPage)
+            ->appends(request()->query());
+    }
+
+    public function countMissCampaignsForExport(?string $searchTerm = null): int
+    {
+        return (int) $this->buildListingQuery($searchTerm)->count();
+    }
+
+    public function eachMissCampaignExportChunk(?string $searchTerm, int $chunkSize, callable $callback): void
+    {
+        $this->buildListingQuery($searchTerm)->chunkById($chunkSize, function ($campaigns) use ($callback) {
+            $callback($campaigns);
+        });
+    }
+
+    public function paginateMissCampaignsForExport(int $perPage, int $page, ?string $searchTerm = null): LengthAwarePaginator
+    {
+        return $this->buildListingQuery($searchTerm)
+            ->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Base query for listing and export (scoped to user, active only).
+     */
+    protected function buildListingQuery(?string $searchTerm = null)
+    {
         $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
             ->accessibleToUser()
@@ -86,9 +114,7 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
             });
         }
 
-        return $query->orderBy('created_at', 'desc')
-            ->paginate($perPage)
-            ->appends(request()->query());
+        return $query->orderBy('created_at', 'desc');
     }
 
     public function getMissCampaignList(): ?Collection

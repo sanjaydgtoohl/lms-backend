@@ -19,6 +19,7 @@ use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Throwable;
@@ -115,6 +116,56 @@ class MissCampaignController extends Controller
                 MissCampaignResource::collection($campaigns),
                 'Miss campaigns retrieved successfully'
             );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
+     * Export all miss campaigns (file download or JSON).
+     *
+     * GET /miss-campaigns/export
+     *
+     * Query: search (optional), format=csv|json (default csv)
+     *
+     * @param Request $request
+     * @return JsonResponse|Response
+     */
+    public function export(Request $request): JsonResponse|Response
+    {
+        try {
+            $this->validate($request, [
+                'search' => 'nullable|string|max:255',
+                'format' => 'nullable|in:csv,json',
+            ]);
+
+            $searchTerm = $request->input('search');
+            $format = $request->input('format', 'csv');
+            $campaigns = $this->missCampaignService->getMissCampaignsForExport($searchTerm);
+
+            if ($format === 'json') {
+                return $this->responseService->success(
+                    [
+                        'total' => $campaigns->count(),
+                        'items' => MissCampaignResource::collection($campaigns),
+                    ],
+                    'Miss campaigns export data retrieved successfully'
+                );
+            }
+
+            $filename = 'miss-campaigns-' . now()->format('Y-m-d-His') . '.csv';
+            $csv = "\xEF\xBB\xBF" . $this->missCampaignService->buildMissCampaignExportCsv($campaigns);
+
+            return response($csv, 200, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'no-store, no-cache',
+            ]);
         } catch (ValidationException $e) {
             return $this->responseService->validationError(
                 $e->errors(),
