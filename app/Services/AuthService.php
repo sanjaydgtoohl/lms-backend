@@ -133,13 +133,51 @@ class AuthService
      */
     public function refresh(Request $request): array
     {
-        $refreshToken = $request->input('refresh_token');
+        $refreshToken = $this->resolveRefreshTokenFromRequest($request);
 
-        if (!empty($refreshToken)) {
-            return $this->refreshWithDatabaseToken((string) $refreshToken);
+        if ($refreshToken !== null) {
+            return $this->refreshWithDatabaseToken($refreshToken);
         }
 
-        return $this->refreshWithJwt($request);
+        $bearer = $request->bearerToken();
+        if (!empty($bearer)) {
+            return $this->refreshWithJwt($request);
+        }
+
+        throw new JWTException('Refresh token is required');
+    }
+
+    /**
+     * Read refresh_token from JSON body, form body, or query (supports refreshToken camelCase).
+     */
+    protected function resolveRefreshTokenFromRequest(Request $request): ?string
+    {
+        $candidates = [
+            $request->input('refresh_token'),
+            $request->input('refreshToken'),
+            $request->query('refresh_token'),
+            $request->query('refreshToken'),
+        ];
+
+        foreach ($candidates as $value) {
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        $content = $request->getContent();
+        if (is_string($content) && $content !== '') {
+            $decoded = json_decode($content, true);
+            if (is_array($decoded)) {
+                foreach (['refresh_token', 'refreshToken'] as $key) {
+                    if (!empty($decoded[$key]) && is_string($decoded[$key])) {
+                        return trim($decoded[$key]);
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -169,7 +207,7 @@ class AuthService
             $user = JWTAuth::parseToken()->authenticate();
 
             if (!$user) {
-                throw new JWTException('Token not provided');
+                throw new JWTException('Invalid or expired access token');
             }
 
             if (!$user->isActive()) {
@@ -186,17 +224,17 @@ class AuthService
                 $user = $this->userService->getUserById((int) $userId);
 
                 if (!$user || !$user->isActive()) {
-                    throw new JWTException('Invalid or expired refresh token');
+                    throw new JWTException('Invalid or expired access token');
                 }
 
                 $token = JWTAuth::refresh(JWTAuth::getToken());
 
                 return $this->rotateRefreshTokenAndReturn($user, $token);
             } catch (\Exception $inner) {
-                throw new JWTException('Token not provided');
+                throw new JWTException('Invalid or expired access token');
             }
         } catch (JWTException $e) {
-            throw new JWTException('Token not provided');
+            throw new JWTException($e->getMessage() ?: 'Invalid or expired access token');
         }
     }
 

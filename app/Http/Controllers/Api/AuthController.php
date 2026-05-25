@@ -166,13 +166,6 @@ class AuthController extends Controller
     public function refresh(Request $request): JsonResponse
     {
         try {
-            if (!$request->filled('refresh_token') && !$request->bearerToken()) {
-                return $this->responseService->validationError(
-                    ['refresh_token' => ['The refresh token field is required when no bearer token is sent.']],
-                    'Validation failed'
-                );
-            }
-
             $result = $this->authService->refresh($request);
 
             return $this->responseService->success(

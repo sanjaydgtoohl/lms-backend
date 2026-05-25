@@ -91,6 +91,7 @@ $app->configure('session');
 
 $app->middleware([
     App\Http\Middleware\CorsMiddleware::class,
+    App\Http\Middleware\ParseJsonBodyMiddleware::class,
     Illuminate\Session\Middleware\StartSession::class,
 ]);
 

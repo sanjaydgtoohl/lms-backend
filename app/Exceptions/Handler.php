@@ -11,6 +11,8 @@ use Laravel\Lumen\Exceptions\Handler as ExceptionHandler;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
+use Tymon\JWTAuth\Exceptions\JWTException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -66,6 +68,14 @@ class Handler extends ExceptionHandler
             // Authentication
             if ($exception instanceof AuthenticationException) {
                 return $responses->unauthorized('Authentication required');
+            }
+
+            if ($exception instanceof JWTException) {
+                return $responses->unauthorized($exception->getMessage() ?: 'Unauthorized');
+            }
+
+            if ($exception instanceof UnauthorizedHttpException) {
+                return $responses->unauthorized($exception->getMessage() ?: 'Unauthorized');
             }
 
             // Authorization
