@@ -132,7 +132,7 @@ class MissCampaignService
             }
 
             $total = $this->countMissCampaignsForExport($searchTerm);
-            $directory = public_path(self::EXPORT_PUBLIC_DIRECTORY);
+            $directory = base_path('public/' . self::EXPORT_PUBLIC_DIRECTORY);
 
             if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
                 throw new DomainException('Unable to create export directory.');
