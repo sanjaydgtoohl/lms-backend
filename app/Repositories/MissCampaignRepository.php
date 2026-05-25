@@ -67,12 +67,6 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
         });
     }
 
-    public function paginateMissCampaignsForExport(int $perPage, int $page, ?string $searchTerm = null): LengthAwarePaginator
-    {
-        return $this->buildListingQuery($searchTerm)
-            ->paginate($perPage, ['*'], 'page', $page);
-    }
-
     /**
      * Base query for listing and export (scoped to user, active only).
      */

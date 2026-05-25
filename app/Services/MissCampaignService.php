@@ -27,11 +27,11 @@ use Illuminate\Support\Str;
 
 class MissCampaignService
 {
-    /** Records loaded per DB chunk when streaming CSV (keeps memory flat). */
+    /** Records loaded per DB chunk when writing CSV (keeps memory flat). */
     public const EXPORT_CHUNK_SIZE = 500;
 
-    /** Max rows per JSON export page (client should paginate for full export). */
-    public const JSON_EXPORT_MAX_PER_PAGE = 2000;
+    /** Public web path segment for exported CSV files. */
+    public const EXPORT_PUBLIC_DIRECTORY = 'exports/miss-campaigns';
 
     /**
      * @var MissCampaignRepositoryInterface
@@ -118,64 +118,76 @@ class MissCampaignService
     }
 
     /**
-     * Stream CSV rows to php://output (chunked DB reads; safe for large datasets).
+     * Export miss campaigns to a CSV file under public/ and return file metadata.
      *
      * @param string|null $searchTerm
-     * @return void
+     * @return array<string, mixed>
      * @throws DomainException
      */
-    public function streamMissCampaignCsvToOutput(?string $searchTerm = null): void
+    public function exportMissCampaignsToCsvFile(?string $searchTerm = null): array
     {
         try {
-            $output = fopen('php://output', 'w');
-            if ($output === false) {
-                throw new DomainException('Unable to open output stream for export.');
+            if (function_exists('set_time_limit')) {
+                @set_time_limit(0);
             }
 
-            fwrite($output, "\xEF\xBB\xBF");
-            fputcsv($output, self::EXPORT_CSV_HEADERS);
+            $total = $this->countMissCampaignsForExport($searchTerm);
+            $directory = public_path(self::EXPORT_PUBLIC_DIRECTORY);
 
-            $this->missCampaignRepository->eachMissCampaignExportChunk(
-                $searchTerm,
-                self::EXPORT_CHUNK_SIZE,
-                function ($campaigns) use ($output) {
-                    foreach ($campaigns as $campaign) {
-                        fputcsv($output, $this->mapMissCampaignToCsvRow($campaign));
+            if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
+                throw new DomainException('Unable to create export directory.');
+            }
+
+            $filename = 'miss-campaigns-' . now()->format('Y-m-d-His') . '-' . Str::lower(Str::random(6)) . '.csv';
+            $absolutePath = $directory . DIRECTORY_SEPARATOR . $filename;
+            $relativePath = self::EXPORT_PUBLIC_DIRECTORY . '/' . $filename;
+
+            $handle = fopen($absolutePath, 'w');
+            if ($handle === false) {
+                throw new DomainException('Unable to create export file.');
+            }
+
+            try {
+                fwrite($handle, "\xEF\xBB\xBF");
+                fputcsv($handle, self::EXPORT_CSV_HEADERS);
+
+                $this->missCampaignRepository->eachMissCampaignExportChunk(
+                    $searchTerm,
+                    self::EXPORT_CHUNK_SIZE,
+                    function ($campaigns) use ($handle) {
+                        foreach ($campaigns as $campaign) {
+                            fputcsv($handle, $this->mapMissCampaignToCsvRow($campaign));
+                        }
+                        fflush($handle);
                     }
-                    fflush($output);
-                }
-            );
+                );
+            } finally {
+                fclose($handle);
+            }
 
-            fclose($output);
+            if (!is_file($absolutePath)) {
+                throw new DomainException('Export file was not created.');
+            }
+
+            $fileSize = filesize($absolutePath);
+            $baseUrl = rtrim((string) config('app.url', 'http://localhost'), '/');
+
+            return [
+                'file_name' => $filename,
+                'file_path' => $relativePath,
+                'file_url' => $baseUrl . '/' . $relativePath,
+                'total_records' => $total,
+                'file_size' => $fileSize === false ? 0 : $fileSize,
+                'mime_type' => 'text/csv',
+                'exported_at' => now()->format('Y-m-d H:i:s A'),
+            ];
         } catch (DomainException $e) {
             throw $e;
         } catch (QueryException $e) {
-            Log::error('Database error streaming miss campaign export', ['exception' => $e]);
+            Log::error('Database error exporting miss campaigns to file', ['exception' => $e]);
             throw new DomainException('Database error while exporting miss campaigns.');
         } catch (Exception $e) {
-            Log::error('Unexpected error streaming miss campaign export', ['exception' => $e]);
-            throw new DomainException('Unexpected error while exporting miss campaigns.');
-        }
-    }
-
-    /**
-     * Paginated JSON export page (use page/per_page to fetch entire dataset).
-     *
-     * @param int $perPage
-     * @param int $page
-     * @param string|null $searchTerm
-     * @return LengthAwarePaginator
-     * @throws DomainException
-     */
-    public function paginateMissCampaignsForExport(int $perPage, int $page, ?string $searchTerm = null): LengthAwarePaginator
-    {
-        try {
-            return $this->missCampaignRepository->paginateMissCampaignsForExport($perPage, $page, $searchTerm);
-        } catch (QueryException $e) {
-            Log::error('Database error paginating miss campaigns for export', ['exception' => $e]);
-            throw new DomainException('Database error while exporting miss campaigns.');
-        } catch (Exception $e) {
-            Log::error('Unexpected error paginating miss campaigns for export', ['exception' => $e]);
+            Log::error('Unexpected error exporting miss campaigns to file', ['exception' => $e]);
             throw new DomainException('Unexpected error while exporting miss campaigns.');
         }
     }

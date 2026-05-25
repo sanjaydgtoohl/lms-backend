@@ -18,7 +18,6 @@ interface MissCampaignRepositoryInterface
     public function getAllMissCampaigns(int $perPage = 10, ?string $searchTerm = null);
     public function countMissCampaignsForExport(?string $searchTerm = null): int;
     public function eachMissCampaignExportChunk(?string $searchTerm, int $chunkSize, callable $callback): void;
-    public function paginateMissCampaignsForExport(int $perPage, int $page, ?string $searchTerm = null);
     public function getMissCampaignList();
     public function getMissCampaignById(int $id);
     public function getMissCampaignBySlug(string $slug);
