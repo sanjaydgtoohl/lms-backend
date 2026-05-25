@@ -12,6 +12,7 @@ use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
@@ -165,12 +166,29 @@ class AuthController extends Controller
     public function refresh(Request $request): JsonResponse
     {
         try {
-            $result = $this->authService->refresh();
-            
+            if (!$request->filled('refresh_token') && !$request->bearerToken()) {
+                return $this->responseService->validationError(
+                    ['refresh_token' => ['The refresh token field is required when no bearer token is sent.']],
+                    'Validation failed'
+                );
+            }
+
+            $result = $this->authService->refresh($request);
+
             return $this->responseService->success(
-                new AuthResource($result['user'], $result['token'], $result['token_type'], $result['expires_in'], $result['refresh_token'] ?? null),
+                new AuthResource(
+                    $result['user'],
+                    $result['token'],
+                    $result['token_type'],
+                    $result['expires_in'],
+                    $result['refresh_token'] ?? null
+                ),
                 'Token refreshed successfully'
             );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (JWTException $e) {
+            return $this->responseService->unauthorized($e->getMessage() ?: 'Invalid or expired refresh token');
         } catch (\Exception $e) {
             return $this->responseService->serverError('Token refresh failed: ' . $e->getMessage());
         }

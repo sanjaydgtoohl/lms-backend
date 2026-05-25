@@ -30,6 +30,7 @@ $router->group(['prefix' => 'v1'], function () use ($router) {
     $router->group(['prefix' => 'auth'], function () use ($router) {     
         $router->post('register', 'Api\AuthController@register');
         $router->post('login', 'Api\AuthController@login');
+        $router->post('refresh', 'Api\AuthController@refresh');
         $router->post('forgot-password','Api\AuthController@forgotPassword');
         $router->post('reset-password', 'Api\AuthController@resetPassword');
     });
@@ -44,7 +45,6 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Auth routes
     $router->group(['prefix' => 'auth'], function () use ($router) {
         $router->post('logout', 'Api\AuthController@logout');
-        $router->post('refresh', 'Api\AuthController@refresh');
         $router->get('me', 'Api\AuthController@me');
     });
 
