@@ -98,85 +98,115 @@ class MissCampaignService
     }
 
     /**
-     * Get all miss campaigns for export (no pagination, same filters as index).
+     * Count miss campaigns matching export filters.
      *
      * @param string|null $searchTerm
-     * @return Collection
+     * @return int
      * @throws DomainException
      */
-    public function getMissCampaignsForExport(?string $searchTerm = null): Collection
+    public function countMissCampaignsForExport(?string $searchTerm = null): int
     {
         try {
-            return $this->missCampaignRepository->getMissCampaignsForExport($searchTerm);
+            return $this->missCampaignRepository->countMissCampaignsForExport($searchTerm);
         } catch (QueryException $e) {
-            Log::error('Database error exporting miss campaigns', ['exception' => $e]);
+            Log::error('Database error counting miss campaigns for export', ['exception' => $e]);
+            throw new DomainException('Database error while counting miss campaigns for export.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error counting miss campaigns for export', ['exception' => $e]);
+            throw new DomainException('Unexpected error while counting miss campaigns for export.');
+        }
+    }
+
+    /**
+     * Stream CSV rows to php://output (chunked DB reads; safe for large datasets).
+     *
+     * @param string|null $searchTerm
+     * @return void
+     * @throws DomainException
+     */
+    public function streamMissCampaignCsvToOutput(?string $searchTerm = null): void
+    {
+        try {
+            $output = fopen('php://output', 'w');
+            if ($output === false) {
+                throw new DomainException('Unable to open output stream for export.');
+            }
+
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, self::EXPORT_CSV_HEADERS);
+
+            $this->missCampaignRepository->eachMissCampaignExportChunk(
+                $searchTerm,
+                self::EXPORT_CHUNK_SIZE,
+                function ($campaigns) use ($output) {
+                    foreach ($campaigns as $campaign) {
+                        fputcsv($output, $this->mapMissCampaignToCsvRow($campaign));
+                    }
+                    fflush($output);
+                }
+            );
+
+            fclose($output);
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            Log::error('Database error streaming miss campaign export', ['exception' => $e]);
             throw new DomainException('Database error while exporting miss campaigns.');
         } catch (Exception $e) {
-            Log::error('Unexpected error exporting miss campaigns', ['exception' => $e]);
+            Log::error('Unexpected error streaming miss campaign export', ['exception' => $e]);
             throw new DomainException('Unexpected error while exporting miss campaigns.');
         }
     }
 
     /**
-     * Build CSV content for miss campaign export.
+     * Paginated JSON export page (use page/per_page to fetch entire dataset).
      *
-     * @param Collection $campaigns
-     * @return string
+     * @param int $perPage
+     * @param int $page
+     * @param string|null $searchTerm
+     * @return LengthAwarePaginator
+     * @throws DomainException
      */
-    public function buildMissCampaignExportCsv(Collection $campaigns): string
+    public function paginateMissCampaignsForExport(int $perPage, int $page, ?string $searchTerm = null): LengthAwarePaginator
     {
-        $handle = fopen('php://temp', 'r+');
-
-        fputcsv($handle, [
-            'ID',
-            'Name',
-            'Brand',
-            'Lead Source',
-            'Lead Sub Source',
-            'Media Type',
-            'Industry',
-            'Country',
-            'State',
-            'City',
-            'Assigned By',
-            'Assigned To',
-            'Lead ID',
-            'Image URL',
-            'Created At',
-            'Updated At',
-        ]);
-
-        foreach ($campaigns as $campaign) {
-            /** @var MissCampaign $campaign */
-            $imageUrl = $campaign->image_path
-                ? $campaign->getFileUrl($campaign->image_path)
-                : '';
-
-            fputcsv($handle, [
-                $campaign->id,
-                $campaign->name,
-                $campaign->brand?->name ?? '',
-                $campaign->leadSource?->name ?? '',
-                $campaign->leadSubSource?->name ?? '',
-                $campaign->mediaType?->name ?? '',
-                $campaign->industry?->name ?? '',
-                $campaign->country?->name ?? '',
-                $campaign->state?->name ?? '',
-                $campaign->city?->name ?? '',
-                $campaign->assignBy?->name ?? '',
-                $campaign->assignTo?->name ?? '',
-                $campaign->leads_id ?? '',
-                $imageUrl,
-                $campaign->created_at?->format('Y-m-d H:i:s') ?? '',
-                $campaign->updated_at?->format('Y-m-d H:i:s') ?? '',
-            ]);
+        try {
+            return $this->missCampaignRepository->paginateMissCampaignsForExport($perPage, $page, $searchTerm);
+        } catch (QueryException $e) {
+            Log::error('Database error paginating miss campaigns for export', ['exception' => $e]);
+            throw new DomainException('Database error while exporting miss campaigns.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error paginating miss campaigns for export', ['exception' => $e]);
+            throw new DomainException('Unexpected error while exporting miss campaigns.');
         }
+    }
 
-        rewind($handle);
-        $csv = stream_get_contents($handle);
-        fclose($handle);
+    /**
+     * @return array<int, mixed>
+     */
+    protected function mapMissCampaignToCsvRow(MissCampaign $campaign): array
+    {
+        $imageUrl = $campaign->image_path
+            ? $campaign->getFileUrl($campaign->image_path)
+            : '';
 
-        return $csv === false ? '' : $csv;
+        return [
+            $campaign->id,
+            $campaign->name,
+            $campaign->brand?->name ?? '',
+            $campaign->leadSource?->name ?? '',
+            $campaign->leadSubSource?->name ?? '',
+            $campaign->mediaType?->name ?? '',
+            $campaign->industry?->name ?? '',
+            $campaign->country?->name ?? '',
+            $campaign->state?->name ?? '',
+            $campaign->city?->name ?? '',
+            $campaign->assignBy?->name ?? '',
+            $campaign->assignTo?->name ?? '',
+            $campaign->leads_id ?? '',
+            $imageUrl,
+            $campaign->created_at?->format('Y-m-d H:i:s') ?? '',
+            $campaign->updated_at?->format('Y-m-d H:i:s') ?? '',
+        ];
     }
 
     /**

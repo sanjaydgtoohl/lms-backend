@@ -19,7 +19,7 @@ use App\Services\ResponseService;
 use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Throwable;
@@ -127,45 +127,80 @@ class MissCampaignController extends Controller
     }
 
     /**
-     * Export all miss campaigns (file download or JSON).
+     * Export miss campaigns (streaming CSV for full dataset, paginated JSON).
      *
      * GET /miss-campaigns/export
      *
-     * Query: search (optional), format=csv|json (default csv)
+     * Query:
+     * - search (optional)
+     * - format=csv|json (default csv)
+     * - page, per_page (json only; loop pages until has_more is false)
      *
      * @param Request $request
-     * @return JsonResponse|Response
+     * @return JsonResponse|StreamedResponse
      */
-    public function export(Request $request): JsonResponse|Response
+    public function export(Request $request): JsonResponse|StreamedResponse
     {
         try {
             $this->validate($request, [
                 'search' => 'nullable|string|max:255',
                 'format' => 'nullable|in:csv,json',
+                'page' => 'nullable|integer|min:1',
+                'per_page' => 'nullable|integer|min:1|max:' . MissCampaignService::JSON_EXPORT_MAX_PER_PAGE,
             ]);
 
             $searchTerm = $request->input('search');
             $format = $request->input('format', 'csv');
-            $campaigns = $this->missCampaignService->getMissCampaignsForExport($searchTerm);
 
             if ($format === 'json') {
+                $perPage = min(
+                    MissCampaignService::JSON_EXPORT_MAX_PER_PAGE,
+                    max(1, (int) $request->input('per_page', 500))
+                );
+                $page = max(1, (int) $request->input('page', 1));
+                $paginator = $this->missCampaignService->paginateMissCampaignsForExport(
+                    $perPage,
+                    $page,
+                    $searchTerm
+                );
+
                 return $this->responseService->success(
                     [
-                        'total' => $campaigns->count(),
-                        'items' => MissCampaignResource::collection($campaigns),
+                        'total' => $paginator->total(),
+                        'per_page' => $paginator->perPage(),
+                        'current_page' => $paginator->currentPage(),
+                        'last_page' => $paginator->lastPage(),
+                        'has_more' => $paginator->hasMorePages(),
+                        'items' => MissCampaignResource::collection($paginator->items()),
                     ],
                     'Miss campaigns export data retrieved successfully'
                 );
             }
 
             $filename = 'miss-campaigns-' . now()->format('Y-m-d-His') . '.csv';
-            $csv = "\xEF\xBB\xBF" . $this->missCampaignService->buildMissCampaignExportCsv($campaigns);
+            $total = $this->missCampaignService->countMissCampaignsForExport($searchTerm);
 
-            return response($csv, 200, [
-                'Content-Type' => 'text/csv; charset=UTF-8',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                'Cache-Control' => 'no-store, no-cache',
-            ]);
+            return new StreamedResponse(
+                function () use ($searchTerm) {
+                    if (function_exists('set_time_limit')) {
+                        @set_time_limit(0);
+                    }
+
+                    while (ob_get_level() > 0) {
+                        ob_end_clean();
+                    }
+
+                    $this->missCampaignService->streamMissCampaignCsvToOutput($searchTerm);
+                },
+                200,
+                [
+                    'Content-Type' => 'text/csv; charset=UTF-8',
+                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                    'Cache-Control' => 'no-store, no-cache',
+                    'X-Export-Total' => (string) $total,
+                    'X-Export-Chunk-Size' => (string) MissCampaignService::EXPORT_CHUNK_SIZE,
+                ]
+            );
         } catch (ValidationException $e) {
             return $this->responseService->validationError(
                 $e->errors(),
