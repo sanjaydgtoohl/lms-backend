@@ -219,7 +219,7 @@ class MissCampaignController extends Controller
 
         
             $leads = new Lead();
-            $leads->name = $validatedData['name'];
+            // $leads->name = $validatedData['name'];
             $leads->uuid = Str::uuid();
             $leads->brand_id = $validatedData['brand_id'];  
             $leads->sub_source_id = $validatedData['lead_sub_source_id'];
