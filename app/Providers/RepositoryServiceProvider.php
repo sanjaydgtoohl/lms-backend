@@ -34,6 +34,7 @@ use App\Repositories\LeadSubSourceRepository;
 use App\Contracts\Repositories\LeadSubSourceRepositoryInterface;
 
 use App\Contracts\Repositories\AgencyGroupRepositoryInterface;
+use App\Repositories\AgencyGroupRepository;
 
 use App\Contracts\Repositories\AgencyTypeRepositoryInterface;
 use App\Repositories\AgencyTypeRepository;
@@ -49,8 +50,6 @@ use App\Contracts\Repositories\BrandRepositoryInterface;
 
 use App\Repositories\RegionRepository;
 use App\Contracts\Repositories\RegionRepositoryInterface;
-
-use App\Repositories\EloquentAgencyGroupRepository;
 
 use App\Repositories\EloquentCountryRepository;
 use App\Contracts\Repositories\CountryRepositoryInterface;
@@ -73,9 +72,6 @@ use App\Contracts\Repositories\RoleRepositoryInterface;
 use App\Repositories\PermissionRepository;
 use App\Contracts\Repositories\PermissionRepositoryInterface;
 // Duplicate imports removed
-
-use App\Repositories\EloquentStatusGroupRepository;
-use App\Contracts\Repositories\StatusGroupRepositoryInterface;
 
 use App\Contracts\Repositories\MissCampaignRepositoryInterface;
 use App\Repositories\AgencyRepository;
@@ -174,10 +170,10 @@ class RepositoryServiceProvider extends ServiceProvider
             AgencyTypeRepository::class
         );
 
-        // $this->app->bind(
-        //     AgencyGroupRepositoryInterface::class,
-        //      EloquentAgencyGroupRepository::class
-        // );
+        $this->app->bind(
+            AgencyGroupRepositoryInterface::class,
+            AgencyGroupRepository::class
+        );
 
         $this->app->bind(
             CityRepositoryInterface::class,

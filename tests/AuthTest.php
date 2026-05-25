@@ -21,10 +21,7 @@ class AuthTest extends TestCase
         ]);
         putenv('JWT_SECRET=testingsecret');
         $_ENV['JWT_SECRET'] = 'testingsecret';
-        $this->artisan('migrate', ['--path' => 'database/migrations/2024_01_01_000001_create_users_table.php']);
-        $this->artisan('migrate', ['--path' => 'database/migrations/2024_01_01_000002_create_profiles_table.php']);
-        $this->artisan('migrate', ['--path' => 'database/migrations/2025_10_17_141736_login_logs.php']);
-        $this->artisan('migrate', ['--path' => 'database/migrations/2025_11_05_094917_laratrust_setup_tables.php']);
+        $this->artisan('migrate', ['--force' => true]);
     }
 
     public function test_register_success()

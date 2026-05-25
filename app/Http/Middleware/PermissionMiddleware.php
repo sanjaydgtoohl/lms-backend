@@ -35,10 +35,14 @@ class PermissionMiddleware
      */
     public function handle(Request $request, Closure $next, $permissions)
     {
-        $user = $request->user ?? $request->user();
+        $user = $request->user();
 
         if (!$user) {
             return $this->responseService->unauthorized('Unauthenticated');
+        }
+
+        if ($user->hasRole('admin')) {
+            return $next($request);
         }
 
         // Convert single permission to array

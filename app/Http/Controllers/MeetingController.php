@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\LeadService;
 use App\Services\MeetingService;
 use App\Services\ResponseService;
 use App\Http\Resources\MeetingResource;
@@ -13,10 +14,6 @@ use Throwable;
 use DomainException;
 use Illuminate\Validation\ValidationException;
 use App\Services\GoogleCalendarService;
-use App\Models\Lead;
-use App\Models\Status;
-use App\Models\CallStatus;
-use App\Models\Priority;
 
 /**
  * Controller for managing meetings.
@@ -30,6 +27,7 @@ class MeetingController extends Controller
     protected $meetingService;
     protected $responseService;
     protected $googleCalendarService;
+    protected $leadService;
 
     /**
      * Create a new MeetingController instance.
@@ -37,12 +35,18 @@ class MeetingController extends Controller
      * @param MeetingService $meetingService Service for meeting operations
      * @param ResponseService $responseService Service for standardized API responses
      * @param GoogleCalendarService $googleCalendarService Service for Google Calendar integration
+     * @param LeadService $leadService Service for lead workflow updates
      */
-    public function __construct(MeetingService $meetingService, ResponseService $responseService, GoogleCalendarService $googleCalendarService)
-    {
+    public function __construct(
+        MeetingService $meetingService,
+        ResponseService $responseService,
+        GoogleCalendarService $googleCalendarService,
+        LeadService $leadService
+    ) {
         $this->meetingService = $meetingService;
         $this->responseService = $responseService;
         $this->googleCalendarService = $googleCalendarService;
+        $this->leadService = $leadService;
     }
 
     /**
@@ -169,47 +173,11 @@ class MeetingController extends Controller
              */
             if (!empty($validatedData['lead_id'])) {
                 try {
-                    // Get Meeting Schedule status
-                    $meetingScheduleStatus = Status::where('name', 'Meeting Schedule')->first();
-                    
-                    // Get Meeting Schedule call status
-                    $meetingScheduleCallStatus = CallStatus::where('name', 'Meeting Schedule')->first();
-                    
-                    // Get Medium priority
-                    $mediumPriority = Priority::where('name', 'Medium')->first();
-                    
-                    $updateData = [];
-                    
-                    if ($meetingScheduleStatus) {
-                        $updateData['lead_status'] = $meetingScheduleStatus->id;
-                    }
-                    
-                    if ($meetingScheduleCallStatus) {
-                        $updateData['call_status'] = $meetingScheduleCallStatus->id;
-                    }
-                    
-                    if ($mediumPriority) {
-                        $updateData['priority_id'] = $mediumPriority->id;
-                    }
-                    
-                    if (!empty($updateData)) {
-                        Lead::where('id', $validatedData['lead_id'])->update($updateData);
-                        
-                        Log::info('Lead details updated for meeting creation', [
-                            'lead_id' => $validatedData['lead_id'],
-                            'status_id' => $updateData['lead_status'] ?? null,
-                            'call_status_id' => $updateData['call_status'] ?? null,
-                            'priority_id' => $updateData['priority_id'] ?? null
-                        ]);
-                    } else {
-                        Log::warning('No matching statuses or priority found for lead update', [
-                            'lead_id' => $validatedData['lead_id']
-                        ]);
-                    }
+                    $this->leadService->applyMeetingScheduleWorkflow((int) $validatedData['lead_id']);
                 } catch (Throwable $e) {
-                    Log::error('Error updating lead details', [
+                    Log::error('Error updating lead details for meeting creation', [
                         'lead_id' => $validatedData['lead_id'],
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
@@ -296,7 +264,14 @@ class MeetingController extends Controller
             // Status values: 1 = scheduled, 2 = in progress, 15 = completed/done
             if (isset($validatedData['status']) && $validatedData['status'] == '15') {
                 $leadIdToUpdate = isset($validatedData['lead_id']) ? $validatedData['lead_id'] : $meeting->lead_id;
-                $this->updateLeadStatusOnMeetingComplete($leadIdToUpdate);
+                try {
+                    $this->leadService->applyMeetingCompleteWorkflow((int) $leadIdToUpdate);
+                } catch (Throwable $e) {
+                    Log::error('Error updating lead on meeting complete', [
+                        'lead_id' => $leadIdToUpdate,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             // Update Google Calendar event if it exists
@@ -428,50 +403,4 @@ class MeetingController extends Controller
         }
     }
 
-    /**
-     * Update lead status when meeting is completed
-     */
-    private function updateLeadStatusOnMeetingComplete(int $leadId): void
-    {
-        try {
-            // Get Meeting Done status
-            $meetingDoneStatus = Status::where('name', 'Meeting Done')->first();
-            
-            // Get Meeting Done call status
-            $meetingDoneCallStatus = CallStatus::where('name', 'Meeting Done')->first();
-            
-            // Get Medium priority (Meeting Done falls under Medium priority based on seeder)
-            $mediumPriority = Priority::where('name', 'Medium')->first();
-            
-            $updateData = [];
-            
-            if ($meetingDoneStatus) {
-                $updateData['lead_status'] = $meetingDoneStatus->id;
-            }
-            
-            if ($meetingDoneCallStatus) {
-                $updateData['call_status'] = $meetingDoneCallStatus->id;
-            }
-            
-            if ($mediumPriority) {
-                $updateData['priority_id'] = $mediumPriority->id;
-            }
-            
-            if (!empty($updateData)) {
-                Lead::where('id', $leadId)->update($updateData);
-                
-                Log::info('Lead status updated to Meeting Done', [
-                    'lead_id' => $leadId,
-                    'status_id' => $updateData['lead_status'] ?? null,
-                    'call_status_id' => $updateData['call_status'] ?? null,
-                    'priority_id' => $updateData['priority_id'] ?? null
-                ]);
-            }
-        } catch (Throwable $e) {
-            Log::error('Error updating lead status on meeting complete', [
-                'lead_id' => $leadId,
-                'error' => $e->getMessage()
-            ]);
-        }
-    }
 }
