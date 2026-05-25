@@ -137,7 +137,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsByBrandId(int $brandId, int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->where('brand_id', $brandId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
@@ -155,7 +156,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsByAgencyId(int $agencyId, int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->where('agency_id', $agencyId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
@@ -173,7 +175,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsByAssignedUser(int $userId, int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->where('current_assign_user', $userId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
@@ -191,7 +194,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsByStatus(string $status, int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->where('status', $status)
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
@@ -208,7 +212,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsByPriority(int $priorityId, int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->where('priority_id', $priorityId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
@@ -225,6 +230,7 @@ class LeadRepository implements LeadRepositoryInterface
     {
         return $this->model
             ->select('id', 'name')
+            ->notDeleted()
             ->where('status', '1')
             ->orderBy('id', 'asc')
             ->get();
@@ -807,9 +813,10 @@ class LeadRepository implements LeadRepositoryInterface
     public function getPendingLeads(int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->whereHas('leadStatusRelation', function ($query) {
-                $query->where('statuses.slug', 'pending');
+                $query->whereNull('statuses.deleted_at')->where('statuses.slug', 'pending');
             }, '>=', 1)
             ->where('leads.status', '1')
             ->orderBy('leads.created_at', 'desc')
@@ -918,7 +925,7 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLatestTwoFollowUpLeads()
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'follow-up');
             })
@@ -935,7 +942,7 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLatestTwoMeetingScheduledLeads()
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'meeting-schedule');
             })
@@ -952,7 +959,7 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLatestTwoMeetingDoneLeads()
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'meeting-done');
             })
