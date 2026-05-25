@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             CitySeeder::class,
             UserSeeder::class,
             LaratrustDummySeeder::class,
+            PermissionSeeder::class,
             LeadSourceSeeder::class,
             AgencyTypeSeeder::class,
             BrandTypeSeeder::class,

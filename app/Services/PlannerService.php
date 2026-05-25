@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Planner;
+use App\Models\PlannerStatus;
 use App\Repositories\PlannerRepository;
 use App\Traits\HandlesFileUploads;
 use DomainException;
@@ -114,6 +115,10 @@ class PlannerService
                     $data['status'] = $data['status'] ?? '1';
                     $data['uuid'] = Str::uuid();
 
+                    if (empty($data['planner_status_id'])) {
+                        $data['planner_status_id'] = $this->resolveDefaultPlannerStatusId();
+                    }
+
                     // Handle submitted plan files
                     if (isset($data['submitted_plan']) && is_array($data['submitted_plan'])) {
                         try {
@@ -156,7 +161,9 @@ class PlannerService
                         $data['backup_plan'] = null;
                     }
 
-                    return $this->plannerRepository->createPlanner($data);
+                    $planner = $this->plannerRepository->createPlanner($data);
+
+                    return $planner->load(['brief', 'creator', 'plannerStatus']);
                 } catch (QueryException $e) {
                     Log::error('Database error creating planner', ['exception' => $e, 'data' => $data]);
                     throw new DomainException('Database error while creating planner.');
@@ -168,6 +175,16 @@ class PlannerService
             Log::error('Unexpected error creating planner', ['exception' => $e]);
             throw new DomainException('Unexpected error while creating planner.');
         }
+    }
+
+    /**
+     * Default status when creating a planner (avoids a second update + duplicate history).
+     */
+    protected function resolveDefaultPlannerStatusId(): ?int
+    {
+        $status = PlannerStatus::where('name', 'Plan Submitted')->first();
+
+        return $status?->id;
     }
 
     /**
