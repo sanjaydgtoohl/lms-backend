@@ -101,7 +101,7 @@ class LeadRepository implements LeadRepositoryInterface
         }
 
         return $query
-            ->orderBy('created_at', 'desc')
+            ->orderByDesc('updated_at')
             ->paginate($perPage)
             ->appends(request()->query());
     }
@@ -288,7 +288,7 @@ class LeadRepository implements LeadRepositoryInterface
         }
 
         return $query
-            ->orderBy('created_at', 'desc')
+            ->orderByDesc('updated_at')
             ->paginate($perPage)
             ->appends(request()->query());
     }
