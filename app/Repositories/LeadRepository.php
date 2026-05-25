@@ -231,45 +231,26 @@ class LeadRepository implements LeadRepositoryInterface
      */
     public function getLeadsWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator
     {
-        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS);
+        $query = $this->model
+            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->accessibleToUser(Auth::user());
 
-        // Apply filters if provided
-        if (isset($filters['brand_id'])) {
-            $query->where('brand_id', $filters['brand_id']);
-        }
-
-        if (isset($filters['agency_id'])) {
-            $query->where('agency_id', $filters['agency_id']);
-        }
-
-        if (isset($filters['current_assign_user'])) {
-            $query->where('current_assign_user', $filters['current_assign_user']);
-        }
-
-        if (isset($filters['priority_id'])) {
-            $query->where('priority_id', $filters['priority_id']);
-        }
+        $this->applyIdFilter($query, 'brand_id', $filters['brand_id'] ?? null);
+        $this->applyIdFilter($query, 'agency_id', $filters['agency_id'] ?? null);
+        $this->applyIdFilter($query, 'current_assign_user', $filters['current_assign_user'] ?? null);
+        $this->applyIdFilter($query, 'priority_id', $filters['priority_id'] ?? null);
+        $this->applyIdFilter($query, 'created_by', $filters['created_by'] ?? null);
+        $this->applyIdFilter($query, 'sub_source_id', $filters['sub_source_id'] ?? null);
+        $this->applyIdFilter($query, 'call_status', $filters['call_status'] ?? null);
+        $this->applyIdFilter($query, 'lead_type_id', $filters['lead_type_id'] ?? null);
+        $this->applyIdFilter($query, 'country_id', $filters['country_id'] ?? null);
+        $this->applyIdFilter($query, 'state_id', $filters['state_id'] ?? null);
+        $this->applyIdFilter($query, 'city_id', $filters['city_id'] ?? null);
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         } else {
             $query->where('status', '1');
-        }
-
-        if (isset($filters['lead_type_id'])) {
-            $query->where('lead_type_id', $filters['lead_type_id']);
-        }
-
-        if (isset($filters['country_id'])) {
-            $query->where('country_id', $filters['country_id']);
-        }
-
-        if (isset($filters['state_id'])) {
-            $query->where('state_id', $filters['state_id']);
-        }
-
-        if (isset($filters['city_id'])) {
-            $query->where('city_id', $filters['city_id']);
         }
 
         if (isset($filters['search'])) {
@@ -291,6 +272,31 @@ class LeadRepository implements LeadRepositoryInterface
             ->orderByDesc('updated_at')
             ->paginate($perPage)
             ->appends(request()->query());
+    }
+
+    /**
+     * Apply a single ID or list of IDs (comma-separated values from query string).
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $column
+     * @param int|array<int>|null $value
+     */
+    protected function applyIdFilter($query, string $column, $value): void
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return;
+        }
+
+        if (is_array($value)) {
+            $ids = array_values(array_filter(array_map('intval', $value)));
+            if ($ids !== []) {
+                $query->whereIn($column, $ids);
+            }
+
+            return;
+        }
+
+        $query->where($column, (int) $value);
     }
 
     // ============================================================================
