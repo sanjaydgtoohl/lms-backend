@@ -12,7 +12,6 @@ use App\Traits\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
-use Tymon\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
@@ -67,8 +66,8 @@ class AuthController extends Controller
             );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Registration validation failed');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Registration failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -117,8 +116,8 @@ class AuthController extends Controller
             );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Login validation failed');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Login failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -152,8 +151,8 @@ class AuthController extends Controller
             }
             
             return $this->responseService->serverError('Logout failed');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Logout failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -180,10 +179,8 @@ class AuthController extends Controller
             );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
-        } catch (JWTException $e) {
-            return $this->responseService->unauthorized($e->getMessage() ?: 'Invalid or expired refresh token');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Token refresh failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -203,8 +200,8 @@ class AuthController extends Controller
             }
             
             return $this->responseService->success(new \App\Http\Resources\UserResource($user), 'User profile retrieved successfully');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Failed to retrieve user profile: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -230,8 +227,8 @@ class AuthController extends Controller
             return $this->responseService->notFound('User not found');
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Failed to send reset email: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -258,8 +255,8 @@ class AuthController extends Controller
             return $this->responseService->serverError('Password reset failed');
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Password reset failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 }
