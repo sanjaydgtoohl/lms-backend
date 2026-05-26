@@ -13,51 +13,12 @@
 
 /** @var \Laravel\Lumen\Routing\Router $router */
 
-use App\Http\Controllers\Api\AuthController;
-use Illuminate\Support\Facades\Redirect;
-
-
+use Carbon\Carbon;
 
 // Handle CORS preflight requests
 $router->options('{any:.*}', function () {
     return response('', 200);
 });
-
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\IndustryController;
-use App\Http\Controllers\DesignationController;
-use App\Http\Controllers\DepartmentController;
-use App\Http\Controllers\LeadSourceController;
-use App\Http\Controllers\LeadSubSourceController;
-use App\Http\Controllers\AgencyGroupController;
-use App\Http\Controllers\AgencyTypeController;
-use App\Http\Controllers\AgencyController;
-use App\Http\Controllers\CountryController;
-use App\Http\Controllers\BrandController;
-use App\Http\Controllers\BrandTypeController;
-use App\Http\Controllers\RegionController;
-use App\Http\Controllers\ZoneController;
-use App\Http\Controllers\StateController;
-use App\Http\Controllers\CityController;
-use App\Http\Controllers\BrandAgencyRelationshipController;
-use App\Http\Controllers\LeadController;
-use App\Http\Controllers\CallStatusController;
-use App\Http\Controllers\StatusController;
-use App\Http\Controllers\PriorityController;
-use App\Http\Controllers\MissCampaignController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\BriefStatusController;
-use App\Http\Controllers\BriefController;
-use App\Http\Controllers\MeetingController;
-use App\Http\Controllers\PlannerController;
-use App\Http\Controllers\PlannerHistoryController;
-use App\Http\Controllers\PlannerStatusController;
-use App\Http\Controllers\ActivityLogController;
-use App\Http\Controllers\MediaTypeController;
-use App\Http\Controllers\OrganisationController;
-use App\Models\GoogleCalender;
-use Carbon\Carbon;
 
 // -------------------------------------------------------
 // Public routes (no authentication required)
@@ -69,6 +30,7 @@ $router->group(['prefix' => 'v1'], function () use ($router) {
     $router->group(['prefix' => 'auth'], function () use ($router) {     
         $router->post('register', 'Api\AuthController@register');
         $router->post('login', 'Api\AuthController@login');
+        $router->post('refresh', 'Api\AuthController@refresh');
         $router->post('forgot-password','Api\AuthController@forgotPassword');
         $router->post('reset-password', 'Api\AuthController@resetPassword');
     });
@@ -83,29 +45,40 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Auth routes
     $router->group(['prefix' => 'auth'], function () use ($router) {
         $router->post('logout', 'Api\AuthController@logout');
-        $router->post('refresh', 'Api\AuthController@refresh');
         $router->get('me', 'Api\AuthController@me');
     });
 
-    // User routes
-    $router->group(['prefix' => 'users'], function () use ($router) {
+    // User routes (permission-protected)
+    $router->group(['prefix' => 'users', 'middleware' => 'permission:users.read'], function () use ($router) {
         $router->get('/', 'Api\UserController@index');
         $router->get('list', 'Api\UserController@list');
         $router->get('search', 'Api\UserController@search');
         $router->get('statistics', 'Api\UserController@statistics');
         $router->get('{id}', 'Api\UserController@show');
+    });
+
+    $router->group(['prefix' => 'users', 'middleware' => 'permission:users.create'], function () use ($router) {
         $router->post('/', 'Api\UserController@store');
+    });
+
+    $router->group(['prefix' => 'users', 'middleware' => 'permission:users.update'], function () use ($router) {
         $router->put('{id}', 'Api\UserController@update');
-        $router->delete('{id}', 'Api\UserController@destroy');
         $router->post('{id}/change-password', 'Api\UserController@changePassword');
     });
 
+    $router->group(['prefix' => 'users', 'middleware' => 'permission:users.delete'], function () use ($router) {
+        $router->delete('{id}', 'Api\UserController@destroy');
+    });
+
     // Profile routes
-    $router->group(['prefix' => 'profile'], function () use ($router) {
+    $router->group(['prefix' => 'profile', 'middleware' => 'permission:profile.read'], function () use ($router) {
         $router->get('/', 'Api\UserController@me');
-        $router->put('/', 'Api\UserController@updateProfile');
         $router->get('login-history', 'Api\UserController@getLoginHistory');
         $router->get('child-users', 'Api\UserController@getChildUsers');
+    });
+
+    $router->group(['prefix' => 'profile', 'middleware' => 'permission:profile.update'], function () use ($router) {
+        $router->put('/', 'Api\UserController@updateProfile');
     });
 
     // Industry routes
@@ -299,33 +272,49 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->delete('{id:[0-9]+}', 'ZoneController@destroy');
     });
 
-    // Roles routes
-    $router->group(['prefix' => 'roles'], function () use ($router) {
+    // Roles routes (permission-protected)
+    $router->group(['prefix' => 'roles', 'middleware' => 'permission:roles.read'], function () use ($router) {
         $router->get('/', 'RoleController@index');
         $router->get('list', 'RoleController@list');
-        $router->post('/', 'RoleController@store');
         $router->get('{id:[0-9]+}', 'RoleController@show');
         $router->get('{id:[0-9]+}/users', 'RoleController@getUsers');
+    });
+
+    $router->group(['prefix' => 'roles', 'middleware' => 'permission:roles.create'], function () use ($router) {
+        $router->post('/', 'RoleController@store');
+    });
+
+    $router->group(['prefix' => 'roles', 'middleware' => 'permission:roles.update'], function () use ($router) {
         $router->put('{id:[0-9]+}', 'RoleController@update');
         $router->patch('{id:[0-9]+}', 'RoleController@update');
-        $router->delete('{id:[0-9]+}', 'RoleController@destroy');
-
-        // Permissions management for a role
         $router->post('{id:[0-9]+}/permissions', 'RoleController@syncPermissions');
         $router->post('{id:[0-9]+}/permissions/attach', 'RoleController@attachPermission');
         $router->post('{id:[0-9]+}/permissions/detach', 'RoleController@detachPermission');
     });
 
-    // Permissions routes
+    $router->group(['prefix' => 'roles', 'middleware' => 'permission:roles.delete'], function () use ($router) {
+        $router->delete('{id:[0-9]+}', 'RoleController@destroy');
+    });
+
+    // Permissions routes (reads available to all authenticated users for sidebar/navigation)
     $router->group(['prefix' => 'permissions'], function () use ($router) {
         $router->get('/', 'PermissionController@index');
         $router->get('list', 'PermissionController@list');
         $router->get('sidebar', 'PermissionController@sidebar');
         $router->get('all-permission-tree', 'PermissionController@allPermissionTree');
-        $router->post('/', 'PermissionController@store');
         $router->get('{id:[0-9]+}', 'PermissionController@show');
+    });
+
+    $router->group(['prefix' => 'permissions', 'middleware' => 'permission:roles.create'], function () use ($router) {
+        $router->post('/', 'PermissionController@store');
+    });
+
+    $router->group(['prefix' => 'permissions', 'middleware' => 'permission:roles.update'], function () use ($router) {
         $router->put('{id:[0-9]+}', 'PermissionController@update');
         $router->patch('{id:[0-9]+}', 'PermissionController@update');
+    });
+
+    $router->group(['prefix' => 'permissions', 'middleware' => 'permission:roles.delete'], function () use ($router) {
         $router->delete('{id:[0-9]+}', 'PermissionController@destroy');
     });
     
@@ -403,6 +392,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Miss Campaign routes
     $router->group(['prefix' => 'miss-campaigns'], function () use ($router) {
         $router->get('/', 'MissCampaignController@index');
+        $router->get('/export', 'MissCampaignController@export');
         $router->post('/', 'MissCampaignController@store');
         $router->get('/list', 'MissCampaignController@list');
         $router->get('/{id:[0-9]+}', 'MissCampaignController@show');      

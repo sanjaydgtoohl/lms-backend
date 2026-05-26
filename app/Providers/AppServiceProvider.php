@@ -14,6 +14,7 @@ use App\Contracts\Repositories\UserRepositoryInterface;
 use App\Contracts\Repositories\UserParentRepositoryInterface;
 use App\Contracts\Repositories\NotificationRepositoryInterface;
 use App\Services\NotificationService;
+use App\Exceptions\ApiExceptionRenderer;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +25,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->app->singleton(ResponseService::class);
+
+        $this->app->singleton(ApiExceptionRenderer::class, function ($app) {
+            return new ApiExceptionRenderer($app->make(ResponseService::class));
+        });
+
         // Bind services
         $this->app->bind(RoleService::class, function ($app) {
             return new RoleService(

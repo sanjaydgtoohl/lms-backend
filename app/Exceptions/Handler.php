@@ -2,92 +2,70 @@
 
 namespace App\Exceptions;
 
-use App\Services\ResponseService;
-use Illuminate\Auth\AuthenticationException;
+use DomainException;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Laravel\Lumen\Exceptions\Handler as ExceptionHandler;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class Handler extends ExceptionHandler
 {
     /**
-     * A list of the exception types that should not be reported.
+     * Exceptions that should not be reported to the logs.
      *
-     * @var array
+     * @var array<int, class-string<Throwable>>
      */
     protected $dontReport = [
+        AuthenticationException::class,
         AuthorizationException::class,
         HttpException::class,
         ModelNotFoundException::class,
         ValidationException::class,
+        JWTException::class,
+        DomainException::class,
     ];
 
     /**
      * Report or log an exception.
-     *
-     * This is a great spot to send exceptions to Sentry, Bugsnag, etc.
-     *
-     * @param  \Throwable  $exception
-     * @return void
-     *
-     * @throws \Exception
      */
-    public function report(Throwable $exception)
+    public function report(Throwable $exception): void
     {
         parent::report($exception);
     }
 
     /**
      * Render an exception into an HTTP response.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Throwable  $exception
-     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
-     *
-     * @throws \Throwable
      */
     public function render($request, Throwable $exception)
     {
-        // For API routes, return a consistent JSON structure
-        if ($request->expectsJson() || $request->is('api/*')) {
-            /** @var ResponseService $responses */
-            $responses = app(ResponseService::class);
-
-            // Validation
-            if ($exception instanceof ValidationException) {
-                return $responses->validationError($exception->errors(), 'Validation failed');
-            }
-
-            // Authentication
-            if ($exception instanceof AuthenticationException) {
-                return $responses->unauthorized('Authentication required');
-            }
-
-            // Authorization
-            if ($exception instanceof AuthorizationException) {
-                return $responses->forbidden('Insufficient permissions');
-            }
-
-            // Not found (route or model)
-            if ($exception instanceof NotFoundHttpException || $exception instanceof ModelNotFoundException) {
-                return $responses->notFound('Resource not found');
-            }
-
-            // Method not allowed
-            if ($exception instanceof MethodNotAllowedHttpException) {
-                return $responses->methodNotAllowed('Method not allowed for this route');
-            }
-
-            // HTTP exceptions and unhandled
-            return $responses->handleException($exception);
+        if ($this->shouldRenderAsApi($request)) {
+            return app(ApiExceptionRenderer::class)->render($exception);
         }
 
-        // Fallback to default rendering for non-API routes
         return parent::render($request, $exception);
+    }
+
+    /**
+     * Determine if the request should receive the standard API JSON error envelope.
+     */
+    protected function shouldRenderAsApi($request): bool
+    {
+        if (!$request instanceof Request) {
+            return false;
+        }
+
+        if ($request->expectsJson()) {
+            return true;
+        }
+
+        $path = ltrim($request->path(), '/');
+
+        return str_starts_with($path, 'api/')
+            || str_starts_with($path, 'v1/');
     }
 }

@@ -212,53 +212,14 @@ class ResponseService
     }
 
     /**
-     * Handle exception and return appropriate response
+     * Handle exception and return the standard API error envelope.
      *
      * @param Throwable $exception
      * @return JsonResponse
      */
     public function handleException(Throwable $exception): JsonResponse
     {
-        if ($exception instanceof ValidationException) {
-            return $this->validationError($exception->errors(), 'Validation failed');
-        }
-
-        if ($exception instanceof AuthenticationException) {
-            return $this->unauthorized('Authentication required');
-        }
-
-        if ($exception instanceof AuthorizationException) {
-            return $this->forbidden('Insufficient permissions');
-        }
-
-        if ($exception instanceof ModelNotFoundException) {
-            return $this->notFound('Resource not found');
-        }
-
-        if ($exception instanceof NotFoundHttpException) {
-            return $this->notFound('Route not found');
-        }
-
-        if ($exception instanceof MethodNotAllowedHttpException) {
-            return $this->methodNotAllowed('Method not allowed for this route');
-        }
-
-        if ($exception instanceof HttpException) {
-            return $this->error(
-                $exception->getMessage() ?: 'HTTP error occurred',
-                null,
-                $exception->getStatusCode(),
-                'HTTP_ERROR'
-            );
-        }
-
-        // Log the exception for debugging
-        Log::error('Unhandled exception: ' . $exception->getMessage(), [
-            'exception' => $exception,
-            'trace' => $exception->getTraceAsString()
-        ]);
-
-        return $this->serverError('An unexpected error occurred');
+        return app(\App\Exceptions\ApiExceptionRenderer::class)->render($exception);
     }
 
     /**

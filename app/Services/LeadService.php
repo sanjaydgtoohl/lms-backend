@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Events\LeadAssignedEvent;
 use App\Events\LeadCallStatusAddedEvent;
+use App\Events\LeadStatusChangedEvent;
+use App\Models\CallStatus;
+use App\Models\Priority;
+use App\Models\Status;
 
 class LeadService
 {
@@ -374,6 +378,7 @@ class LeadService
                 // Get previous call status before update
                 $lead = $this->leadRepository->getLeadById($leadId);
                 $previousCallStatusId = $lead ? $lead->call_status : null;
+                $previousLeadStatus = $lead ? $lead->lead_status : null;
 
                 // Restrict update if last call status was updated within 1 hour
                 // Use lockForUpdate to prevent concurrent modifications
@@ -413,6 +418,11 @@ class LeadService
                         'note' => 'Event not fired due to missing authentication context'
                     ]);
                 }
+
+                if ($result) {
+                    $this->dispatchLeadStatusChangedEvent($leadId, $previousLeadStatus);
+                }
+
                 return $result;
             });
         } catch (DomainException $e) {
@@ -665,6 +675,124 @@ class LeadService
             Log::error('Unexpected error fetching latest two meeting done leads', ['exception' => $e]);
             throw new DomainException('Unexpected error while fetching latest meeting done leads.');
         }
+    }
+
+    /**
+     * Update lead workflow fields (lead_status, call_status, priority_id) and dispatch notifications.
+     *
+     * @param int $leadId
+     * @param array $fields
+     * @return bool
+     * @throws DomainException
+     */
+    public function updateLeadWorkflowFields(int $leadId, array $fields): bool
+    {
+        $allowed = array_intersect_key($fields, array_flip(['lead_status', 'call_status', 'priority_id']));
+
+        if (empty($allowed)) {
+            return false;
+        }
+
+        try {
+            $lead = $this->leadRepository->getLeadById($leadId);
+
+            if (!$lead) {
+                throw new DomainException('Lead not found.');
+            }
+
+            $previousLeadStatus = $lead->lead_status;
+            $result = $this->leadRepository->updateLead($leadId, $allowed);
+
+            if ($result) {
+                $this->dispatchLeadStatusChangedEvent($leadId, $previousLeadStatus);
+            }
+
+            return $result;
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            Log::error('Database error updating lead workflow fields', ['lead_id' => $leadId, 'fields' => $fields, 'exception' => $e]);
+            throw new DomainException('Database error while updating lead workflow fields.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error updating lead workflow fields', ['lead_id' => $leadId, 'fields' => $fields, 'exception' => $e]);
+            throw new DomainException('Unexpected error while updating lead workflow fields.');
+        }
+    }
+
+    /**
+     * Apply workflow updates when a meeting is scheduled for a lead.
+     */
+    public function applyMeetingScheduleWorkflow(int $leadId): bool
+    {
+        $updateData = [];
+
+        $meetingScheduleStatus = Status::where('name', 'Meeting Schedule')->first();
+        $meetingScheduleCallStatus = CallStatus::where('name', 'Meeting Schedule')->first();
+        $mediumPriority = Priority::where('name', 'Medium')->first();
+
+        if ($meetingScheduleStatus) {
+            $updateData['lead_status'] = $meetingScheduleStatus->id;
+        }
+
+        if ($meetingScheduleCallStatus) {
+            $updateData['call_status'] = $meetingScheduleCallStatus->id;
+        }
+
+        if ($mediumPriority) {
+            $updateData['priority_id'] = $mediumPriority->id;
+        }
+
+        if (empty($updateData)) {
+            Log::warning('No matching statuses or priority found for meeting schedule workflow', ['lead_id' => $leadId]);
+            return false;
+        }
+
+        return $this->updateLeadWorkflowFields($leadId, $updateData);
+    }
+
+    /**
+     * Apply workflow updates when a meeting is marked complete.
+     */
+    public function applyMeetingCompleteWorkflow(int $leadId): bool
+    {
+        $updateData = [];
+
+        $meetingDoneStatus = Status::where('name', 'Meeting Done')->first();
+        $meetingDoneCallStatus = CallStatus::where('name', 'Meeting Done')->first();
+        $mediumPriority = Priority::where('name', 'Medium')->first();
+
+        if ($meetingDoneStatus) {
+            $updateData['lead_status'] = $meetingDoneStatus->id;
+        }
+
+        if ($meetingDoneCallStatus) {
+            $updateData['call_status'] = $meetingDoneCallStatus->id;
+        }
+
+        if ($mediumPriority) {
+            $updateData['priority_id'] = $mediumPriority->id;
+        }
+
+        if (empty($updateData)) {
+            Log::warning('No matching statuses or priority found for meeting complete workflow', ['lead_id' => $leadId]);
+            return false;
+        }
+
+        return $this->updateLeadWorkflowFields($leadId, $updateData);
+    }
+
+    /**
+     * Fire lead status changed notification when lead_status column changes.
+     */
+    protected function dispatchLeadStatusChangedEvent(int $leadId, ?int $previousLeadStatus): void
+    {
+        $lead = $this->leadRepository->getLeadById($leadId);
+
+        if (!$lead || !$lead->lead_status || $lead->lead_status == $previousLeadStatus) {
+            return;
+        }
+
+        event(new LeadStatusChangedEvent($leadId, (int) $lead->lead_status));
     }
 }
 

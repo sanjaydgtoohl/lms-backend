@@ -20,29 +20,34 @@ use Illuminate\Support\Str;
 class LeadRepository implements LeadRepositoryInterface
 {
     /**
-     * Default relationships to eager load.
+     * Eager-load relations; skip soft-deleted related records where applicable.
      *
-     * @var array<string>
+     * @return array<string|callable>
      */
-    protected const DEFAULT_RELATIONSHIPS = [
-        'brand',
-        'agency',
-        'leadType',
-        'assignedUser',
-        'createdByUser',
-        'priority',
-        'designation',
-        'department',
-        'subSource',
-        'country',
-        'state',
-        'city',
-        'zone',
-        'statusRelation',
-        'callStatusRelation',
-        'leadStatusRelation',
-        'mobileNumbers',
-    ];
+    protected function eagerLoadRelations(): array
+    {
+        $notTrashed = static fn (string $table) => static fn ($query) => $query->whereNull($table . '.deleted_at');
+
+        return [
+            'brand' => $notTrashed('brands'),
+            'agency' => $notTrashed('agency'),
+            'leadType' => $notTrashed('lead_types'),
+            'assignedUser' => $notTrashed('users'),
+            'createdByUser' => $notTrashed('users'),
+            'priority' => $notTrashed('priorities'),
+            'designation' => $notTrashed('designations'),
+            'department' => $notTrashed('departments'),
+            'subSource' => $notTrashed('lead_sub_source'),
+            'country',
+            'state',
+            'city',
+            'zone' => $notTrashed('zones'),
+            'statusRelation' => $notTrashed('statuses'),
+            'callStatusRelation' => $notTrashed('call_statuses'),
+            'leadStatusRelation' => $notTrashed('statuses'),
+            'mobileNumbers',
+        ];
+    }
 
     /**
      * @var Lead
@@ -74,7 +79,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getAllLeads(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator
     {
         $query = $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->accessibleToUser(Auth::user());
 
         // Apply search filter if search term is provided
@@ -83,13 +89,13 @@ class LeadRepository implements LeadRepositoryInterface
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('email', 'LIKE', "%{$searchTerm}%")
                   ->orWhereHas('brand', function ($brandQuery) use ($searchTerm) {
-                      $brandQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $brandQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('agency', function ($agencyQuery) use ($searchTerm) {
-                      $agencyQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $agencyQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('assignedUser', function ($userQuery) use ($searchTerm) {
-                      $userQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                      $userQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$searchTerm}%");
                   })
                   ->orWhereHas('mobileNumbers', function ($mobileQuery) use ($searchTerm) {
                       $mobileQuery->where('mobile_number', 'LIKE', "%{$searchTerm}%");
@@ -101,7 +107,7 @@ class LeadRepository implements LeadRepositoryInterface
         }
 
         return $query
-            ->orderBy('created_at', 'desc')
+            ->orderByDesc('updated_at')
             ->paginate($perPage)
             ->appends(request()->query());
     }
@@ -115,7 +121,9 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadById(int $id): ?Lead
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
+            ->accessibleToUser(Auth::user())
             ->find($id);
     }
 
@@ -129,7 +137,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsByBrandId(int $brandId, int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->where('brand_id', $brandId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
@@ -147,7 +156,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsByAgencyId(int $agencyId, int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->where('agency_id', $agencyId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
@@ -165,7 +175,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsByAssignedUser(int $userId, int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->where('current_assign_user', $userId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
@@ -183,7 +194,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsByStatus(string $status, int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->where('status', $status)
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
@@ -200,7 +212,8 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLeadsByPriority(int $priorityId, int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->where('priority_id', $priorityId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
@@ -217,6 +230,7 @@ class LeadRepository implements LeadRepositoryInterface
     {
         return $this->model
             ->select('id', 'name')
+            ->notDeleted()
             ->where('status', '1')
             ->orderBy('id', 'asc')
             ->get();
@@ -231,45 +245,27 @@ class LeadRepository implements LeadRepositoryInterface
      */
     public function getLeadsWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator
     {
-        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS);
+        $query = $this->model
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
+            ->accessibleToUser(Auth::user());
 
-        // Apply filters if provided
-        if (isset($filters['brand_id'])) {
-            $query->where('brand_id', $filters['brand_id']);
-        }
-
-        if (isset($filters['agency_id'])) {
-            $query->where('agency_id', $filters['agency_id']);
-        }
-
-        if (isset($filters['current_assign_user'])) {
-            $query->where('current_assign_user', $filters['current_assign_user']);
-        }
-
-        if (isset($filters['priority_id'])) {
-            $query->where('priority_id', $filters['priority_id']);
-        }
+        $this->applyIdFilter($query, 'brand_id', $filters['brand_id'] ?? null);
+        $this->applyIdFilter($query, 'agency_id', $filters['agency_id'] ?? null);
+        $this->applyIdFilter($query, 'current_assign_user', $filters['current_assign_user'] ?? null);
+        $this->applyIdFilter($query, 'priority_id', $filters['priority_id'] ?? null);
+        $this->applyIdFilter($query, 'created_by', $filters['created_by'] ?? null);
+        $this->applyIdFilter($query, 'sub_source_id', $filters['sub_source_id'] ?? null);
+        $this->applyIdFilter($query, 'call_status', $filters['call_status'] ?? null);
+        $this->applyIdFilter($query, 'lead_type_id', $filters['lead_type_id'] ?? null);
+        $this->applyIdFilter($query, 'country_id', $filters['country_id'] ?? null);
+        $this->applyIdFilter($query, 'state_id', $filters['state_id'] ?? null);
+        $this->applyIdFilter($query, 'city_id', $filters['city_id'] ?? null);
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         } else {
             $query->where('status', '1');
-        }
-
-        if (isset($filters['lead_type_id'])) {
-            $query->where('lead_type_id', $filters['lead_type_id']);
-        }
-
-        if (isset($filters['country_id'])) {
-            $query->where('country_id', $filters['country_id']);
-        }
-
-        if (isset($filters['state_id'])) {
-            $query->where('state_id', $filters['state_id']);
-        }
-
-        if (isset($filters['city_id'])) {
-            $query->where('city_id', $filters['city_id']);
         }
 
         if (isset($filters['search'])) {
@@ -279,7 +275,7 @@ class LeadRepository implements LeadRepositoryInterface
                   ->orWhere('email', 'LIKE', "%{$search}%")
                   ->orWhere('profile_url', 'LIKE', "%{$search}%")
                   ->orWhereHas('agency', function ($agencyQuery) use ($search) {
-                      $agencyQuery->where('name', 'LIKE', "%{$search}%");
+                      $agencyQuery->whereNull('deleted_at')->where('name', 'LIKE', "%{$search}%");
                   })
                   ->orWhereHas('mobileNumbers', function ($mobileQuery) use ($search) {
                       $mobileQuery->where('mobile_number', 'LIKE', "%{$search}%");
@@ -288,9 +284,34 @@ class LeadRepository implements LeadRepositoryInterface
         }
 
         return $query
-            ->orderBy('created_at', 'desc')
+            ->orderByDesc('updated_at')
             ->paginate($perPage)
             ->appends(request()->query());
+    }
+
+    /**
+     * Apply a single ID or list of IDs (comma-separated values from query string).
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $column
+     * @param int|array<int>|null $value
+     */
+    protected function applyIdFilter($query, string $column, $value): void
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return;
+        }
+
+        if (is_array($value)) {
+            $ids = array_values(array_filter(array_map('intval', $value)));
+            if ($ids !== []) {
+                $query->whereIn($column, $ids);
+            }
+
+            return;
+        }
+
+        $query->where($column, (int) $value);
     }
 
     // ============================================================================
@@ -792,9 +813,10 @@ class LeadRepository implements LeadRepositoryInterface
     public function getPendingLeads(int $perPage = 10): LengthAwarePaginator
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
             ->whereHas('leadStatusRelation', function ($query) {
-                $query->where('statuses.slug', 'pending');
+                $query->whereNull('statuses.deleted_at')->where('statuses.slug', 'pending');
             }, '>=', 1)
             ->where('leads.status', '1')
             ->orderBy('leads.created_at', 'desc')
@@ -903,7 +925,7 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLatestTwoFollowUpLeads()
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'follow-up');
             })
@@ -920,7 +942,7 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLatestTwoMeetingScheduledLeads()
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'meeting-schedule');
             })
@@ -937,7 +959,7 @@ class LeadRepository implements LeadRepositoryInterface
     public function getLatestTwoMeetingDoneLeads()
     {
         return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
+            ->with($this->eagerLoadRelations())
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'meeting-done');
             })

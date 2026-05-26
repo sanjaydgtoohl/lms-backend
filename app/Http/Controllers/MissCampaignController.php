@@ -126,6 +126,41 @@ class MissCampaignController extends Controller
     }
 
     /**
+     * Export miss campaigns to CSV in public folder and return download URL.
+     *
+     * GET /miss-campaigns/export
+     *
+     * Query: search (optional)
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function export(Request $request): JsonResponse
+    {
+        try {
+            $this->validate($request, [
+                'search' => 'nullable|string|max:255',
+            ]);
+
+            $export = $this->missCampaignService->exportMissCampaignsToCsvFile(
+                $request->input('search')
+            );
+
+            return $this->responseService->success(
+                $export,
+                'Miss campaigns exported successfully'
+            );
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError(
+                $e->errors(),
+                'Validation failed'
+            );
+        } catch (Throwable $e) {
+            return $this->responseService->handleException($e);
+        }
+    }
+
+    /**
      * Display the specified miss campaign.
      * Authorization: Super Admin, assign_by user, or assign_to user can view assignment fields
      *
@@ -219,7 +254,7 @@ class MissCampaignController extends Controller
 
         
             $leads = new Lead();
-            $leads->name = $validatedData['name'];
+            // $leads->name = $validatedData['name'];
             $leads->uuid = Str::uuid();
             $leads->brand_id = $validatedData['brand_id'];  
             $leads->sub_source_id = $validatedData['lead_sub_source_id'];
