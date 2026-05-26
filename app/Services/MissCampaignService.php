@@ -27,10 +27,40 @@ use Illuminate\Support\Str;
 
 class MissCampaignService
 {
+    /** Records loaded per DB chunk when writing CSV (keeps memory flat). */
+    public const EXPORT_CHUNK_SIZE = 500;
+
+    /** Relative path for exported CSV files (under storage/app/public, served as /storage/...). */
+    public const EXPORT_DIRECTORY = 'exports/miss-campaigns';
+
     /**
      * @var MissCampaignRepositoryInterface
      */
     protected MissCampaignRepositoryInterface $missCampaignRepository;
+
+    /**
+     * CSV column headers for miss campaign export.
+     *
+     * @var array<int, string>
+     */
+    protected const EXPORT_CSV_HEADERS = [
+        'ID',
+        'Name',
+        'Brand',
+        'Lead Source',
+        'Lead Sub Source',
+        'Media Type',
+        'Industry',
+        'Country',
+        'State',
+        'City',
+        'Assigned By',
+        'Assigned To',
+        'Lead ID',
+        'Image URL',
+        'Created At',
+        'Updated At',
+    ];
 
     /**
      * Create a new MissCampaignService instance.
@@ -65,6 +95,201 @@ class MissCampaignService
             Log::error('Unexpected error fetching miss campaigns', ['exception' => $e]);
             throw new DomainException('Unexpected error while fetching miss campaigns.');
         }
+    }
+
+    /**
+     * Count miss campaigns matching export filters.
+     *
+     * @param string|null $searchTerm
+     * @return int
+     * @throws DomainException
+     */
+    public function countMissCampaignsForExport(?string $searchTerm = null): int
+    {
+        try {
+            return $this->missCampaignRepository->countMissCampaignsForExport($searchTerm);
+        } catch (QueryException $e) {
+            Log::error('Database error counting miss campaigns for export', ['exception' => $e]);
+            throw new DomainException('Database error while counting miss campaigns for export.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error counting miss campaigns for export', ['exception' => $e]);
+            throw new DomainException('Unexpected error while counting miss campaigns for export.');
+        }
+    }
+
+    /**
+     * Export miss campaigns to CSV (storage/app/public, URL via /storage/ symlink).
+     *
+     * @param string|null $searchTerm
+     * @return array<string, mixed>
+     * @throws DomainException
+     */
+    public function exportMissCampaignsToCsvFile(?string $searchTerm = null): array
+    {
+        try {
+            if (function_exists('set_time_limit')) {
+                @set_time_limit(0);
+            }
+
+            $total = $this->countMissCampaignsForExport($searchTerm);
+            $filename = 'miss-campaigns-' . now()->format('Y-m-d-His') . '-' . Str::lower(Str::random(6)) . '.csv';
+            $exportLocation = $this->prepareExportLocation($filename);
+
+            $handle = fopen($exportLocation['absolute_path'], 'w');
+            if ($handle === false) {
+                throw new DomainException('Unable to create export file.');
+            }
+
+            try {
+                fwrite($handle, "\xEF\xBB\xBF");
+                fputcsv($handle, self::EXPORT_CSV_HEADERS);
+
+                $this->missCampaignRepository->eachMissCampaignExportChunk(
+                    $searchTerm,
+                    self::EXPORT_CHUNK_SIZE,
+                    function ($campaigns) use ($handle) {
+                        foreach ($campaigns as $campaign) {
+                            fputcsv($handle, $this->mapMissCampaignToCsvRow($campaign));
+                        }
+                        fflush($handle);
+                    }
+                );
+            } finally {
+                fclose($handle);
+            }
+
+            if (!is_file($exportLocation['absolute_path'])) {
+                throw new DomainException('Export file was not created.');
+            }
+
+            $fileSize = filesize($exportLocation['absolute_path']);
+
+            return [
+                'file_name' => $filename,
+                'file_path' => $exportLocation['file_path'],
+                'file_url' => $exportLocation['file_url'],
+                'total_records' => $total,
+                'file_size' => $fileSize === false ? 0 : $fileSize,
+                'mime_type' => 'text/csv',
+                'exported_at' => now()->format('Y-m-d H:i:s A'),
+            ];
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            Log::error('Database error exporting miss campaigns to file', ['exception' => $e]);
+            throw new DomainException('Database error while exporting miss campaigns.');
+        } catch (\Throwable $e) {
+            Log::error('Unexpected error exporting miss campaigns to file', [
+                'exception' => $e,
+                'message' => $e->getMessage(),
+            ]);
+
+            $message = 'Unexpected error while exporting miss campaigns.';
+            if (filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) {
+                $message .= ' ' . $e->getMessage();
+            }
+
+            throw new DomainException($message);
+        }
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected function mapMissCampaignToCsvRow(MissCampaign $campaign): array
+    {
+        return [
+            $campaign->id,
+            $campaign->name,
+            $campaign->brand?->name ?? '',
+            $campaign->leadSource?->name ?? '',
+            $campaign->leadSubSource?->name ?? '',
+            $campaign->mediaType?->name ?? '',
+            $campaign->industry?->name ?? '',
+            $campaign->country?->name ?? '',
+            $campaign->state?->name ?? '',
+            $campaign->city?->name ?? '',
+            $campaign->assignBy?->name ?? '',
+            $campaign->assignTo?->name ?? '',
+            $campaign->leads_id ?? '',
+            $this->resolveExportImageUrl($campaign->image_path),
+            $campaign->created_at?->format('Y-m-d H:i:s') ?? '',
+            $campaign->updated_at?->format('Y-m-d H:i:s') ?? '',
+        ];
+    }
+
+    /**
+     * Resolve a writable export directory and public download URL.
+     *
+     * Prefers storage/app/public (writable by www-data on Ubuntu) over public/.
+     *
+     * @return array{absolute_path: string, file_path: string, file_url: string}
+     */
+    protected function prepareExportLocation(string $filename): array
+    {
+        $relativeDir = self::EXPORT_DIRECTORY;
+        $baseUrl = rtrim((string) config('app.url', 'http://localhost'), '/');
+
+        $candidates = [
+            [
+                'directory' => app()->basePath('storage/app/public/' . $relativeDir),
+                'file_path' => $relativeDir . '/' . $filename,
+                'url_path' => 'storage/' . $relativeDir . '/' . $filename,
+            ],
+            [
+                'directory' => app()->basePath('public/' . $relativeDir),
+                'file_path' => $relativeDir . '/' . $filename,
+                'url_path' => $relativeDir . '/' . $filename,
+            ],
+        ];
+
+        foreach ($candidates as $candidate) {
+            $directory = $candidate['directory'];
+
+            if (!is_dir($directory) && !@mkdir($directory, 0775, true) && !is_dir($directory)) {
+                continue;
+            }
+
+            if (!is_writable($directory)) {
+                continue;
+            }
+
+            return [
+                'absolute_path' => $directory . DIRECTORY_SEPARATOR . $filename,
+                'file_path' => $candidate['file_path'],
+                'file_url' => $baseUrl . '/' . $candidate['url_path'],
+            ];
+        }
+
+        throw new DomainException(
+            'Export directory is not writable. On the server run: '
+            . 'sudo mkdir -p storage/app/public/' . $relativeDir
+            . ' && sudo chown -R www-data:www-data storage/app/public/' . $relativeDir
+            . ' && sudo chmod -R 775 storage/app/public/' . $relativeDir
+        );
+    }
+
+    /**
+     * Build a public URL for an export row image (no Storage/public_path dependency).
+     */
+    protected function resolveExportImageUrl(?string $imagePath): string
+    {
+        if ($imagePath === null || $imagePath === '') {
+            return '';
+        }
+
+        if (Str::startsWith($imagePath, ['http://', 'https://'])) {
+            return $imagePath;
+        }
+
+        $baseUrl = rtrim((string) config('app.url', 'http://localhost'), '/');
+        $path = ltrim(str_replace('\\', '/', $imagePath), '/');
+
+        if (Str::startsWith($path, 'storage/')) {
+            return $baseUrl . '/' . $path;
+        }
+
+        return $baseUrl . '/storage/' . $path;
     }
 
     /**

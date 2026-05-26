@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class AuthService
 {
@@ -108,7 +109,15 @@ class AuthService
     public function logout(): bool
     {
         try {
+            $user = JWTAuth::parseToken()->authenticate();
+
+            if ($user) {
+                $user->refresh_token = null;
+                $user->save();
+            }
+
             JWTAuth::invalidate(JWTAuth::getToken());
+
             return true;
         } catch (JWTException $e) {
             return false;
@@ -116,58 +125,150 @@ class AuthService
     }
 
     /**
-     * Refresh token
+     * Refresh access token using refresh_token (body) or expired JWT (Authorization header).
      *
-     * @param Request|null $request
+     * @param Request $request
      * @return array
-     * @throws JWTException
+     * @throws JWTException|ValidationException
      */
-    public function refresh(?Request $request = null): array
+    public function refresh(Request $request): array
     {
-        // The user should already be in the request from middleware
-        $user = null;
-        if ($request) {
-            $user = $request->user;
+        $refreshToken = $this->resolveRefreshTokenFromRequest($request);
+
+        if ($refreshToken !== null) {
+            return $this->refreshWithDatabaseToken($refreshToken);
         }
-        
-        // If no user from request, try to get from auth
-        if (!$user) {
-            try {
-                $user = JWTAuth::user();
-            } catch (\Exception $e) {
-                // Ignore
+
+        $bearer = $request->bearerToken();
+        if (!empty($bearer)) {
+            return $this->refreshWithJwt($request);
+        }
+
+        throw new JWTException('Refresh token is required');
+    }
+
+    /**
+     * Read refresh_token from JSON body, form body, or query (supports refreshToken camelCase).
+     */
+    protected function resolveRefreshTokenFromRequest(Request $request): ?string
+    {
+        $candidates = [
+            $request->input('refresh_token'),
+            $request->input('refreshToken'),
+            $request->query('refresh_token'),
+            $request->query('refreshToken'),
+        ];
+
+        foreach ($candidates as $value) {
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
             }
         }
-        
-        // If still no user, try to get from token payload
+
+        $content = $request->getContent();
+        if (is_string($content) && $content !== '') {
+            $decoded = json_decode($content, true);
+            if (is_array($decoded)) {
+                foreach (['refresh_token', 'refreshToken'] as $key) {
+                    if (!empty($decoded[$key]) && is_string($decoded[$key])) {
+                        return trim($decoded[$key]);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Issue new tokens using the refresh_token stored on the user record.
+     */
+    protected function refreshWithDatabaseToken(string $refreshToken): array
+    {
+        $user = User::where('refresh_token', $refreshToken)->first();
+
         if (!$user) {
+            throw new JWTException('Invalid or expired refresh token');
+        }
+
+        if (!$user->isActive()) {
+            throw new JWTException('User account is inactive');
+        }
+
+        return $this->issueTokenPair($user);
+    }
+
+    /**
+     * Issue new tokens by refreshing an existing JWT (including expired within refresh TTL).
+     */
+    protected function refreshWithJwt(Request $request): array
+    {
+        try {
+            $user = JWTAuth::parseToken()->authenticate();
+
+            if (!$user) {
+                throw new JWTException('Invalid or expired access token');
+            }
+
+            if (!$user->isActive()) {
+                throw new JWTException('User account is inactive');
+            }
+
+            $token = JWTAuth::refresh(JWTAuth::getToken());
+
+            return $this->rotateRefreshTokenAndReturn($user, $token);
+        } catch (TokenExpiredException $e) {
             try {
                 $payload = JWTAuth::parseToken()->getPayload();
                 $userId = $payload->get('sub');
-                $user = $this->userService->getUserById($userId);
-            } catch (\Exception $e) {
-                throw new JWTException('User not found');
+                $user = $this->userService->getUserById((int) $userId);
+
+                if (!$user || !$user->isActive()) {
+                    throw new JWTException('Invalid or expired access token');
+                }
+
+                $token = JWTAuth::refresh(JWTAuth::getToken());
+
+                return $this->rotateRefreshTokenAndReturn($user, $token);
+            } catch (\Exception $inner) {
+                throw new JWTException('Invalid or expired access token');
             }
+        } catch (JWTException $e) {
+            throw new JWTException($e->getMessage() ?: 'Invalid or expired access token');
         }
-        
-        if (!$user) {
-            throw new JWTException('User not found');
+    }
+
+    /**
+     * Generate JWT + new refresh_token for a user.
+     */
+    protected function issueTokenPair(User $user): array
+    {
+        $token = $user->generateToken();
+
+        if (!is_string($token) || str_contains($token, 'Token')) {
+            throw new JWTException('Unable to generate access token');
         }
-        
-        // Refresh the token
-        $token = JWTAuth::refresh(JWTAuth::getToken());
-        
-        // Generate new refresh token
+
+        return $this->rotateRefreshTokenAndReturn($user, $token);
+    }
+
+    /**
+     * Persist a new refresh_token and build the auth response payload.
+     */
+    protected function rotateRefreshTokenAndReturn(User $user, string $accessToken): array
+    {
         $refreshToken = Str::random(64);
         $user->refresh_token = $refreshToken;
         $user->save();
 
+        $user->load('roles');
+
         return [
             'user' => $user,
-            'token' => $token,
+            'token' => $accessToken,
             'refresh_token' => $refreshToken,
             'token_type' => 'bearer',
-            'expires_in' => JWTAuth::factory()->getTTL() * 60
+            'expires_in' => JWTAuth::factory()->getTTL() * 60,
         ];
     }
 

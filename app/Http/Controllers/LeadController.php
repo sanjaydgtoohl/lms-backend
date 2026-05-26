@@ -56,27 +56,24 @@ class LeadController extends Controller
             $this->validate($request, [
                 'per_page' => 'nullable|integer|min:1',
                 'search' => 'nullable|string|max:255',
-                'brand_id' => 'nullable|integer|exists:brands,id',
-                'agency_id' => 'nullable|integer|exists:agency,id',
-                'current_assign_user' => 'nullable|integer|exists:users,id',
-                'priority_id' => 'nullable|integer|exists:priorities,id',
+                'brand_id' => 'nullable',
+                'agency_id' => 'nullable',
+                'current_assign_user' => 'nullable',
+                'priority_id' => 'nullable',
+                'lead_sub_source_id' => 'nullable',
+                'created_by' => 'nullable',
+                'call_status_id' => 'nullable',
                 'status' => 'nullable|in:1,2,15',
             ]);
 
             $perPage = (int) $request->input('per_page', 15);
-            $searchTerm = $request->input('search', null);
+            $searchTerm = $request->input('search');
 
-            // If filters are provided, use the filter method
-            if ($request->has(['brand_id', 'agency_id', 'current_assign_user', 'priority_id', 'status'])) {
-                $filters = array_filter([
-                    'brand_id' => $request->input('brand_id'),
-                    'agency_id' => $request->input('agency_id'),
-                    'current_assign_user' => $request->input('current_assign_user'),
-                    'priority_id' => $request->input('priority_id'),
-                    'status' => $request->input('status'),
-                    'search' => $searchTerm,
-                ]);
-                $leads = $this->leadService->getLeadsWithFilters($filters, $perPage);
+            if ($this->requestHasLeadIndexFilters($request)) {
+                $leads = $this->leadService->getLeadsWithFilters(
+                    $this->buildLeadIndexFilters($request, $searchTerm),
+                    $perPage
+                );
             } else {
                 $leads = $this->leadService->getAllLeads($perPage, $searchTerm);
             }
@@ -93,6 +90,90 @@ class LeadController extends Controller
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
         }
+    }
+
+    /**
+     * Query params that trigger filtered listing (all optional).
+     */
+    protected function requestHasLeadIndexFilters(Request $request): bool
+    {
+        foreach ([
+            'brand_id',
+            'agency_id',
+            'current_assign_user',
+            'priority_id',
+            'status',
+            'lead_sub_source_id',
+            'created_by',
+            'call_status_id',
+            'search',
+        ] as $key) {
+            if ($request->filled($key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Build repository filters from index query string (supports comma-separated IDs).
+     */
+    protected function buildLeadIndexFilters(Request $request, ?string $search = null): array
+    {
+        $filters = array_filter([
+            'brand_id' => $this->parseOptionalIdFilter($request, 'brand_id'),
+            'agency_id' => $this->parseOptionalIdFilter($request, 'agency_id'),
+            'current_assign_user' => $this->parseOptionalIdFilter($request, 'current_assign_user'),
+            'priority_id' => $this->parseOptionalIdFilter($request, 'priority_id'),
+            'sub_source_id' => $this->parseOptionalIdFilter($request, 'lead_sub_source_id'),
+            'created_by' => $this->parseOptionalIdFilter($request, 'created_by'),
+            'call_status' => $this->parseOptionalIdFilter($request, 'call_status_id'),
+            'status' => $request->input('status'),
+            'search' => $search,
+        ], fn ($value) => $value !== null && $value !== '' && $value !== []);
+
+        return $filters;
+    }
+
+    /**
+     * Parse ?key=1 or ?key=1,2,3 (also accepts array query values).
+     *
+     * @return int|array<int>|null
+     */
+    protected function parseOptionalIdFilter(Request $request, string $key): array|int|null
+    {
+        if (!$request->filled($key)) {
+            return null;
+        }
+
+        $value = $request->input($key);
+
+        if (is_array($value)) {
+            $ids = array_values(array_filter(array_map('intval', $value), fn ($id) => $id > 0));
+
+            return $this->normalizeIdFilterValue($ids);
+        }
+
+        $ids = array_values(array_filter(
+            array_map('intval', array_map('trim', explode(',', (string) $value))),
+            fn ($id) => $id > 0
+        ));
+
+        return $this->normalizeIdFilterValue($ids);
+    }
+
+    /**
+     * @param array<int> $ids
+     * @return int|array<int>|null
+     */
+    protected function normalizeIdFilterValue(array $ids): array|int|null
+    {
+        if ($ids === []) {
+            return null;
+        }
+
+        return count($ids) === 1 ? $ids[0] : $ids;
     }
 
     /**

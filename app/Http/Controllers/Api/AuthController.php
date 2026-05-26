@@ -66,8 +66,8 @@ class AuthController extends Controller
             );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Registration validation failed');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Registration failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -116,8 +116,8 @@ class AuthController extends Controller
             );
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Login validation failed');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Login failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -151,8 +151,8 @@ class AuthController extends Controller
             }
             
             return $this->responseService->serverError('Logout failed');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Logout failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -165,14 +165,22 @@ class AuthController extends Controller
     public function refresh(Request $request): JsonResponse
     {
         try {
-            $result = $this->authService->refresh();
-            
+            $result = $this->authService->refresh($request);
+
             return $this->responseService->success(
-                new AuthResource($result['user'], $result['token'], $result['token_type'], $result['expires_in'], $result['refresh_token'] ?? null),
+                new AuthResource(
+                    $result['user'],
+                    $result['token'],
+                    $result['token_type'],
+                    $result['expires_in'],
+                    $result['refresh_token'] ?? null
+                ),
                 'Token refreshed successfully'
             );
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Token refresh failed: ' . $e->getMessage());
+        } catch (ValidationException $e) {
+            return $this->responseService->validationError($e->errors(), 'Validation failed');
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -192,8 +200,8 @@ class AuthController extends Controller
             }
             
             return $this->responseService->success(new \App\Http\Resources\UserResource($user), 'User profile retrieved successfully');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Failed to retrieve user profile: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -219,8 +227,8 @@ class AuthController extends Controller
             return $this->responseService->notFound('User not found');
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Failed to send reset email: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 
@@ -247,8 +255,8 @@ class AuthController extends Controller
             return $this->responseService->serverError('Password reset failed');
         } catch (ValidationException $e) {
             return $this->responseService->validationError($e->errors(), 'Validation failed');
-        } catch (\Exception $e) {
-            return $this->responseService->serverError('Password reset failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->responseService->handleException($e);
         }
     }
 }

@@ -40,6 +40,11 @@ class JwtAuthMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
+        // Refresh uses refresh_token in body — must not require JWT
+        if ($request->is('api/v1/auth/refresh') || $request->is('v1/auth/refresh')) {
+            return $next($request);
+        }
+
         try {
             // Try to authenticate the user
             $user = JWTAuth::parseToken()->authenticate();
