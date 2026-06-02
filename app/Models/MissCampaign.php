@@ -187,23 +187,30 @@ class MissCampaign extends BaseModel
      */
     public function scopeAccessibleToUser(\Illuminate\Database\Eloquent\Builder $query, $user = null): \Illuminate\Database\Eloquent\Builder
     {
-        $user = $user ?? auth()->user();
+        $users = User::with('parents')->find(auth()->user()->id)->toArray();
+        $user = $this->makeArrayUsers($users['parents']);
+        array_push($user, auth()->user()->id);
+        
 
         // If no user is authenticated, return empty query
         if (!$user) {
             return $query->whereRaw('0 = 1');
         }
 
-        // Super Admin can view all campaigns
-        if ($user->hasRole('Super Admin')) {
-            return $query;
-        }
-
         // Others can see campaigns where they are the assign_by or assign_to
         return $query->where(function (\Illuminate\Database\Eloquent\Builder $q) use ($user) {
-            $q->where('assign_by', $user->id)
-              ->orWhere('assign_to', $user->id);
+            $q->whereIn('assign_by', $user)
+              ->orWhereIn('assign_to', $user);
         });
+    }
+
+    private function makeArrayUsers(array $user): array
+    {
+        $users = [];
+        foreach ($user as $u) {
+            $users[] = $u['id'];
+        }
+        return $users;
     }
 
 }
