@@ -172,6 +172,9 @@ class UserController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         try {
+            $id = (int) trim($id);
+            
+             // Validate fields (only validate if they are present in the request)
             $success = $this->userService->updateUser($id, $request->all());
             
             if (!$success) {

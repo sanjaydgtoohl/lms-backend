@@ -63,6 +63,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
 
     $router->group(['prefix' => 'users', 'middleware' => 'permission:users.update'], function () use ($router) {
         $router->put('{id}', 'Api\UserController@update');
+        $router->post('{id}', 'Api\UserController@update');
         $router->post('{id}/change-password', 'Api\UserController@changePassword');
     });
 
