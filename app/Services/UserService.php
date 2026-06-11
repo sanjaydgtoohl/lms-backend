@@ -397,6 +397,12 @@ class UserService
         // Insert new parent relationships
         $insertData = [];
         foreach ($parentIds as $parentId) {
+            $parentId = (int) $parentId;
+
+            if ($parentId <= 0) {
+                continue;
+            }
+
             // Ensure parent user exists and is not the same as the user
             if ($parentId !== $userId && $this->userRepository->find($parentId)) {
                 $insertData[] = [
