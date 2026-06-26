@@ -413,11 +413,35 @@ class BriefRepository implements BriefRepositoryInterface
             ->selectRaw('AVG(DATEDIFF(submission_date, created_at)) as avg_days')
             ->value('avg_days');
 
+        $briefIds = (clone $baseQuery)->pluck('briefs.id');
+        $assignedPlans = $briefIds->isEmpty()
+            ? 0
+            : \App\Models\Planner::query()
+                ->whereNull('deleted_at')
+                ->whereIn('brief_id', $briefIds)
+                ->count();
+
+        $avgAssignmentDays = 0;
+        if (!$briefIds->isEmpty()) {
+            $plannerQuery = \App\Models\Planner::query()
+                ->whereNull('planners.deleted_at')
+                ->whereIn('planners.brief_id', $briefIds);
+
+            $submittedQuery = \App\Support\PlannerMetrics::applySubmittedPlansScope(clone $plannerQuery);
+            $avgAssignmentDays = $submittedQuery
+                ->selectRaw(
+                    'AVG(' . \App\Support\PlannerMetrics::assignmentToSubmissionDaysSql() . ') as avg_days'
+                )
+                ->value('avg_days');
+        }
+
         return [
             'active_briefs' => $activeBriefs,
             'closed_briefs' => $closedBriefs,
-            'overdue_time' => $overdueTime ?? 0,
+            'overdue_briefs' => $overdueTime ?? 0,
+            'assigned_plans' => $assignedPlans,
             'average_planning_time_days' => $averagePlanningTime ? round($averagePlanningTime, 2) : 0,
+            'average_assignment_days' => $avgAssignmentDays ? round((float) $avgAssignmentDays, 1) : 0,
         ];
     }
 

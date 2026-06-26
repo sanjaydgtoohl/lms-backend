@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Lead;
 use App\Models\Brief;
+use App\Models\Planner;
 use App\Models\MissCampaign;
 use App\Models\Organisation;
 use App\Contracts\Repositories\LeadRepositoryInterface;
 use App\Support\DashboardFilters;
+use App\Support\PlannerMetrics;
 use App\Support\UserAccessScope;
 use Exception;
 use Illuminate\Support\Facades\Auth;
@@ -254,6 +256,8 @@ class DashboardService
         try {
             $user = Auth::user();
             $charts = $this->getChartMetrics($filters);
+            $plannerRows = $this->getPlannerOrganisationMetrics($filters);
+            $plannerByOrgId = collect($plannerRows)->keyBy('organisation_id');
 
             $briefQuery = Brief::query()
                 ->accessibleToUser($user)
@@ -261,20 +265,28 @@ class DashboardService
                 ->whereRaw('briefs.status != 15');
             DashboardFilters::applyBriefDashboardFilters($briefQuery, $filters, 'briefs');
 
-            $byOrganisation = array_map(static function (array $row) {
+            $byOrganisation = array_map(static function (array $row) use ($plannerByOrgId) {
+                $planner = $plannerByOrgId->get($row['organisation_id'], []);
+
                 return [
                     'organisation_id' => $row['organisation_id'],
                     'organisation_name' => $row['organisation_name'],
                     'briefs' => $row['briefs'],
                     'brief_budget' => $row['brief_budget'],
+                    'assigned_plans' => (int) ($planner['assigned_plans'] ?? 0),
+                    'avg_assignment_days' => (float) ($planner['avg_assignment_days'] ?? 0),
                 ];
             }, $charts['by_organisation']);
+
+            $overallAvgAssignmentDays = $this->calculateOverallAssignmentDays($user, $filters);
 
             return [
                 'by_organisation' => $byOrganisation,
                 'totals' => [
                     'briefs' => $charts['totals']['briefs'],
                     'brief_budget' => $charts['totals']['brief_budget'],
+                    'assigned_plans' => (int) array_sum(array_column($byOrganisation, 'assigned_plans')),
+                    'avg_assignment_days' => $overallAvgAssignmentDays,
                 ],
                 'brief_status' => [
                     'active_briefs' => (int) (clone $briefQuery)->whereDate('submission_date', '>=', now())->count(),
@@ -288,5 +300,113 @@ class DashboardService
             Log::error('Error fetching planner dashboard chart metrics', ['exception' => $e]);
             throw new Exception('Unable to fetch planner dashboard chart metrics');
         }
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return list<array<string, mixed>>
+     */
+    private function getPlannerOrganisationMetrics(array $filters): array
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return [];
+        }
+
+        if (
+            empty($filters['organisation_ids'])
+            && !UserAccessScope::isSuperAdmin($user)
+            && empty(UserAccessScope::getAccessibleOrganisationIds($user))
+        ) {
+            return [$this->buildOrganisationPlannerRow($user, 0, 'My Data', $filters)];
+        }
+
+        $organisationsQuery = Organisation::query()->orderBy('name');
+        if (!empty($filters['organisation_ids'])) {
+            $organisationsQuery->whereIn('id', $filters['organisation_ids']);
+        } elseif (!UserAccessScope::isSuperAdmin($user)) {
+            $accessibleOrgIds = UserAccessScope::getAccessibleOrganisationIds($user);
+            if (!empty($accessibleOrgIds)) {
+                $organisationsQuery->whereIn('id', $accessibleOrgIds);
+            }
+        }
+
+        $rows = [];
+        foreach ($organisationsQuery->get(['id', 'name']) as $organisation) {
+            $organisationFilter = array_merge($filters, [
+                'organisation_ids' => [(int) $organisation->id],
+            ]);
+            $rows[] = $this->buildOrganisationPlannerRow(
+                $user,
+                (int) $organisation->id,
+                (string) $organisation->name,
+                $organisationFilter
+            );
+        }
+
+        if ($rows === [] && !UserAccessScope::isSuperAdmin($user)) {
+            return [$this->buildOrganisationPlannerRow($user, 0, 'My Data', $filters)];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    private function buildOrganisationPlannerRow($user, int $organisationId, string $organisationName, array $filters): array
+    {
+        $plannerQuery = Planner::query()
+            ->whereNull('planners.deleted_at')
+            ->whereHas('brief', function ($query) use ($user, $filters) {
+                $query->accessibleToUser($user)
+                    ->whereNull('briefs.deleted_at')
+                    ->whereRaw('briefs.status != 15');
+                DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
+            });
+
+        $assignedPlans = (int) (clone $plannerQuery)->count();
+        $avgAssignmentDays = self::calculateAverageAssignmentToSubmissionDays($plannerQuery);
+
+        return [
+            'organisation_id' => $organisationId,
+            'organisation_name' => $organisationName,
+            'assigned_plans' => $assignedPlans,
+            'avg_assignment_days' => $avgAssignmentDays ? round((float) $avgAssignmentDays, 1) : 0,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    private function calculateOverallAssignmentDays($user, array $filters): float
+    {
+        $plannerQuery = Planner::query()
+            ->whereNull('planners.deleted_at')
+            ->whereHas('brief', function ($query) use ($user, $filters) {
+                $query->accessibleToUser($user)
+                    ->whereNull('briefs.deleted_at')
+                    ->whereRaw('briefs.status != 15');
+                DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
+            });
+
+        return self::calculateAverageAssignmentToSubmissionDays($plannerQuery);
+    }
+
+    /**
+     * Average days from plan assignment (planner created) to plan submission.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $plannerQuery
+     */
+    private static function calculateAverageAssignmentToSubmissionDays($plannerQuery): float
+    {
+        $submittedQuery = PlannerMetrics::applySubmittedPlansScope(clone $plannerQuery);
+        $avgDays = $submittedQuery
+            ->selectRaw('AVG(' . PlannerMetrics::assignmentToSubmissionDaysSql() . ') as avg_days')
+            ->value('avg_days');
+
+        return $avgDays ? round((float) $avgDays, 1) : 0;
     }
 }
