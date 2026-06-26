@@ -283,7 +283,7 @@ class AuthService
             $user = JWTAuth::parseToken()->authenticate();
             // Eager load roles to include role_id and role_name in response
             if ($user) {
-                $user->load('roles');
+                $user->load(['roles', 'organisations', 'organisation']);
             }
             return $user;
         } catch (JWTException $e) {

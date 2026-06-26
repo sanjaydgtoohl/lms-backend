@@ -92,7 +92,7 @@ interface LeadRepositoryInterface
      * @param int $perPage The number of items per page.
      * @return LengthAwarePaginator
      */
-    public function getPendingLeads(int $perPage = 10): LengthAwarePaginator;
+    public function getPendingLeads(int $perPage = 10, array $filters = []): LengthAwarePaginator;
 
     // ============================================================================
     // WRITE OPERATIONS
@@ -181,14 +181,14 @@ interface LeadRepositoryInterface
      *
      * @return Collection
      */
-    public function getLatestTwoFollowUpLeads();
+    public function getLatestTwoFollowUpLeads(array $filters = []);
 
     /**
      * Get the latest two meeting-scheduled leads.
      *
      * @return Collection
      */    
-    public function getLatestTwoMeetingScheduledLeads();
+    public function getLatestTwoMeetingScheduledLeads(array $filters = []);
 
     /**
      * Get the latest two meeting-done leads.

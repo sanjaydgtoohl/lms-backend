@@ -505,10 +505,10 @@ class LeadService
      * @return LengthAwarePaginator
      * @throws DomainException
      */
-    public function getPendingLeads(int $perPage = 10): LengthAwarePaginator
+    public function getPendingLeads(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
         try {
-            return $this->leadRepository->getPendingLeads($perPage);
+            return $this->leadRepository->getPendingLeads($perPage, $filters);
         } catch (QueryException $e) {
             Log::error('Database error fetching pending leads', ['exception' => $e]);
             throw new DomainException('Database error while fetching pending leads.');
@@ -625,10 +625,10 @@ class LeadService
      * @return Collection
      * @throws DomainException
      */
-    public function getLatestTwoFollowUpLeads()
+    public function getLatestTwoFollowUpLeads(array $filters = [])
     {
         try {
-            return $this->leadRepository->getLatestTwoFollowUpLeads();
+            return $this->leadRepository->getLatestTwoFollowUpLeads($filters);
         } catch (QueryException $e) {
             Log::error('Database error fetching latest two follow-up leads', ['exception' => $e]);
             throw new DomainException('Database error while fetching latest follow-up leads.');
@@ -645,10 +645,10 @@ class LeadService
      * @throws DomainException
      */
 
-    public function getLatestTwoMeetingScheduledLeads()
+    public function getLatestTwoMeetingScheduledLeads(array $filters = [])
     {
         try {
-            return $this->leadRepository->getLatestTwoMeetingScheduledLeads();
+            return $this->leadRepository->getLatestTwoMeetingScheduledLeads($filters);
         } catch (QueryException $e) {
             Log::error('Database error fetching latest two  meeting scheduled leads', ['exception' => $e]);
             throw new DomainException('Database error while fetching latest meeting scheduled leads.');

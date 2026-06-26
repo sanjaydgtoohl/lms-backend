@@ -1,0 +1,261 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\Priority;
+use App\Models\User;
+use App\Support\UserAccessScope;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class DashboardFilters
+{
+    /**
+     * Parse dashboard filter params from the request.
+     *
+     * @return array{
+     *     date_from: ?string,
+     *     date_to: ?string,
+     *     organisation_ids: array<int>,
+     *     priority: ?string
+     * }
+     */
+    public static function fromRequest(Request $request): array
+    {
+        $organisationIds = $request->input('organisation_ids', []);
+        if (!is_array($organisationIds)) {
+            $organisationIds = [$organisationIds];
+        }
+
+        $organisationIds = array_values(array_filter(array_map('intval', $organisationIds)));
+
+        $priority = $request->query('priority');
+        if (is_string($priority) && strtolower(trim($priority)) === 'all') {
+            $priority = null;
+        }
+
+        $filters = [
+            'date_from' => $request->query('date_from') ?: null,
+            'date_to' => $request->query('date_to') ?: null,
+            'organisation_ids' => $organisationIds,
+            'priority' => $priority ?: null,
+        ];
+
+        $user = auth()->user();
+        if ($user) {
+            $filters = UserAccessScope::resolveOrganisationFilter($user, $filters);
+        }
+
+        return $filters;
+    }
+
+    public static function applyDateFilter(
+        Builder $query,
+        array $filters,
+        string $column = 'created_at'
+    ): Builder {
+        if (!empty($filters['date_from'])) {
+            $query->whereDate($column, '>=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->whereDate($column, '<=', $filters['date_to']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param array<int, string> $columns
+     */
+    public static function applyOrganisationUserFilter(
+        Builder $query,
+        array $filters,
+        array $columns,
+        ?string $table = null
+    ): Builder {
+        if (empty($filters['organisation_ids'])) {
+            return $query;
+        }
+
+        $userIds = self::getOrganisationUserIds($filters['organisation_ids']);
+        if (empty($userIds)) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        $query->where(function (Builder $builder) use ($columns, $userIds, $table) {
+            foreach ($columns as $index => $column) {
+                $qualifiedColumn = $table ? "{$table}.{$column}" : $column;
+
+                if ($index === 0) {
+                    $builder->whereIn($qualifiedColumn, $userIds);
+                    continue;
+                }
+
+                $builder->orWhereIn($qualifiedColumn, $userIds);
+            }
+        });
+
+        return $query;
+    }
+
+    public static function applyLeadPriorityFilter(
+        Builder $query,
+        array $filters,
+        ?string $table = null
+    ): Builder {
+        if (empty($filters['priority'])) {
+            return $query;
+        }
+
+        $priorityName = trim((string) $filters['priority']);
+        $priorityId = Priority::query()->where('name', $priorityName)->value('id');
+
+        if (!$priorityId) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        $column = $table ? "{$table}.priority_id" : 'priority_id';
+
+        return $query->where($column, $priorityId);
+    }
+
+    public static function applyLeadDashboardFilters(
+        Builder $query,
+        array $filters,
+        ?string $table = 'leads'
+    ): Builder {
+        self::applyDateFilter($query, $filters, "{$table}.created_at");
+        self::applyOrganisationUserFilter(
+            $query,
+            $filters,
+            ['created_by', 'current_assign_user'],
+            $table
+        );
+        self::applyLeadPriorityFilter($query, $filters, $table);
+
+        return $query;
+    }
+
+    public static function applyBriefDashboardFilters(
+        Builder $query,
+        array $filters,
+        ?string $table = 'briefs'
+    ): Builder {
+        self::applyDateFilter($query, $filters, "{$table}.created_at");
+        self::applyOrganisationUserFilter(
+            $query,
+            $filters,
+            ['created_by', 'assign_user_id'],
+            $table
+        );
+        self::applyLeadPriorityFilter($query, $filters, $table);
+
+        return $query;
+    }
+
+    public static function applyMissCampaignDashboardFilters(
+        Builder $query,
+        array $filters,
+        ?string $table = 'miss_campaigns'
+    ): Builder {
+        self::applyDateFilter($query, $filters, "{$table}.created_at");
+        self::applyMissCampaignOrganisationFilter($query, $filters, $table);
+
+        return $query;
+    }
+
+    public static function applyMissCampaignOrganisationFilter(
+        Builder $query,
+        array $filters,
+        ?string $table = 'miss_campaigns'
+    ): Builder {
+        if (empty($filters['organisation_ids'])) {
+            return $query;
+        }
+
+        $userIds = self::getOrganisationUserIds($filters['organisation_ids']);
+        if (empty($userIds)) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        $query->where(function (Builder $builder) use ($userIds, $table) {
+            $builder->whereIn("{$table}.assign_by", $userIds)
+                ->orWhereIn("{$table}.assign_to", $userIds)
+                ->orWhereHas('lead', function (Builder $leadQuery) use ($userIds) {
+                    $leadQuery->where(function (Builder $leadBuilder) use ($userIds) {
+                        $leadBuilder->whereIn('created_by', $userIds)
+                            ->orWhereIn('current_assign_user', $userIds);
+                    });
+                });
+        });
+
+        return $query;
+    }
+
+    public static function applyMeetingDashboardFilters(
+        Builder $query,
+        array $filters,
+        ?string $table = 'meetings'
+    ): Builder {
+        self::applyDateFilter($query, $filters, "{$table}.meeting_start_date");
+
+        if (empty($filters['organisation_ids'])) {
+            return $query;
+        }
+
+        $userIds = self::getOrganisationUserIds($filters['organisation_ids']);
+        if (empty($userIds)) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereHas('lead', function (Builder $leadQuery) use ($userIds) {
+            $leadQuery->where(function (Builder $builder) use ($userIds) {
+                $builder->whereIn('created_by', $userIds)
+                    ->orWhereIn('current_assign_user', $userIds);
+            });
+        });
+    }
+
+    public static function applyUserOrganisationFilter(Builder $query, array $filters): Builder
+    {
+        if (empty($filters['organisation_ids'])) {
+            return $query;
+        }
+
+        $userIds = self::getOrganisationUserIds($filters['organisation_ids']);
+        if (empty($userIds)) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereIn('id', $userIds);
+    }
+
+    /**
+     * @param array<int> $organisationIds
+     * @return array<int>
+     */
+    public static function getOrganisationUserIds(array $organisationIds): array
+    {
+        if (empty($organisationIds)) {
+            return [];
+        }
+
+        $pivotIds = DB::table('organisation_user')
+            ->whereIn('organisation_id', $organisationIds)
+            ->pluck('user_id');
+
+        $legacyIds = User::query()
+            ->whereIn('organisation_id', $organisationIds)
+            ->whereNull('deleted_at')
+            ->pluck('id');
+
+        return $pivotIds
+            ->merge($legacyIds)
+            ->unique()
+            ->values()
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+}

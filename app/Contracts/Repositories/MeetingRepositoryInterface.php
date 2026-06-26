@@ -19,7 +19,7 @@ interface MeetingRepositoryInterface
      * @param string|null $searchTerm Optional search term to filter meetings.
      * @return LengthAwarePaginator
      */
-    public function getAllMeetings(int $perPage = 10, ?string $searchTerm = null): LengthAwarePaginator;
+    public function getAllMeetings(int $perPage = 10, ?string $searchTerm = null, array $filters = []): LengthAwarePaginator;
 
     /**
      * Fetch all meetings without pagination.

@@ -200,6 +200,7 @@ class LeadController extends Controller
 
             $perPage = (int) $request->input('per_page', 5);
             $searchTerm = $request->input('search', null);
+            $filters = \App\Support\DashboardFilters::fromRequest($request);
 
             // Get leads with required relations for activity
             $query = Lead::with([
@@ -208,7 +209,10 @@ class LeadController extends Controller
                 'callStatusRelation',
                 'leadStatusRelation',
                 'priority'
-            ])->accessibleToUser();
+            ])->accessibleToUser()
+              ->whereNull('leads.deleted_at');
+
+            \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
 
             // Apply filters if provided
             if ($request->has('brand_id') && $request->input('brand_id')) {
@@ -562,10 +566,11 @@ class LeadController extends Controller
      *
      * @return JsonResponse
      */
-    public function latestTwo(): JsonResponse
+    public function latestTwo(Request $request): JsonResponse
     {
         try {
-            $leads = Lead::with([
+            $filters = \App\Support\DashboardFilters::fromRequest($request);
+            $query = Lead::with([
                 'brand',
                 'agency',
                 'assignedUser',
@@ -573,7 +578,11 @@ class LeadController extends Controller
                 'priority',
                 'leadStatusRelation'
             ])->accessibleToUser()
-              ->orderBy('created_at', 'desc')
+              ->whereNull('leads.deleted_at');
+
+            \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
+
+            $leads = $query->orderBy('leads.created_at', 'desc')
               ->limit(2)
               ->get();
 
@@ -593,10 +602,11 @@ class LeadController extends Controller
      *
      * @return JsonResponse
      */
-    public function latestTwoFollowUp(): JsonResponse
+    public function latestTwoFollowUp(Request $request): JsonResponse
     {
         try {
-            $leads = $this->leadService->getLatestTwoFollowUpLeads();
+            $filters = \App\Support\DashboardFilters::fromRequest($request);
+            $leads = $this->leadService->getLatestTwoFollowUpLeads($filters);
 
             return $this->responseService->success(
                 LeadResource::collection($leads),
@@ -614,10 +624,11 @@ class LeadController extends Controller
      *
      * @return JsonResponse
      */
-    public function latestTwoMeetingScheduled(): JsonResponse
+    public function latestTwoMeetingScheduled(Request $request): JsonResponse
     {
         try {
-            $leads = $this->leadService->getLatestTwoMeetingScheduledLeads();
+            $filters = \App\Support\DashboardFilters::fromRequest($request);
+            $leads = $this->leadService->getLatestTwoMeetingScheduledLeads($filters);
 
             return $this->responseService->success(
                 LeadResource::collection($leads),
@@ -1046,9 +1057,10 @@ class LeadController extends Controller
             ]);
 
             $perPage = (int) $request->input('per_page', 3);
+            $filters = \App\Support\DashboardFilters::fromRequest($request);
 
             // This must return LengthAwarePaginator
-            $pendingLeads = $this->leadService->getPendingLeads($perPage);
+            $pendingLeads = $this->leadService->getPendingLeads($perPage, $filters);
 
             // Transform paginator items WITHOUT destroying paginator
             if ($pendingLeads instanceof \Illuminate\Pagination\LengthAwarePaginator) {

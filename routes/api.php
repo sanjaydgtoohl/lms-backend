@@ -313,6 +313,7 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     $router->group(['prefix' => 'permissions', 'middleware' => 'permission:roles.update'], function () use ($router) {
         $router->put('{id:[0-9]+}', 'PermissionController@update');
         $router->patch('{id:[0-9]+}', 'PermissionController@update');
+        $router->post('{id:[0-9]+}', 'PermissionController@update');
     });
 
     $router->group(['prefix' => 'permissions', 'middleware' => 'permission:roles.delete'], function () use ($router) {
@@ -551,6 +552,9 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
     // Super Admin Dashboard routes
     $router->group(['prefix' => 'dashboard'], function () use ($router) {
         $router->get('/', 'Api\DashboardController@getDashboard');
+        $router->get('/charts', 'Api\DashboardController@getCharts');
+        $router->get('/sales-charts', 'Api\DashboardController@getSalesCharts');
+        $router->get('/planner-charts', 'Api\DashboardController@getPlannerCharts');
     });
 
     // Activity Log routes

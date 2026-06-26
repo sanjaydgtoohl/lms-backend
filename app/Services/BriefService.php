@@ -206,10 +206,10 @@ class BriefService
      * @return Collection
      * @throws DomainException
      */
-    public function getLatestTwoBriefs()
+    public function getLatestTwoBriefs(array $filters = [])
     {
         try {
-            return $this->briefRepository->getLatestTwoBriefs();
+            return $this->briefRepository->getLatestTwoBriefs($filters);
         } catch (QueryException $e) {
             Log::error('Database error fetching latest two briefs', ['exception' => $e]);
             throw new DomainException('Database error while fetching latest briefs.');
@@ -225,10 +225,10 @@ class BriefService
      * @return Collection
      * @throws DomainException
      */
-    public function getLatestFiveBriefs()
+    public function getLatestFiveBriefs(array $filters = [])
     {
         try {
-            return $this->briefRepository->getLatestFiveBriefs();
+            return $this->briefRepository->getLatestFiveBriefs($filters);
         } catch (QueryException $e) {
             Log::error('Database error fetching latest five briefs', ['exception' => $e]);
             throw new DomainException('Database error while fetching latest briefs.');
@@ -238,10 +238,10 @@ class BriefService
         }
     }
 
-    public function getPlannerDashboardCardData(): array
+    public function getPlannerDashboardCardData(array $filters = []): array
     {
         try {
-            return $this->briefRepository->getPlannerDashboardCardData();
+            return $this->briefRepository->getPlannerDashboardCardData($filters);
         } catch (QueryException $e) {
             Log::error('Database error fetching planner dashboard card data', ['exception' => $e]);
             throw new DomainException('Database error while fetching planner dashboard data.');
@@ -368,10 +368,10 @@ class BriefService
      * @return Collection
      * @throws DomainException
      */
-    public function getRecentBriefs(int $limit = 5): Collection
+    public function getRecentBriefs(int $limit = 5, array $filters = []): Collection
     {
         try {
-            return $this->briefRepository->getRecentBriefs($limit);
+            return $this->briefRepository->getRecentBriefs($limit, $filters);
         } catch (QueryException $e) {
             Log::error('Database error fetching recent briefs', ['exception' => $e]);
             throw new DomainException('Database error while fetching recent briefs.');
@@ -387,10 +387,10 @@ class BriefService
      * @return array
      * @throws DomainException
      */
-    public function getBusinessForecast(): array
+    public function getBusinessForecast(array $filters = []): array
     {
         try {
-            return $this->briefRepository->getBusinessForecast();
+            return $this->briefRepository->getBusinessForecast($filters);
         } catch (QueryException $e) {
             Log::error('Database error fetching business forecast', ['exception' => $e]);
             throw new DomainException('Database error while fetching business forecast.');

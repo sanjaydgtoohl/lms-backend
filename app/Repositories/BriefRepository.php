@@ -186,12 +186,18 @@ class BriefRepository implements BriefRepositoryInterface
      *
      * @return Collection
      */
-    public function getLatestTwoBriefs()
+    public function getLatestTwoBriefs(array $filters = [])
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
             ->accessibleToUser()
-            ->orderBy('created_at', 'desc')
+            ->whereNull('briefs.deleted_at')
+            ->whereRaw('briefs.status != 15');
+
+        \App\Support\DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
+
+        return $query
+            ->orderBy('briefs.created_at', 'desc')
             ->limit(2)
             ->get();
     }
@@ -201,12 +207,18 @@ class BriefRepository implements BriefRepositoryInterface
      *
      * @return Collection
      */
-    public function getLatestFiveBriefs()
+    public function getLatestFiveBriefs(array $filters = [])
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
             ->accessibleToUser()
-            ->orderBy('created_at', 'desc')
+            ->whereNull('briefs.deleted_at')
+            ->whereRaw('briefs.status != 15');
+
+        \App\Support\DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
+
+        return $query
+            ->orderBy('briefs.created_at', 'desc')
             ->limit(5)
             ->get();
     }
@@ -358,40 +370,46 @@ class BriefRepository implements BriefRepositoryInterface
      * @param int $limit
      * @return Collection
      */
-    public function getRecentBriefs(int $limit = 5)
+    public function getRecentBriefs(int $limit = 5, array $filters = [])
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
             ->accessibleToUser()
-            ->orderBy('created_at', 'desc')
+            ->whereNull('briefs.deleted_at')
+            ->whereRaw('briefs.status != 15');
+
+        \App\Support\DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
+
+        return $query
+            ->orderBy('briefs.created_at', 'desc')
             ->limit($limit)
             ->get();
     }
 
-    public function getPlannerDashboardCardData(): array
-    { 
-        $now = now();
+    public function getPlannerDashboardCardData(array $filters = []): array
+    {
+        $baseQuery = $this->model
+            ->accessibleToUser(Auth::user())
+            ->whereNull('briefs.deleted_at')
+            ->whereRaw('briefs.status != 15');
 
-        // Active briefs (submission_date is in the future)
-        $activeBriefs = $this->model
-        ->whereDate('submission_date', '>=', now())
-        ->count();
+        \App\Support\DashboardFilters::applyBriefDashboardFilters($baseQuery, $filters, 'briefs');
 
+        $activeBriefs = (clone $baseQuery)
+            ->whereDate('submission_date', '>=', now())
+            ->count();
 
-        // Closed briefs (brief_status is 'closed')
-        $closedBriefs = $this->model
+        $closedBriefs = (clone $baseQuery)
             ->whereHas('briefStatus', function ($query) {
                 $query->where('slug', 'closed');
             })
             ->count();
 
-        // Total of all brief left time during submission
-        $overdueTime = $this->model
+        $overdueTime = (clone $baseQuery)
             ->where('submission_date', '<', now())
             ->count();
 
-        // Average planning time (in days - difference between created_at and submission_date)
-        $averagePlanningTime = $this->model
+        $averagePlanningTime = (clone $baseQuery)
             ->selectRaw('AVG(DATEDIFF(submission_date, created_at)) as avg_days')
             ->value('avg_days');
 
@@ -459,31 +477,24 @@ class BriefRepository implements BriefRepositoryInterface
      *
      * @return array
      */
-    public function getBusinessForecast(): array
+    public function getBusinessForecast(array $filters = []): array
     {
-        // Get total budget
-        $totalBudget = $this->model
+        $query = $this->model
             ->accessibleToUser(Auth::user())
-            ->whereRaw('briefs.status != 15')  // Exclude soft deleted
-            ->sum('briefs.budget');
+            ->whereNull('briefs.deleted_at')
+            ->whereRaw('briefs.status != 15');
 
-        // Get total brief count
-        $totalBriefCount = $this->model
-            ->accessibleToUser(Auth::user())
-            ->whereRaw('briefs.status != 15')  // Exclude soft deleted
-            ->count();
+        \App\Support\DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
 
-        // Calculate business weightage
+        $totalBudget = (clone $query)->sum('briefs.budget');
+        $totalBriefCount = (clone $query)->count();
+
         $businessWeightage = 0;
         if ($totalBriefCount > 0) {
-            // Get sum of brief status percentages
-            $totalStatusPercentage = $this->model
-                ->accessibleToUser(Auth::user())
+            $totalStatusPercentage = (clone $query)
                 ->join('brief_statuses', 'briefs.brief_status_id', '=', 'brief_statuses.id')
-                ->whereRaw('briefs.status != 15')  // Exclude soft deleted
                 ->sum('brief_statuses.percentage');
 
-            // Business weightage = (total percentage / total brief count) * 100
             $businessWeightage = round(($totalStatusPercentage / $totalBriefCount), 2);
         }
 
@@ -491,7 +502,6 @@ class BriefRepository implements BriefRepositoryInterface
             'total_budget' => (float) $totalBudget,
             'total_brief_count' => $totalBriefCount,
             'business_weightage' => $businessWeightage,
-            //'currency' => 'INR', // You can make this configurable
         ];
     }
 }

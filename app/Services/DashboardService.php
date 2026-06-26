@@ -3,41 +3,36 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\Lead;
+use App\Models\Brief;
+use App\Models\MissCampaign;
+use App\Models\Organisation;
 use App\Contracts\Repositories\LeadRepositoryInterface;
+use App\Support\DashboardFilters;
+use App\Support\UserAccessScope;
 use Exception;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class DashboardService
 {
-    /**
-     * The lead repository instance
-     *
-     * @var LeadRepositoryInterface
-     */
     protected LeadRepositoryInterface $leadRepository;
 
-    /**
-     * Constructor
-     *
-     * @param LeadRepositoryInterface $leadRepository
-     */
     public function __construct(LeadRepositoryInterface $leadRepository)
     {
         $this->leadRepository = $leadRepository;
     }
 
     /**
-     * Get dashboard data with total user count, pending leads count, team performance, and open alerts
-     *
-     * @return array
+     * @param array<string, mixed> $filters
      * @throws Exception
      */
-    public function getDashboardData(): array
+    public function getDashboardData(array $filters = []): array
     {
         try {
             return [
-                'total_user_count' => $this->getTotalUserCount(),
-                'pending_lead_count' => $this->getPendingLeadCount(),
+                'total_user_count' => $this->getTotalUserCount($filters),
+                'pending_lead_count' => $this->getPendingLeadCount($filters),
                 'team_performance' => null,
                 'open_alerts' => null,
             ];
@@ -48,14 +43,129 @@ class DashboardService
     }
 
     /**
-     * Get total count of users
-     *
-     * @return int
+     * @param array<string, mixed> $filters
+     * @throws Exception
      */
-    public function getTotalUserCount(): int
+    public function getChartMetrics(array $filters = []): array
     {
         try {
-            return User::whereNull('deleted_at')->count();
+            $user = Auth::user();
+
+            if (!$user) {
+                throw new Exception('User not authenticated');
+            }
+
+            if (
+                empty($filters['organisation_ids'])
+                && !UserAccessScope::isSuperAdmin($user)
+                && empty(UserAccessScope::getAccessibleOrganisationIds($user))
+            ) {
+                return $this->buildAggregateChartMetrics($user, $filters);
+            }
+
+            $organisationsQuery = Organisation::query()->orderBy('name');
+            if (!empty($filters['organisation_ids'])) {
+                $organisationsQuery->whereIn('id', $filters['organisation_ids']);
+            } elseif (!UserAccessScope::isSuperAdmin($user)) {
+                $accessibleOrgIds = UserAccessScope::getAccessibleOrganisationIds($user);
+                if (!empty($accessibleOrgIds)) {
+                    $organisationsQuery->whereIn('id', $accessibleOrgIds);
+                }
+            }
+
+            $organisations = $organisationsQuery->get(['id', 'name']);
+            $rows = [];
+
+            foreach ($organisations as $organisation) {
+                $organisationFilter = array_merge($filters, [
+                    'organisation_ids' => [(int) $organisation->id],
+                ]);
+
+                $rows[] = $this->buildOrganisationChartRow($user, $organisation->id, $organisation->name, $organisationFilter);
+            }
+
+            if ($rows === [] && !UserAccessScope::isSuperAdmin($user)) {
+                return $this->buildAggregateChartMetrics($user, $filters);
+            }
+
+            return [
+                'by_organisation' => $rows,
+                'totals' => [
+                    'total_leads' => array_sum(array_column($rows, 'total_leads')),
+                    'pre_leads' => array_sum(array_column($rows, 'pre_leads')),
+                    'briefs' => array_sum(array_column($rows, 'briefs')),
+                    'brief_budget' => array_sum(array_column($rows, 'brief_budget')),
+                ],
+            ];
+        } catch (Exception $e) {
+            Log::error('Error fetching dashboard chart metrics', ['exception' => $e]);
+            throw new Exception('Unable to fetch dashboard chart metrics');
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    private function buildAggregateChartMetrics($user, array $filters): array
+    {
+        $row = $this->buildOrganisationChartRow($user, 0, 'My Data', $filters);
+
+        return [
+            'by_organisation' => [$row],
+            'totals' => [
+                'total_leads' => $row['total_leads'],
+                'pre_leads' => $row['pre_leads'],
+                'briefs' => $row['briefs'],
+                'brief_budget' => $row['brief_budget'],
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    private function buildOrganisationChartRow($user, int $organisationId, string $organisationName, array $filters): array
+    {
+        $leadsQuery = Lead::query()
+            ->accessibleToUser($user)
+            ->whereNull('deleted_at');
+        DashboardFilters::applyLeadDashboardFilters($leadsQuery, $filters);
+
+        $preLeadsQuery = MissCampaign::query()
+            ->accessibleToUser($user)
+            ->notDeleted()
+            ->where('miss_campaigns.status', '1');
+        DashboardFilters::applyMissCampaignDashboardFilters($preLeadsQuery, $filters);
+
+        $briefsQuery = Brief::query()
+            ->accessibleToUser($user)
+            ->whereNull('deleted_at')
+            ->whereRaw('briefs.status != 15');
+        DashboardFilters::applyBriefDashboardFilters($briefsQuery, $filters);
+
+        return [
+            'organisation_id' => $organisationId,
+            'organisation_name' => $organisationName,
+            'total_leads' => (int) (clone $leadsQuery)->count(),
+            'pre_leads' => (int) (clone $preLeadsQuery)->count(),
+            'briefs' => (int) (clone $briefsQuery)->count(),
+            'brief_budget' => (float) (clone $briefsQuery)->sum('briefs.budget'),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    public function getTotalUserCount(array $filters = []): int
+    {
+        try {
+            $query = User::query()->whereNull('deleted_at');
+            DashboardFilters::applyUserOrganisationFilter($query, $filters);
+            DashboardFilters::applyDateFilter($query, $filters, 'created_at');
+
+            return $query->count();
         } catch (Exception $e) {
             Log::error('Error fetching total user count', ['exception' => $e]);
             return 0;
@@ -63,19 +173,120 @@ class DashboardService
     }
 
     /**
-     * Get pending lead count using the pending API data
-     *
-     * @return int
+     * @param array<string, mixed> $filters
      */
-    public function getPendingLeadCount(): int
+    public function getPendingLeadCount(array $filters = []): int
     {
         try {
-            // Use the same logic as the pending API endpoint
-            $pendingLeads = $this->leadRepository->getPendingLeads(1);
+            $pendingLeads = $this->leadRepository->getPendingLeads(1, $filters);
             return $pendingLeads->total();
         } catch (Exception $e) {
             Log::error('Error fetching pending lead count', ['exception' => $e]);
             return 0;
+        }
+    }
+
+    /**
+     * Sales dashboard charts: organisation metrics + lead pipeline.
+     *
+     * @param array<string, mixed> $filters
+     * @throws Exception
+     */
+    public function getSalesChartMetrics(array $filters = []): array
+    {
+        try {
+            $user = Auth::user();
+            $charts = $this->getChartMetrics($filters);
+
+            $leadQuery = Lead::query()
+                ->accessibleToUser($user)
+                ->whereNull('deleted_at');
+            DashboardFilters::applyLeadDashboardFilters($leadQuery, $filters, 'leads');
+
+            $briefQuery = Brief::query()
+                ->accessibleToUser($user)
+                ->whereNull('deleted_at')
+                ->whereRaw('briefs.status != 15');
+            DashboardFilters::applyBriefDashboardFilters($briefQuery, $filters, 'briefs');
+
+            $byOrganisation = array_map(static function (array $row) {
+                return [
+                    'organisation_id' => $row['organisation_id'],
+                    'organisation_name' => $row['organisation_name'],
+                    'total_leads' => $row['total_leads'],
+                    'briefs' => $row['briefs'],
+                    'brief_budget' => $row['brief_budget'],
+                ];
+            }, $charts['by_organisation']);
+
+            return [
+                'by_organisation' => $byOrganisation,
+                'totals' => [
+                    'total_leads' => $charts['totals']['total_leads'],
+                    'briefs' => $charts['totals']['briefs'],
+                    'brief_budget' => $charts['totals']['brief_budget'],
+                ],
+                'pipeline' => [
+                    'new_leads' => (int) (clone $leadQuery)->count(),
+                    'follow_up' => (int) (clone $leadQuery)->whereHas('callStatusRelation', function ($query) {
+                        $query->where('slug', 'follow-up');
+                    })->count(),
+                    'meeting_scheduled' => (int) (clone $leadQuery)->whereHas('callStatusRelation', function ($query) {
+                        $query->where('slug', 'meeting-schedule');
+                    })->count(),
+                    'briefs' => (int) (clone $briefQuery)->count(),
+                ],
+            ];
+        } catch (Exception $e) {
+            Log::error('Error fetching sales dashboard chart metrics', ['exception' => $e]);
+            throw new Exception('Unable to fetch sales dashboard chart metrics');
+        }
+    }
+
+    /**
+     * Planner dashboard charts: organisation brief metrics + brief status breakdown.
+     *
+     * @param array<string, mixed> $filters
+     * @throws Exception
+     */
+    public function getPlannerChartMetrics(array $filters = []): array
+    {
+        try {
+            $user = Auth::user();
+            $charts = $this->getChartMetrics($filters);
+
+            $briefQuery = Brief::query()
+                ->accessibleToUser($user)
+                ->whereNull('deleted_at')
+                ->whereRaw('briefs.status != 15');
+            DashboardFilters::applyBriefDashboardFilters($briefQuery, $filters, 'briefs');
+
+            $byOrganisation = array_map(static function (array $row) {
+                return [
+                    'organisation_id' => $row['organisation_id'],
+                    'organisation_name' => $row['organisation_name'],
+                    'briefs' => $row['briefs'],
+                    'brief_budget' => $row['brief_budget'],
+                ];
+            }, $charts['by_organisation']);
+
+            return [
+                'by_organisation' => $byOrganisation,
+                'totals' => [
+                    'briefs' => $charts['totals']['briefs'],
+                    'brief_budget' => $charts['totals']['brief_budget'],
+                ],
+                'brief_status' => [
+                    'active_briefs' => (int) (clone $briefQuery)->whereDate('submission_date', '>=', now())->count(),
+                    'closed_briefs' => (int) (clone $briefQuery)->whereHas('briefStatus', function ($query) {
+                        $query->where('slug', 'closed');
+                    })->count(),
+                    'overdue_briefs' => (int) (clone $briefQuery)->where('submission_date', '<', now())->count(),
+                ],
+            ];
+        } catch (Exception $e) {
+            Log::error('Error fetching planner dashboard chart metrics', ['exception' => $e]);
+            throw new Exception('Unable to fetch planner dashboard chart metrics');
         }
     }
 }

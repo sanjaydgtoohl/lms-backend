@@ -107,10 +107,11 @@ class BriefController extends Controller
      *
      * @return JsonResponse
      */
-    public function getLatestTwo(): JsonResponse
+    public function getLatestTwo(Request $request): JsonResponse
     {
         try {
-            $briefs = $this->briefService->getLatestTwoBriefs();
+            $filters = \App\Support\DashboardFilters::fromRequest($request);
+            $briefs = $this->briefService->getLatestTwoBriefs($filters);
 
             return $this->responseService->success(
                 BriefResource::collection($briefs),
@@ -127,10 +128,11 @@ class BriefController extends Controller
      *
      * @return JsonResponse
      */
-    public function getLatestFive(): JsonResponse
+    public function getLatestFive(Request $request): JsonResponse
     {
         try {
-            $briefs = $this->briefService->getLatestFiveBriefs();
+            $filters = \App\Support\DashboardFilters::fromRequest($request);
+            $briefs = $this->briefService->getLatestFiveBriefs($filters);
 
             // Format briefs with only required fields
             $formattedBriefs = $briefs->map(function ($brief) {
@@ -174,10 +176,11 @@ class BriefController extends Controller
      *
      * @return JsonResponse
      */
-    public function getPlannerDashboardCardData(): JsonResponse
+    public function getPlannerDashboardCardData(Request $request): JsonResponse
     {
         try {
-            $data = $this->briefService->getPlannerDashboardCardData();
+            $filters = \App\Support\DashboardFilters::fromRequest($request);
+            $data = $this->briefService->getPlannerDashboardCardData($filters);
 
             return $this->responseService->success(
                 $data,
@@ -727,8 +730,9 @@ class BriefController extends Controller
             ]);
 
             $limit = (int) $request->input('limit', 5);
+            $filters = \App\Support\DashboardFilters::fromRequest($request);
 
-            $briefs = $this->briefService->getRecentBriefs($limit);
+            $briefs = $this->briefService->getRecentBriefs($limit, $filters);
 
             return $this->responseService->success(
                 RecentBriefResource::collection($briefs),
@@ -751,10 +755,11 @@ class BriefController extends Controller
      *
      * @return JsonResponse
      */
-    public function getBusinessForecast(): JsonResponse
+    public function getBusinessForecast(Request $request): JsonResponse
     {
         try {
-            $businessForecast = $this->briefService->getBusinessForecast();
+            $filters = \App\Support\DashboardFilters::fromRequest($request);
+            $businessForecast = $this->briefService->getBusinessForecast($filters);
 
             return $this->responseService->success(
                 $businessForecast,

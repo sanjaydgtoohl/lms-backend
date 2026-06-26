@@ -84,8 +84,10 @@ class PermissionController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
+            $this->normalizePermissionRequest($request);
+
             $rules = [
-                'name' => 'required|string|max:255',
+                'name' => 'required|string|max:255|unique:permissions,name',
                 'display_name' => 'required|string|max:255',
                 'description' => 'required|string|max:1000',
                 'slug' => 'nullable|string|max:255|unique:permissions,slug',
@@ -145,12 +147,16 @@ class PermissionController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         try {
+            $id = (int) $id;
+            $this->normalizePermissionRequest($request);
+
             $rules = [
                 'name' => [
                     'sometimes',
                     'required',
                     'string',
                     'max:255',
+                    Rule::unique('permissions', 'name')->ignore($id),
                 ],
                 'display_name' => 'sometimes|required|string|max:255',
                 'description' => 'sometimes|required|string|max:1000',
@@ -169,7 +175,9 @@ class PermissionController extends Controller
                 'order' => 'sometimes|nullable|numeric|min:0',
             ];
 
-            $validatedData = $this->validate($request, $rules);
+            $validatedData = collect($this->validate($request, $rules))
+                ->except(['_method'])
+                ->all();
 
             // Get existing permission to check for old icon file
             $existingPermission = $this->permissionService->find($id);
@@ -490,6 +498,16 @@ class PermissionController extends Controller
             return $this->responseService->success($permissions, 'Sidebar permissions retrieved successfully');
         } catch (Throwable $e) {
             return $this->responseService->handleException($e);
+        }
+    }
+
+    protected function normalizePermissionRequest(Request $request): void
+    {
+        if ($request->has('is_parent')) {
+            $isParent = $request->input('is_parent');
+            if ($isParent === '' || $isParent === '0' || $isParent === 0) {
+                $request->merge(['is_parent' => null]);
+            }
         }
     }
 }

@@ -6,6 +6,8 @@ use App\Services\OrganisationService;
 use App\Services\ResponseService;
 use App\Http\Resources\OrganisationResource;
 use App\Traits\ValidatesRequests;
+use App\Models\Organisation;
+use App\Support\UserAccessScope;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
@@ -58,9 +60,33 @@ class OrganisationController extends Controller
     /**
      * Get list of organisations with only id and name (e.g., /api/v1/organisations/list)
      */
-    public function list(): JsonResponse
+    public function list(Request $request): JsonResponse
     {
         try {
+            $user = auth()->user();
+
+            if ($user && !UserAccessScope::isSuperAdmin($user)) {
+                $accessibleOrgIds = UserAccessScope::getAccessibleOrganisationIds($user);
+
+                if (empty($accessibleOrgIds)) {
+                    return $this->responseService->success([], 'Organisations list fetched successfully.');
+                }
+
+                $data = Organisation::query()
+                    ->whereIn('id', $accessibleOrgIds)
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn ($organisation) => [
+                        'id' => $organisation->id,
+                        'name' => $organisation->name,
+                    ]);
+
+                return $this->responseService->success(
+                    $data,
+                    'Organisations list fetched successfully.'
+                );
+            }
+
             $organisations = $this->organisationService->getAllOrganisations(perPage: 10000);
             $data = $organisations->map(function ($organisation) {
                 return [

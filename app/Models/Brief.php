@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\UserAccessScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -128,11 +129,14 @@ class Brief extends Model
             return $query;
         }
 
-        // Others can see briefs where they are the creator (created_by) or assigned user (assign_user_id)
-        return $query->where(function (Builder $q) use ($user) {
-            $q->where('created_by', $user->id)
-              ->orWhere('assign_user_id', $user->id);
-        });
+        UserAccessScope::applyVisibleUserFilter(
+            $query,
+            $user,
+            ['created_by', 'assign_user_id'],
+            $this->getTable()
+        );
+
+        return $query;
     }
 
     // ===================================================================

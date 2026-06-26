@@ -134,14 +134,14 @@ interface BriefRepositoryInterface
      *
      * @return Collection
      */
-    public function getLatestTwoBriefs();
+    public function getLatestTwoBriefs(array $filters = []);
 
     /**
      * Get the latest two briefs.
      *
      * @return Collection
      */
-    public function getLatestFiveBriefs();
+    public function getLatestFiveBriefs(array $filters = []);
 
     /**
      * Get recent briefs with all related information.
@@ -149,10 +149,10 @@ interface BriefRepositoryInterface
      * @param int $limit The number of briefs to retrieve.
      * @return Collection
      */
-    public function getRecentBriefs(int $limit = 5);
+    public function getRecentBriefs(int $limit = 5, array $filters = []);
 
 
-    public function getPlannerDashboardCardData();
+    public function getPlannerDashboardCardData(array $filters = []);
 
     /**
      * Get brief logs with pagination.
@@ -167,7 +167,7 @@ interface BriefRepositoryInterface
      *
      * @return array
      */
-    public function getBusinessForecast(): array;
+    public function getBusinessForecast(array $filters = []): array;
 
     
 }

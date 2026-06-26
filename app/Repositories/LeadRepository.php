@@ -810,15 +810,20 @@ class LeadRepository implements LeadRepositoryInterface
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    public function getPendingLeads(int $perPage = 10): LengthAwarePaginator
+    public function getPendingLeads(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
+            ->accessibleToUser(Auth::user())
             ->notDeleted()
             ->whereHas('leadStatusRelation', function ($query) {
                 $query->whereNull('statuses.deleted_at')->where('statuses.slug', 'pending');
             }, '>=', 1)
-            ->where('leads.status', '1')
+            ->where('leads.status', '1');
+
+        \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
+
+        return $query
             ->orderBy('leads.created_at', 'desc')
             ->paginate($perPage)
             ->appends(request()->query());
@@ -922,14 +927,20 @@ class LeadRepository implements LeadRepositoryInterface
      *
      * @return Collection
      */
-    public function getLatestTwoFollowUpLeads()
+    public function getLatestTwoFollowUpLeads(array $filters = [])
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
+            ->accessibleToUser()
+            ->whereNull('leads.deleted_at')
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'follow-up');
-            })
-            ->orderBy('created_at', 'desc')
+            });
+
+        \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
+
+        return $query
+            ->orderBy('leads.created_at', 'desc')
             ->limit(2)
             ->get();
     }
@@ -939,14 +950,20 @@ class LeadRepository implements LeadRepositoryInterface
      *
      * @return Collection
      */
-    public function getLatestTwoMeetingScheduledLeads()
+    public function getLatestTwoMeetingScheduledLeads(array $filters = [])
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
+            ->accessibleToUser()
+            ->whereNull('leads.deleted_at')
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'meeting-schedule');
-            })
-            ->orderBy('created_at', 'desc')
+            });
+
+        \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
+
+        return $query
+            ->orderBy('leads.created_at', 'desc')
             ->limit(2)
             ->get();
     }

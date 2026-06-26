@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
+use App\Support\UserAccessScope;
 
 class Lead extends Model
 {
@@ -95,34 +95,22 @@ class Lead extends Model
     {
         $user = $user ?? auth()->user();
 
-        // If no user is authenticated, return empty query
         if (!$user) {
             return $query->whereRaw('0 = 1');
         }
 
-        // Super Admin can view all leads
         if ($user->hasRole('Super Admin')) {
             return $query;
         }
 
-        // Get all parent user IDs (including transitive parents)
-        $parentIds = $this->getDirectChildsIds($user->id);
-        
-        // Build the query to include:
-        // 1. Leads created by the current user
-        // 2. Leads assigned to the current user
-        // 3. Leads created by parent users
-        // 4. Leads assigned to parent users
-        return $query->where(function (Builder $q) use ($user, $parentIds) {
-            $q->where('created_by', $user->id)
-              ->orWhere('current_assign_user', $user->id);
+        UserAccessScope::applyVisibleUserFilter(
+            $query,
+            $user,
+            ['created_by', 'current_assign_user'],
+            $this->getTable()
+        );
 
-            // Include leads from parent users
-            if (!empty($parentIds)) {
-                $q->orWhereIn('created_by', $parentIds)
-                  ->orWhereIn('current_assign_user', $parentIds);
-            }
-        });
+        return $query;
     }
 
     /**
