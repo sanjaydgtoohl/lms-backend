@@ -136,7 +136,9 @@ class UserController extends Controller
                 'status' => 'sometimes|in:1,2,3',
                 'is_parent' => 'nullable|array',
                 'is_parent.*' => 'integer|exists:users,id',
-                'organisation_id' => 'required|integer|exists:organisations,id',
+                'organisation_id' => 'required_without:organisation_ids|nullable|integer|exists:organisations,id',
+                'organisation_ids' => 'required_without:organisation_id|nullable|array|min:1',
+                'organisation_ids.*' => 'integer|exists:organisations,id',
                 'zone_id' => 'required|integer|exists:zones,id',
             ];
 

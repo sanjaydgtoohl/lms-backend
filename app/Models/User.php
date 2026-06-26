@@ -180,6 +180,23 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     }
 
     /**
+     * Organisations assigned to this user.
+     */
+    public function organisations(): BelongsToMany
+    {
+        return $this->belongsToMany(Organisation::class, 'organisation_user', 'user_id', 'organisation_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Organisation-user pivot records.
+     */
+    public function organisationUsers(): HasMany
+    {
+        return $this->hasMany(OrganisationUser::class);
+    }
+
+    /**
      * Get the zone that the user belongs to
      */
     public function zone(): BelongsTo
