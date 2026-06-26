@@ -87,7 +87,7 @@ class PermissionController extends Controller
             $this->normalizePermissionRequest($request);
 
             $rules = [
-                'name' => 'required|string|max:255|unique:permissions,name',
+                'name' => 'required|string|max:255',
                 'display_name' => 'required|string|max:255',
                 'description' => 'required|string|max:1000',
                 'slug' => 'nullable|string|max:255|unique:permissions,slug',
@@ -151,13 +151,7 @@ class PermissionController extends Controller
             $this->normalizePermissionRequest($request);
 
             $rules = [
-                'name' => [
-                    'sometimes',
-                    'required',
-                    'string',
-                    'max:255',
-                    Rule::unique('permissions', 'name')->ignore($id),
-                ],
+                'name' => 'sometimes|required|string|max:255',
                 'display_name' => 'sometimes|required|string|max:255',
                 'description' => 'sometimes|required|string|max:1000',
                 'slug' => [
@@ -503,11 +497,25 @@ class PermissionController extends Controller
 
     protected function normalizePermissionRequest(Request $request): void
     {
-        if ($request->has('is_parent')) {
-            $isParent = $request->input('is_parent');
-            if ($isParent === '' || $isParent === '0' || $isParent === 0) {
-                $request->merge(['is_parent' => null]);
+        $input = $request->all();
+
+        foreach (['url', 'icon_text', 'description', 'slug'] as $field) {
+            if (array_key_exists($field, $input) && $input[$field] === '') {
+                $input[$field] = null;
             }
         }
+
+        if (array_key_exists('is_parent', $input)) {
+            $isParent = $input['is_parent'];
+            if ($isParent === '' || $isParent === '0' || $isParent === 0 || $isParent === null) {
+                $input['is_parent'] = null;
+            }
+        }
+
+        if (array_key_exists('_method', $input)) {
+            unset($input['_method']);
+        }
+
+        $request->replace($input);
     }
 }
