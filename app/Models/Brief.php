@@ -124,8 +124,8 @@ class Brief extends Model
             return $query->whereRaw('0 = 1');
         }
 
-        // Super Admin can view all briefs
-        if ($user->hasRole('Super Admin')) {
+        // Super Admin with organisation assignment may view all records (dashboard uses org filters).
+        if (UserAccessScope::hasGlobalRecordAccess($user)) {
             return $query;
         }
 

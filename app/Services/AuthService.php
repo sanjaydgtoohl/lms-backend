@@ -261,7 +261,7 @@ class AuthService
         $user->refresh_token = $refreshToken;
         $user->save();
 
-        $user->load('roles');
+        $user->load(['roles', 'organisations', 'organisation']);
 
         return [
             'user' => $user,

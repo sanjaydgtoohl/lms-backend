@@ -202,7 +202,7 @@ class MissCampaign extends BaseModel
             return $query->whereRaw('0 = 1');
         }
 
-        if ($currentUser->hasRole('Super Admin')) {
+        if (UserAccessScope::hasGlobalRecordAccess($currentUser)) {
             return $query;
         }
 

@@ -99,7 +99,7 @@ class Lead extends Model
             return $query->whereRaw('0 = 1');
         }
 
-        if ($user->hasRole('Super Admin')) {
+        if (UserAccessScope::hasGlobalRecordAccess($user)) {
             return $query;
         }
 

@@ -65,35 +65,24 @@ class OrganisationController extends Controller
         try {
             $user = auth()->user();
 
-            if ($user && !UserAccessScope::isSuperAdmin($user)) {
-                $accessibleOrgIds = UserAccessScope::getAccessibleOrganisationIds($user);
-
-                if (empty($accessibleOrgIds)) {
-                    return $this->responseService->success([], 'Organisations list fetched successfully.');
-                }
-
-                $data = Organisation::query()
-                    ->whereIn('id', $accessibleOrgIds)
-                    ->orderBy('name')
-                    ->get(['id', 'name'])
-                    ->map(fn ($organisation) => [
-                        'id' => $organisation->id,
-                        'name' => $organisation->name,
-                    ]);
-
-                return $this->responseService->success(
-                    $data,
-                    'Organisations list fetched successfully.'
-                );
+            if (!$user) {
+                return $this->responseService->success([], 'Organisations list fetched successfully.');
             }
 
-            $organisations = $this->organisationService->getAllOrganisations(perPage: 10000);
-            $data = $organisations->map(function ($organisation) {
-                return [
+            $accessibleOrgIds = UserAccessScope::getAccessibleOrganisationIds($user);
+
+            if (empty($accessibleOrgIds)) {
+                return $this->responseService->success([], 'Organisations list fetched successfully.');
+            }
+
+            $data = Organisation::query()
+                ->whereIn('id', $accessibleOrgIds)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn ($organisation) => [
                     'id' => $organisation->id,
                     'name' => $organisation->name,
-                ];
-            });
+                ]);
 
             return $this->responseService->success(
                 $data,

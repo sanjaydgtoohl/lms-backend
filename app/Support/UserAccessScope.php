@@ -12,16 +12,12 @@ class UserAccessScope
     }
 
     /**
-     * Organisation IDs the user may access. Empty array for Super Admin means all organisations.
+     * Organisation IDs assigned to the user (pivot + legacy organisation_id).
      *
      * @return array<int>
      */
     public static function getAccessibleOrganisationIds(User $user): array
     {
-        if (self::isSuperAdmin($user)) {
-            return [];
-        }
-
         $pivotIds = $user->organisations()
             ->pluck('organisations.id')
             ->map(fn ($id) => (int) $id)
@@ -30,6 +26,24 @@ class UserAccessScope
         $legacyIds = $user->organisation_id ? [(int) $user->organisation_id] : [];
 
         return array_values(array_unique(array_filter(array_merge($pivotIds, $legacyIds))));
+    }
+
+    /**
+     * Global organisation access is never implicit.
+     * Users must be assigned to organisation(s) to scope dashboard data.
+     */
+    public static function canAccessAllOrganisations(User $user): bool
+    {
+        return false;
+    }
+
+    /**
+     * Super Admin with organisation assignment bypasses per-user visibility on records.
+     * Super Admin without assignment is scoped to self + team (same as other users).
+     */
+    public static function hasGlobalRecordAccess(User $user): bool
+    {
+        return self::isSuperAdmin($user) && !empty(self::getAccessibleOrganisationIds($user));
     }
 
     /**
@@ -48,59 +62,42 @@ class UserAccessScope
 
     /**
      * Resolve dashboard organisation filter for the authenticated user.
+     * Users without assigned organisation(s) see only their own/team data.
+     * Assigned users are limited to those organisation(s).
      *
      * @param array<string, mixed> $filters
      * @return array<string, mixed>
      */
     public static function resolveOrganisationFilter(User $user, array $filters): array
     {
-        if (self::isSuperAdmin($user)) {
-            return $filters;
-        }
-
         $accessible = self::getAccessibleOrganisationIds($user);
         $requested = array_values(array_filter(array_map('intval', $filters['organisation_ids'] ?? [])));
 
-        if (!empty($requested)) {
-            $allowed = !empty($accessible)
-                ? array_values(array_intersect($requested, $accessible))
-                : $requested;
+        if (empty($accessible)) {
+            $filters['organisation_ids'] = [];
 
-            $filters['organisation_ids'] = !empty($allowed)
-                ? $allowed
-                : self::defaultOrganisationScope($user, $accessible);
+            return $filters;
+        }
+
+        if (!empty($requested)) {
+            $allowed = array_values(array_intersect($requested, $accessible));
+            $filters['organisation_ids'] = !empty($allowed) ? $allowed : $accessible;
         } else {
-            $filters['organisation_ids'] = self::defaultOrganisationScope($user, $accessible);
+            $filters['organisation_ids'] = $accessible;
         }
 
         return $filters;
     }
 
     /**
-     * Default org scope:
-     * - single org user → that org
-     * - multi org user → process organisation only
-     * - no org assignment → empty (aggregate only)
+     * Default org scope: all organisations assigned to the user.
      *
      * @param array<int> $accessible
      * @return array<int>
      */
     public static function defaultOrganisationScope(User $user, array $accessible): array
     {
-        if (empty($accessible)) {
-            return [];
-        }
-
-        if (count($accessible) === 1) {
-            return $accessible;
-        }
-
-        $processOrg = self::getProcessOrganisationId($user);
-        if ($processOrg !== null && in_array($processOrg, $accessible, true)) {
-            return [$processOrg];
-        }
-
-        return [$accessible[0]];
+        return array_values($accessible);
     }
 
     /**
@@ -111,7 +108,7 @@ class UserAccessScope
      */
     public static function getVisibleUserIds(User $user): array
     {
-        if (self::isSuperAdmin($user)) {
+        if (self::hasGlobalRecordAccess($user)) {
             return [];
         }
 

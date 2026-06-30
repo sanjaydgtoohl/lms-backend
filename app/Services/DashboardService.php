@@ -59,7 +59,6 @@ class DashboardService
 
             if (
                 empty($filters['organisation_ids'])
-                && !UserAccessScope::isSuperAdmin($user)
                 && empty(UserAccessScope::getAccessibleOrganisationIds($user))
             ) {
                 return $this->buildAggregateChartMetrics($user, $filters);
@@ -68,7 +67,7 @@ class DashboardService
             $organisationsQuery = Organisation::query()->orderBy('name');
             if (!empty($filters['organisation_ids'])) {
                 $organisationsQuery->whereIn('id', $filters['organisation_ids']);
-            } elseif (!UserAccessScope::isSuperAdmin($user)) {
+            } else {
                 $accessibleOrgIds = UserAccessScope::getAccessibleOrganisationIds($user);
                 if (!empty($accessibleOrgIds)) {
                     $organisationsQuery->whereIn('id', $accessibleOrgIds);
@@ -86,7 +85,7 @@ class DashboardService
                 $rows[] = $this->buildOrganisationChartRow($user, $organisation->id, $organisation->name, $organisationFilter);
             }
 
-            if ($rows === [] && !UserAccessScope::isSuperAdmin($user)) {
+            if ($rows === [] && empty(UserAccessScope::getAccessibleOrganisationIds($user))) {
                 return $this->buildAggregateChartMetrics($user, $filters);
             }
 
@@ -163,9 +162,17 @@ class DashboardService
     public function getTotalUserCount(array $filters = []): int
     {
         try {
+            $user = Auth::user();
             $query = User::query()->whereNull('deleted_at');
             DashboardFilters::applyUserOrganisationFilter($query, $filters);
             DashboardFilters::applyDateFilter($query, $filters, 'created_at');
+
+            if ($user && empty($filters['organisation_ids'])) {
+                $visibleUserIds = UserAccessScope::getVisibleUserIds($user);
+                if (!empty($visibleUserIds)) {
+                    $query->whereIn('id', $visibleUserIds);
+                }
+            }
 
             return $query->count();
         } catch (Exception $e) {
@@ -316,7 +323,6 @@ class DashboardService
 
         if (
             empty($filters['organisation_ids'])
-            && !UserAccessScope::isSuperAdmin($user)
             && empty(UserAccessScope::getAccessibleOrganisationIds($user))
         ) {
             return [$this->buildOrganisationPlannerRow($user, 0, 'My Data', $filters)];
@@ -325,7 +331,7 @@ class DashboardService
         $organisationsQuery = Organisation::query()->orderBy('name');
         if (!empty($filters['organisation_ids'])) {
             $organisationsQuery->whereIn('id', $filters['organisation_ids']);
-        } elseif (!UserAccessScope::isSuperAdmin($user)) {
+        } else {
             $accessibleOrgIds = UserAccessScope::getAccessibleOrganisationIds($user);
             if (!empty($accessibleOrgIds)) {
                 $organisationsQuery->whereIn('id', $accessibleOrgIds);
@@ -345,7 +351,7 @@ class DashboardService
             );
         }
 
-        if ($rows === [] && !UserAccessScope::isSuperAdmin($user)) {
+        if ($rows === [] && empty(UserAccessScope::getAccessibleOrganisationIds($user))) {
             return [$this->buildOrganisationPlannerRow($user, 0, 'My Data', $filters)];
         }
 
