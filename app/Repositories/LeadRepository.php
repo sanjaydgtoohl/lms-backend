@@ -972,12 +972,13 @@ class LeadRepository implements LeadRepositoryInterface
      *
      * @return Collection
      */
+
     public function getLatestTwoFollowUpLeads(array $filters = [])
     {
         $query = $this->model
             ->with($this->eagerLoadRelations())
-            ->accessibleToUser()
-            ->whereNull('leads.deleted_at')
+            ->notDeleted()
+            ->accessibleToUser(Auth::user())
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'follow-up');
             });
@@ -999,8 +1000,8 @@ class LeadRepository implements LeadRepositoryInterface
     {
         $query = $this->model
             ->with($this->eagerLoadRelations())
-            ->accessibleToUser()
-            ->whereNull('leads.deleted_at')
+            ->notDeleted()
+            ->accessibleToUser(Auth::user())
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'meeting-schedule');
             });
@@ -1022,6 +1023,8 @@ class LeadRepository implements LeadRepositoryInterface
     {
         return $this->model
             ->with($this->eagerLoadRelations())
+            ->notDeleted()
+            ->accessibleToUser(Auth::user())
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'meeting-done');
             })
