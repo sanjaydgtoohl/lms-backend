@@ -19,12 +19,12 @@ class UserResource extends BaseResource
             'email' => $this->email,
             'phone' => $this->phone,
             'avatar' => $this->avatar,
-            'organisation_id' => $this->organisation_id,
+            //'organisation_id' => $this->organisation_id,
             'zone_id' => $this->zone_id,
 
-            'organisation_name' => $this->relationLoaded('organisation')
-                ? $this->organisation?->name
-                : null,
+            // 'organisation_name' => $this->relationLoaded('organisation')
+            //     ? $this->organisation?->name
+            //     : null,
 
             'organisation_ids' => $this->whenLoaded('organisations', function () {
                 return $this->organisations->pluck('id')->values();

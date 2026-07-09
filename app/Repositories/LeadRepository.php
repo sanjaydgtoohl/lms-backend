@@ -83,6 +83,8 @@ class LeadRepository implements LeadRepositoryInterface
             ->notDeleted()
             ->accessibleToUser(Auth::user());
 
+        $this->applyOrganisationValidation($query, Auth::user());
+
         // Apply search filter if search term is provided
         if ($searchTerm) {
             $query->where(function ($q) use ($searchTerm) {
@@ -211,10 +213,14 @@ class LeadRepository implements LeadRepositoryInterface
      */
     public function getLeadsByPriority(int $priorityId, int $perPage = 10): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
             ->notDeleted()
-            ->where('priority_id', $priorityId)
+            ->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->where('priority_id', $priorityId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
@@ -228,10 +234,14 @@ class LeadRepository implements LeadRepositoryInterface
      */
     public function getLeadList(): ?Collection
     {
-        return $this->model
+        $query = $this->model
             ->select('id', 'name')
             ->notDeleted()
-            ->where('status', '1')
+            ->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->where('status', '1')
             ->orderBy('id', 'asc')
             ->get();
     }
@@ -249,6 +259,8 @@ class LeadRepository implements LeadRepositoryInterface
             ->with($this->eagerLoadRelations())
             ->notDeleted()
             ->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
 
         $this->applyIdFilter($query, 'brand_id', $filters['brand_id'] ?? null);
         $this->applyIdFilter($query, 'agency_id', $filters['agency_id'] ?? null);
@@ -312,6 +324,39 @@ class LeadRepository implements LeadRepositoryInterface
         }
 
         $query->where($column, (int) $value);
+    }
+
+    /**
+     * Ensure leads belong to the user's organisation.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \App\Models\User|null $user
+     */
+    protected function applyOrganisationValidation($query, $user): void
+    {
+        if (!$user) {
+            return;
+        }
+
+        $userOrgIds = \App\Support\UserAccessScope::getAccessibleOrganisationIds($user);
+
+        if (empty($userOrgIds)) {
+            // If user has no organisation, they see NO leads (even if they are a Super Admin).
+            $query->whereRaw('0 = 1');
+        } else {
+            // If user has an organisation, they MUST only see leads from that organisation,
+            // even if they are a Super Admin.
+            $orgUserIds = \App\Support\DashboardFilters::getOrganisationUserIds($userOrgIds);
+
+            if (empty($orgUserIds)) {
+                $query->whereRaw('0 = 1');
+            } else {
+                $query->where(function ($q) use ($orgUserIds) {
+                    $q->whereIn('current_assign_user', $orgUserIds)
+                      ->orWhereIn('created_by', $orgUserIds);
+                });
+            }
+        }
     }
 
     // ============================================================================
