@@ -59,6 +59,8 @@ class BriefRepository implements BriefRepositoryInterface
             ->with(self::DEFAULT_RELATIONSHIPS)
             ->accessibleToUser(Auth::user());
 
+        $this->applyOrganisationValidation($query, Auth::user());
+
         // Apply search filter if search term is provided
         if ($searchTerm !== null && $searchTerm !== '') {
             $this->applySearchFilter($query, $searchTerm);
@@ -92,9 +94,14 @@ class BriefRepository implements BriefRepositoryInterface
      */
     public function getBriefsByBrand(int $brandId, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->where('brand_id', $brandId)
+            ->accessibleToUser(Auth::user())
+            ->where('brand_id', $brandId);
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->appends(request()->query());
@@ -109,9 +116,14 @@ class BriefRepository implements BriefRepositoryInterface
      */
     public function getBriefsByAgency(int $agencyId, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->where('agency_id', $agencyId)
+            ->accessibleToUser(Auth::user())
+            ->where('agency_id', $agencyId);
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->appends(request()->query());
@@ -126,9 +138,14 @@ class BriefRepository implements BriefRepositoryInterface
      */
     public function getBriefsByAssignedUser(int $userId, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->where('assign_user_id', $userId)
+            ->accessibleToUser(Auth::user())
+            ->where('assign_user_id', $userId);
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->appends(request()->query());
@@ -143,9 +160,14 @@ class BriefRepository implements BriefRepositoryInterface
      */
     public function getBriefsByStatus(int $statusId, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->where('brief_status_id', $statusId)
+            ->accessibleToUser(Auth::user())
+            ->where('brief_status_id', $statusId);
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->appends(request()->query());
@@ -160,9 +182,14 @@ class BriefRepository implements BriefRepositoryInterface
      */
     public function getBriefsByPriority(int $priorityId, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->where('priority_id', $priorityId)
+            ->accessibleToUser(Auth::user())
+            ->where('priority_id', $priorityId);
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->appends(request()->query());
@@ -232,7 +259,9 @@ class BriefRepository implements BriefRepositoryInterface
      */
     public function searchBriefs(array $criteria, int $perPage = 15): LengthAwarePaginator
     {
-        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS);
+        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS)->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
 
         foreach ($criteria as $field => $value) {
             if ($value !== null && $value !== '') {
@@ -255,7 +284,9 @@ class BriefRepository implements BriefRepositoryInterface
      */
     public function filterBriefs(array $filters, int $perPage = 15): LengthAwarePaginator
     {
-        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS);
+        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS)->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
 
         // Apply filters
         if (isset($filters['brand_id']) && !empty($filters['brand_id'])) {
@@ -457,6 +488,8 @@ class BriefRepository implements BriefRepositoryInterface
             ->with(self::DEFAULT_RELATIONSHIPS)
             ->accessibleToUser(Auth::user());
 
+        $this->applyOrganisationValidation($query, Auth::user());
+
         // Apply search filter if search term is provided
         if ($searchTerm !== null && $searchTerm !== '') {
             $this->applySearchFilter($query, $searchTerm);
@@ -527,5 +560,37 @@ class BriefRepository implements BriefRepositoryInterface
             'total_brief_count' => $totalBriefCount,
             'business_weightage' => $businessWeightage,
         ];
+    }
+
+    /**
+     * Ensure briefs belong to the user's organisation.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \App\Models\User|null $user
+     */
+    protected function applyOrganisationValidation($query, $user): void
+    {
+        if (!$user) {
+            return;
+        }
+
+        $userOrgIds = \App\Support\UserAccessScope::getAccessibleOrganisationIds($user);
+
+        if (empty($userOrgIds)) {
+            // If user has no organisation, they see NO briefs
+            $query->whereRaw('0 = 1');
+        } else {
+            // If user has an organisation, they MUST only see briefs from that organisation
+            $orgUserIds = \App\Support\DashboardFilters::getOrganisationUserIds($userOrgIds);
+
+            if (empty($orgUserIds)) {
+                $query->whereRaw('0 = 1');
+            } else {
+                $query->where(function ($q) use ($orgUserIds) {
+                    $q->whereIn('assign_user_id', $orgUserIds)
+                      ->orWhereIn('created_by', $orgUserIds);
+                });
+            }
+        }
     }
 }

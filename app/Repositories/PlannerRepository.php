@@ -44,7 +44,9 @@ class PlannerRepository
      */
     public function getAllPlanners(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
-        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS);
+        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS)->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
 
         // Apply filters if provided
         if (!empty($filters)) {
@@ -93,7 +95,10 @@ class PlannerRepository
     {
         $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
+            ->accessibleToUser(Auth::user())
             ->where('brief_id', $briefId);
+
+        $this->applyOrganisationValidation($query, Auth::user());
 
         if ($status) {
             $query->where('status', $status);
@@ -111,10 +116,14 @@ class PlannerRepository
      */
     public function getPlannersByCreator(int $userId, int $perPage = 10): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->where('created_by', $userId)
-            ->paginate($perPage);
+            ->accessibleToUser(Auth::user())
+            ->where('created_by', $userId);
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->paginate($perPage);
     }
 
     /**
@@ -172,10 +181,14 @@ class PlannerRepository
      */
     public function getActivePlanners(int $perPage = 10): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->where('status', '1')
-            ->paginate($perPage);
+            ->accessibleToUser(Auth::user())
+            ->where('status', '1');
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->paginate($perPage);
     }
 
     /**
@@ -212,5 +225,36 @@ class PlannerRepository
             ->with(self::DEFAULT_RELATIONSHIPS)
             ->where('uuid', $uuid)
             ->first();
+    }
+
+    /**
+     * Ensure planners belong to the user's organisation.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \App\Models\User|null $user
+     */
+    protected function applyOrganisationValidation($query, $user): void
+    {
+        if (!$user) {
+            return;
+        }
+
+        $userOrgIds = \App\Support\UserAccessScope::getAccessibleOrganisationIds($user);
+
+        if (empty($userOrgIds)) {
+            // If user has no organisation, they see NO planners
+            $query->whereRaw('0 = 1');
+        } else {
+            // If user has an organisation, they MUST only see planners from that organisation
+            $orgUserIds = \App\Support\DashboardFilters::getOrganisationUserIds($userOrgIds);
+
+            if (empty($orgUserIds)) {
+                $query->whereRaw('0 = 1');
+            } else {
+                $query->where(function ($q) use ($orgUserIds) {
+                    $q->whereIn('created_by', $orgUserIds);
+                });
+            }
+        }
     }
 }

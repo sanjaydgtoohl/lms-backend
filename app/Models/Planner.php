@@ -101,6 +101,33 @@ class Planner extends BaseModel
     }
 
     /**
+     * Scope: Filter planners accessible to the given user.
+     */
+    public function scopeAccessibleToUser($query, $user = null)
+    {
+        $user = $user ?? auth()->user();
+
+        // If no user is authenticated, return empty query
+        if (!$user) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        // Super Admin with organisation assignment may view all records (dashboard uses org filters).
+        if (\App\Support\UserAccessScope::hasGlobalRecordAccess($user)) {
+            return $query;
+        }
+
+        \App\Support\UserAccessScope::applyVisibleUserFilter(
+            $query,
+            $user,
+            ['created_by'],
+            $this->getTable()
+        );
+
+        return $query;
+    }
+
+    /**
      * Check if the planner has submitted plans.
      */
     public function hasSubmittedPlans(): bool
