@@ -17,6 +17,7 @@ use App\Contracts\Repositories\MissCampaignRepositoryInterface;
 use App\Models\MissCampaign;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 class MissCampaignRepository implements MissCampaignRepositoryInterface
 {
@@ -81,9 +82,11 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
     {
         $query = $this->model
             ->with($this->eagerLoadRelations())
-            ->accessibleToUser()
+            ->accessibleToUser(Auth::user())
             ->notDeleted()
             ->where('status', '1');
+
+        $this->applyOrganisationValidation($query, Auth::user());
 
         if ($searchTerm !== null && $searchTerm !== '') {
             $query->where(function ($q) use ($searchTerm) {
@@ -121,33 +124,43 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
 
     public function getMissCampaignList(): ?Collection
     {
-        return $this->model
+        $query = $this->model
             ->select('id', 'name')
             ->notDeleted()
-            ->where('status', '1')
+            ->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->where('status', '1')
             ->orderBy('id', 'asc')
             ->get();
     }
 
     public function getMissCampaignById(int $id): ?MissCampaign
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
-            ->accessibleToUser()
+            ->accessibleToUser(Auth::user())
             ->notDeleted()
-            ->where('status', '1')
-            ->find($id);
+            ->where('status', '1');
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->find($id);
     }
 
     public function getMissCampaignBySlug(string $slug): ?MissCampaign
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
-            ->accessibleToUser()
+            ->accessibleToUser(Auth::user())
             ->notDeleted()
             ->where('status', '1')
-            ->where('slug', $slug)
-            ->first();
+            ->where('slug', $slug);
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->first();
     }
 
     public function createMissCampaign(array $data): MissCampaign
@@ -180,5 +193,37 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
             'assign_to' => $userId,
             'assign_by' => $assignBy,
         ]);
+    }
+
+    /**
+     * Ensure miss campaigns belong to the user's organisation.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \App\Models\User|null $user
+     */
+    protected function applyOrganisationValidation($query, $user): void
+    {
+        if (!$user) {
+            return;
+        }
+
+        $userOrgIds = \App\Support\UserAccessScope::getAccessibleOrganisationIds($user);
+
+        if (empty($userOrgIds)) {
+            // If user has no organisation, they see NO campaigns
+            $query->whereRaw('0 = 1');
+        } else {
+            // If user has an organisation, they MUST only see campaigns from that organisation
+            $orgUserIds = \App\Support\DashboardFilters::getOrganisationUserIds($userOrgIds);
+
+            if (empty($orgUserIds)) {
+                $query->whereRaw('0 = 1');
+            } else {
+                $query->where(function ($q) use ($orgUserIds) {
+                    $q->whereIn('assign_to', $orgUserIds)
+                      ->orWhereIn('assign_by', $orgUserIds);
+                });
+            }
+        }
     }
 }
