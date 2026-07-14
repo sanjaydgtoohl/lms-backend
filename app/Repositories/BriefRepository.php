@@ -590,6 +590,15 @@ class BriefRepository implements BriefRepositoryInterface
                     $q->whereIn('assign_user_id', $orgUserIds)
                       ->orWhereIn('created_by', $orgUserIds);
                 });
+
+                // Explicitly exclude briefs created by the user's ancestors (e.g. parents)
+                $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
+                if (!empty($ancestorIds)) {
+                    $query->where(function ($q) use ($ancestorIds, $user) {
+                        $q->whereNotIn('created_by', $ancestorIds)
+                          ->orWhere('assign_user_id', $user->id);
+                    });
+                }
             }
         }
     }

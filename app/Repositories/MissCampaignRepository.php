@@ -223,6 +223,15 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
                     $q->whereIn('assign_to', $orgUserIds)
                       ->orWhereIn('assign_by', $orgUserIds);
                 });
+
+                // Explicitly exclude campaigns created (assigned by) the user's ancestors (e.g. parents)
+                $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
+                if (!empty($ancestorIds)) {
+                    $query->where(function ($q) use ($ancestorIds, $user) {
+                        $q->whereNotIn('assign_by', $ancestorIds)
+                          ->orWhere('assign_to', $user->id);
+                    });
+                }
             }
         }
     }

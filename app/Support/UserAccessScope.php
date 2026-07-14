@@ -137,6 +137,37 @@ class UserAccessScope
     }
 
     /**
+     * Get all ancestor IDs for a user.
+     *
+     * @return array<int>
+     */
+    public static function getAncestorIds(User $user): array
+    {
+        $ids = [];
+        self::collectAncestorIds($user, $ids);
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @param array<int> $ids
+     */
+    private static function collectAncestorIds(User $user, array &$ids): void
+    {
+        $parents = $user->parents()->get(['users.id']);
+
+        foreach ($parents as $parent) {
+            $parentId = (int) $parent->id;
+            if (in_array($parentId, $ids, true)) {
+                continue;
+            }
+
+            $ids[] = $parentId;
+            self::collectAncestorIds($parent, $ids);
+        }
+    }
+
+    /**
      * Apply visible-user constraint to a query on the given columns.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query

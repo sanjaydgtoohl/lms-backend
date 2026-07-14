@@ -355,6 +355,15 @@ class LeadRepository implements LeadRepositoryInterface
                     $q->whereIn('current_assign_user', $orgUserIds)
                       ->orWhereIn('created_by', $orgUserIds);
                 });
+
+                // Explicitly exclude leads created by the user's ancestors (e.g. parents)
+                $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
+                if (!empty($ancestorIds)) {
+                    $query->where(function ($q) use ($ancestorIds, $user) {
+                        $q->whereNotIn('created_by', $ancestorIds)
+                          ->orWhere('current_assign_user', $user->id);
+                    });
+                }
             }
         }
     }

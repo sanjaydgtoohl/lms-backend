@@ -254,6 +254,12 @@ class PlannerRepository
                 $query->where(function ($q) use ($orgUserIds) {
                     $q->whereIn('created_by', $orgUserIds);
                 });
+                
+                // Explicitly exclude planners created by the user's ancestors (e.g. parents)
+                $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
+                if (!empty($ancestorIds)) {
+                    $query->whereNotIn('created_by', $ancestorIds);
+                }
             }
         }
     }
