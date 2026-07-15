@@ -126,6 +126,9 @@ use App\Repositories\OrganisationRepository;
 use App\Contracts\Repositories\LeadTypeRepositoryInterface;
 use App\Repositories\LeadTypeRepository;
 
+use App\Contracts\Repositories\DashboardRepositoryInterface;
+use App\Repositories\DashboardRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -135,6 +138,11 @@ class RepositoryServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->app->bind(
+            DashboardRepositoryInterface::class,
+            DashboardRepository::class
+        );
+
         $this->app->bind(
             IndustryRepositoryInterface::class,
             IndustryRepository::class

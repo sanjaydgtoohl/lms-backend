@@ -217,10 +217,11 @@ class BriefRepository implements BriefRepositoryInterface
     {
         $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->accessibleToUser()
+            ->accessibleToUser(Auth::user())
             ->whereNull('briefs.deleted_at')
             ->whereRaw('briefs.status != 15');
 
+        $this->applyOrganisationValidation($query, Auth::user());
         \App\Support\DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
 
         return $query
@@ -238,10 +239,11 @@ class BriefRepository implements BriefRepositoryInterface
     {
         $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->accessibleToUser()
+            ->accessibleToUser(Auth::user())
             ->whereNull('briefs.deleted_at')
             ->whereRaw('briefs.status != 15');
 
+        $this->applyOrganisationValidation($query, Auth::user());
         \App\Support\DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
 
         return $query
@@ -405,10 +407,11 @@ class BriefRepository implements BriefRepositoryInterface
     {
         $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->accessibleToUser()
+            ->accessibleToUser(Auth::user())
             ->whereNull('briefs.deleted_at')
             ->whereRaw('briefs.status != 15');
 
+        $this->applyOrganisationValidation($query, Auth::user());
         \App\Support\DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
 
         return $query
@@ -424,6 +427,7 @@ class BriefRepository implements BriefRepositoryInterface
             ->whereNull('briefs.deleted_at')
             ->whereRaw('briefs.status != 15');
 
+        $this->applyOrganisationValidation($baseQuery, Auth::user());
         \App\Support\DashboardFilters::applyBriefDashboardFilters($baseQuery, $filters, 'briefs');
 
         $activeBriefs = (clone $baseQuery)
@@ -541,6 +545,7 @@ class BriefRepository implements BriefRepositoryInterface
             ->whereNull('briefs.deleted_at')
             ->whereRaw('briefs.status != 15');
 
+        $this->applyOrganisationValidation($query, Auth::user());
         \App\Support\DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
 
         $totalBudget = (clone $query)->sum('briefs.budget');

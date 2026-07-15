@@ -170,25 +170,37 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
 
     public function updateMissCampaign(int $id, array $data): bool
     {
-        $item = $this->model->findOrFail($id);
+        $query = $this->model->accessibleToUser(Auth::user());
+        $this->applyOrganisationValidation($query, Auth::user());
+        $item = $query->findOrFail($id);
+
         return $item->update($data);
     }
 
     public function deleteMissCampaign(int $id): bool
     {
-        $item = $this->model->findOrFail($id);
+        $query = $this->model->accessibleToUser(Auth::user());
+        $this->applyOrganisationValidation($query, Auth::user());
+        $item = $query->findOrFail($id);
+
         return $item->delete();
     }
 
     public function updateStatus(int $id, string $status): bool
     {
-        $item = $this->model->findOrFail($id);
+        $query = $this->model->accessibleToUser(Auth::user());
+        $this->applyOrganisationValidation($query, Auth::user());
+        $item = $query->findOrFail($id);
+
         return $item->update(['status' => $status]);
     }
 
     public function assignUser(int $id, int $userId, int $assignBy): bool
     {
-        $item = $this->model->findOrFail($id);
+        $query = $this->model->accessibleToUser(Auth::user());
+        $this->applyOrganisationValidation($query, Auth::user());
+        $item = $query->findOrFail($id);
+
         return $item->update([
             'assign_to' => $userId,
             'assign_by' => $assignBy,

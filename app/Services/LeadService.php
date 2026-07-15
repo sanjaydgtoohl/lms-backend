@@ -536,10 +536,7 @@ class LeadService
             }
 
             // Get the lead assign history
-            return \App\Models\LeadAssignHistory::where('lead_id', $leadId)
-                ->with(['assignedUser', 'currentUser', 'priority', 'status', 'callStatus'])
-                ->orderBy('created_at', 'desc')
-                ->paginate($perPage);
+            return $this->leadRepository->getLeadHistory($leadId, $perPage);
         } catch (QueryException $e) {
             Log::error('Database error fetching lead history', ['lead_id' => $leadId, 'exception' => $e]);
             throw new DomainException('Database error while fetching lead history.');
@@ -779,6 +776,17 @@ class LeadService
         }
 
         return $this->updateLeadWorkflowFields($leadId, $updateData);
+    }
+
+    /**
+     * Get the latest two leads.
+     *
+     * @param array $filters
+     * @return \Illuminate\Support\Collection
+     */
+    public function getLatestTwoLeads(array $filters = [])
+    {
+        return $this->leadRepository->getLatestTwoLeads($filters);
     }
 
     /**

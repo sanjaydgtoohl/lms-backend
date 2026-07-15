@@ -76,7 +76,7 @@ class DashboardFilters
         ?string $table = null
     ): Builder {
         if (empty($filters['organisation_ids'])) {
-            return $query;
+            return $query->whereRaw('0 = 1');
         }
 
         $userIds = self::getOrganisationUserIds($filters['organisation_ids']);
@@ -96,6 +96,22 @@ class DashboardFilters
                 $builder->orWhereIn($qualifiedColumn, $userIds);
             }
         });
+
+        $user = auth()->user();
+        if ($user) {
+            $ancestorIds = UserAccessScope::getAncestorIds($user);
+            if (!empty($ancestorIds)) {
+                $createdByCol = $table ? "{$table}.{$columns[0]}" : $columns[0];
+                $assignedToCol = isset($columns[1]) ? ($table ? "{$table}.{$columns[1]}" : $columns[1]) : null;
+
+                $query->where(function ($q) use ($ancestorIds, $user, $createdByCol, $assignedToCol) {
+                    $q->whereNotIn($createdByCol, $ancestorIds);
+                    if ($assignedToCol) {
+                        $q->orWhere($assignedToCol, $user->id);
+                    }
+                });
+            }
+        }
 
         return $query;
     }
@@ -172,7 +188,7 @@ class DashboardFilters
         ?string $table = 'miss_campaigns'
     ): Builder {
         if (empty($filters['organisation_ids'])) {
-            return $query;
+            return $query->whereRaw('0 = 1');
         }
 
         $userIds = self::getOrganisationUserIds($filters['organisation_ids']);
@@ -191,6 +207,17 @@ class DashboardFilters
                 });
         });
 
+        $user = auth()->user();
+        if ($user) {
+            $ancestorIds = UserAccessScope::getAncestorIds($user);
+            if (!empty($ancestorIds)) {
+                $query->where(function ($q) use ($ancestorIds, $user, $table) {
+                    $q->whereNotIn("{$table}.assign_by", $ancestorIds)
+                      ->orWhere("{$table}.assign_to", $user->id);
+                });
+            }
+        }
+
         return $query;
     }
 
@@ -202,7 +229,7 @@ class DashboardFilters
         self::applyDateFilter($query, $filters, "{$table}.meeting_start_date");
 
         if (empty($filters['organisation_ids'])) {
-            return $query;
+            return $query->whereRaw('0 = 1');
         }
 
         $userIds = self::getOrganisationUserIds($filters['organisation_ids']);

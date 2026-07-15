@@ -122,11 +122,14 @@ class LeadRepository implements LeadRepositoryInterface
      */
     public function getLeadById(int $id): ?Lead
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
             ->notDeleted()
-            ->accessibleToUser(Auth::user())
-            ->find($id);
+            ->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->find($id);
     }
 
     /**
@@ -138,10 +141,14 @@ class LeadRepository implements LeadRepositoryInterface
      */
     public function getLeadsByBrandId(int $brandId, int $perPage = 10): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
             ->notDeleted()
-            ->where('brand_id', $brandId)
+            ->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->where('brand_id', $brandId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
@@ -157,10 +164,14 @@ class LeadRepository implements LeadRepositoryInterface
      */
     public function getLeadsByAgencyId(int $agencyId, int $perPage = 10): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
             ->notDeleted()
-            ->where('agency_id', $agencyId)
+            ->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->where('agency_id', $agencyId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
@@ -176,10 +187,14 @@ class LeadRepository implements LeadRepositoryInterface
      */
     public function getLeadsByAssignedUser(int $userId, int $perPage = 10): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
             ->notDeleted()
-            ->where('current_assign_user', $userId)
+            ->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->where('current_assign_user', $userId)
             ->where('status', '1')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
@@ -195,10 +210,14 @@ class LeadRepository implements LeadRepositoryInterface
      */
     public function getLeadsByStatus(string $status, int $perPage = 10): LengthAwarePaginator
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
             ->notDeleted()
-            ->where('status', $status)
+            ->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query->where('status', $status)
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->appends(request()->query());
@@ -244,6 +263,21 @@ class LeadRepository implements LeadRepositoryInterface
         return $query->where('status', '1')
             ->orderBy('id', 'asc')
             ->get();
+    }
+
+    /**
+     * Get lead assignment history by lead ID.
+     *
+     * @param int $leadId
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     */
+    public function getLeadHistory(int $leadId, int $perPage = 10): LengthAwarePaginator
+    {
+        return \App\Models\LeadAssignHistory::where('lead_id', $leadId)
+            ->with(['assignedUser', 'currentUser', 'priority', 'status', 'callStatus'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
     }
 
     /**
@@ -875,6 +909,8 @@ class LeadRepository implements LeadRepositoryInterface
             }, '>=', 1)
             ->where('leads.status', '1');
 
+        $this->applyOrganisationValidation($query, Auth::user());
+
         \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
 
         return $query
@@ -977,6 +1013,29 @@ class LeadRepository implements LeadRepositoryInterface
     }
 
     /**
+     * Get the latest two leads.
+     *
+     * @param array $filters
+     * @return Collection
+     */
+    public function getLatestTwoLeads(array $filters = [])
+    {
+        $query = $this->model
+            ->with($this->eagerLoadRelations())
+            ->notDeleted()
+            ->accessibleToUser(Auth::user());
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
+
+        return $query
+            ->orderBy('leads.created_at', 'desc')
+            ->limit(2)
+            ->get();
+    }
+
+    /**
      * Get the latest two follow-up leads.
      *
      * @return Collection
@@ -991,6 +1050,8 @@ class LeadRepository implements LeadRepositoryInterface
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'follow-up');
             });
+
+        $this->applyOrganisationValidation($query, Auth::user());
 
         \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
 
@@ -1015,6 +1076,8 @@ class LeadRepository implements LeadRepositoryInterface
                 $query->where('slug', 'meeting-schedule');
             });
 
+        $this->applyOrganisationValidation($query, Auth::user());
+
         \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
 
         return $query
@@ -1030,13 +1093,17 @@ class LeadRepository implements LeadRepositoryInterface
      */
     public function getLatestTwoMeetingDoneLeads()
     {
-        return $this->model
+        $query = $this->model
             ->with($this->eagerLoadRelations())
             ->notDeleted()
             ->accessibleToUser(Auth::user())
             ->whereHas('callStatusRelation', function ($query) {
                 $query->where('slug', 'meeting-done');
-            })
+            });
+
+        $this->applyOrganisationValidation($query, Auth::user());
+
+        return $query
             ->orderBy('created_at', 'desc')
             ->limit(2)
             ->get();

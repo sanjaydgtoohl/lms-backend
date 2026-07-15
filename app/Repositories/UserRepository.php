@@ -24,9 +24,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function all(int $perPage = 15): LengthAwarePaginator
     {
         $modelClass = $this->modelClass;
-        return $modelClass::with(['roles', 'permissions', 'parents', 'children', 'organisation', 'organisations', 'zone'])
-            ->latest()
-            ->paginate($perPage);
+        $query = $modelClass::with(['roles', 'permissions', 'parents', 'children', 'organisation', 'organisations', 'zone']);
+        $this->applyOrganisationValidation($query, auth()->user());
+        
+        return $query->latest()->paginate($perPage);
     }
 
     /**
@@ -34,7 +35,11 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function find(int $id): ?User
     {
-        return parent::find($id);
+        $modelClass = $this->modelClass;
+        $query = $modelClass::where('id', $id);
+        $this->applyOrganisationValidation($query, auth()->user());
+        
+        return $query->first();
     }
 
     /**
@@ -42,7 +47,11 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function findByEmail(string $email): ?User
     {
-        return User::where('email', $email)->first();
+        $modelClass = $this->modelClass;
+        $query = $modelClass::where('email', $email);
+        $this->applyOrganisationValidation($query, auth()->user());
+        
+        return $query->first();
     }
 
     /**
@@ -74,7 +83,11 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function findWithRelations(int $id, array $relations = []): ?User
     {
-        return parent::findWithRelations($id, $relations);
+        $modelClass = $this->modelClass;
+        $query = $modelClass::with($relations)->where('id', $id);
+        $this->applyOrganisationValidation($query, auth()->user());
+        
+        return $query->first();
     }
 
     /**
@@ -109,6 +122,8 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             }
         }
 
+        $this->applyOrganisationValidation($query, auth()->user());
+
         return $query->latest()->paginate($perPage);
     }
 
@@ -118,7 +133,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function findBy(array $conditions): Collection
     {
         $modelClass = $this->modelClass;
-        return $modelClass::where($conditions)->get();
+        $query = $modelClass::where($conditions);
+        $this->applyOrganisationValidation($query, auth()->user());
+        
+        return $query->get();
     }
 
     /**
@@ -127,7 +145,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function findFirstBy(array $conditions): ?User
     {
         $modelClass = $this->modelClass;
-        return $modelClass::where($conditions)->first();
+        $query = $modelClass::where($conditions);
+        $this->applyOrganisationValidation($query, auth()->user());
+        
+        return $query->first();
     }
 
     /**
@@ -136,7 +157,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function countBy(array $conditions): int
     {
         $modelClass = $this->modelClass;
-        return $modelClass::where($conditions)->count();
+        $query = $modelClass::where($conditions);
+        $this->applyOrganisationValidation($query, auth()->user());
+        
+        return $query->count();
     }
 
     /**
@@ -162,13 +186,55 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     {
         $modelClass = $this->modelClass;
         
+        $baseQuery = $modelClass::query();
+        $this->applyOrganisationValidation($baseQuery, auth()->user());
+        
         return [
-            'total' => $modelClass::count(),
-            'active' => $modelClass::where('status', 'active')->count(),
-            'inactive' => $modelClass::where('status', 'inactive')->count(),
-            'suspended' => $modelClass::where('status', 'suspended')->count(),
-            'verified' => $modelClass::whereNotNull('email_verified_at')->count(),
-            'unverified' => $modelClass::whereNull('email_verified_at')->count(),
+            'total' => (clone $baseQuery)->count(),
+            'active' => (clone $baseQuery)->where('status', 'active')->count(),
+            'inactive' => (clone $baseQuery)->where('status', 'inactive')->count(),
+            'suspended' => (clone $baseQuery)->where('status', 'suspended')->count(),
+            'verified' => (clone $baseQuery)->whereNotNull('email_verified_at')->count(),
+            'unverified' => (clone $baseQuery)->whereNull('email_verified_at')->count(),
         ];
+    }
+
+    /**
+     * Ensure users belong to the authenticated user's organisation.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \App\Models\User|null $user
+     */
+    protected function applyOrganisationValidation($query, $user): void
+    {
+        if (!$user) {
+            return;
+        }
+
+        $visibleUserIds = \App\Support\UserAccessScope::getVisibleUserIds($user);
+        $userOrgIds = \App\Support\UserAccessScope::getAccessibleOrganisationIds($user);
+
+        if (empty($userOrgIds)) {
+            // If user has no organisation, they can only see their hierarchy descendants
+            $query->whereIn('users.id', $visibleUserIds);
+        } else {
+            // If user has an organisation, they MUST only see users from that organisation OR their own descendants
+            $orgUserIds = \App\Support\DashboardFilters::getOrganisationUserIds($userOrgIds);
+
+            if (empty($orgUserIds)) {
+                $query->whereIn('users.id', $visibleUserIds);
+            } else {
+                $query->where(function ($q) use ($orgUserIds, $visibleUserIds) {
+                    $q->whereIn('users.id', $orgUserIds)
+                      ->orWhereIn('users.id', $visibleUserIds);
+                });
+                
+                // Explicitly exclude ancestors (e.g. parents)
+                $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
+                if (!empty($ancestorIds)) {
+                    $query->whereNotIn('users.id', $ancestorIds);
+                }
+            }
+        }
     }
 }

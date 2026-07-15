@@ -570,21 +570,7 @@ class LeadController extends Controller
     {
         try {
             $filters = \App\Support\DashboardFilters::fromRequest($request);
-            $query = Lead::with([
-                'brand',
-                'agency',
-                'assignedUser',
-                'callStatusRelation',
-                'priority',
-                'leadStatusRelation'
-            ])->accessibleToUser()
-              ->whereNull('leads.deleted_at');
-
-            \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
-
-            $leads = $query->orderBy('leads.created_at', 'desc')
-              ->limit(2)
-              ->get();
+            $leads = $this->leadService->getLatestTwoLeads($filters);
 
             return $this->responseService->success(
                 LeadResource::collection($leads),
