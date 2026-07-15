@@ -2,15 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\Lead;
-use App\Models\Brief;
-use App\Models\Planner;
-use App\Models\MissCampaign;
-use App\Models\Organisation;
 use App\Contracts\Repositories\LeadRepositoryInterface;
-use App\Support\DashboardFilters;
-use App\Support\PlannerMetrics;
+use App\Contracts\Repositories\DashboardRepositoryInterface;
 use App\Support\UserAccessScope;
 use Exception;
 use Illuminate\Support\Facades\Auth;
@@ -19,10 +12,14 @@ use Illuminate\Support\Facades\Log;
 class DashboardService
 {
     protected LeadRepositoryInterface $leadRepository;
+    protected DashboardRepositoryInterface $dashboardRepository;
 
-    public function __construct(LeadRepositoryInterface $leadRepository)
-    {
+    public function __construct(
+        LeadRepositoryInterface $leadRepository,
+        DashboardRepositoryInterface $dashboardRepository
+    ) {
         $this->leadRepository = $leadRepository;
+        $this->dashboardRepository = $dashboardRepository;
     }
 
     /**
@@ -64,17 +61,7 @@ class DashboardService
                 return $this->buildAggregateChartMetrics($user, $filters);
             }
 
-            $organisationsQuery = Organisation::query()->orderBy('name');
-            if (!empty($filters['organisation_ids'])) {
-                $organisationsQuery->whereIn('id', $filters['organisation_ids']);
-            } else {
-                $accessibleOrgIds = UserAccessScope::getAccessibleOrganisationIds($user);
-                if (!empty($accessibleOrgIds)) {
-                    $organisationsQuery->whereIn('id', $accessibleOrgIds);
-                }
-            }
-
-            $organisations = $organisationsQuery->get(['id', 'name']);
+            $organisations = $this->dashboardRepository->getAccessibleOrganisations($filters, $user);
             $rows = [];
 
             foreach ($organisations as $organisation) {
@@ -129,31 +116,7 @@ class DashboardService
      */
     private function buildOrganisationChartRow($user, int $organisationId, string $organisationName, array $filters): array
     {
-        $leadsQuery = Lead::query()
-            ->accessibleToUser($user)
-            ->whereNull('deleted_at');
-        DashboardFilters::applyLeadDashboardFilters($leadsQuery, $filters);
-
-        $preLeadsQuery = MissCampaign::query()
-            ->accessibleToUser($user)
-            ->notDeleted()
-            ->where('miss_campaigns.status', '1');
-        DashboardFilters::applyMissCampaignDashboardFilters($preLeadsQuery, $filters);
-
-        $briefsQuery = Brief::query()
-            ->accessibleToUser($user)
-            ->whereNull('deleted_at')
-            ->whereRaw('briefs.status != 15');
-        DashboardFilters::applyBriefDashboardFilters($briefsQuery, $filters);
-
-        return [
-            'organisation_id' => $organisationId,
-            'organisation_name' => $organisationName,
-            'total_leads' => (int) (clone $leadsQuery)->count(),
-            'pre_leads' => (int) (clone $preLeadsQuery)->count(),
-            'briefs' => (int) (clone $briefsQuery)->count(),
-            'brief_budget' => (float) (clone $briefsQuery)->sum('briefs.budget'),
-        ];
+        return $this->dashboardRepository->getOrganisationChartRow($filters, $user, $organisationId, $organisationName);
     }
 
     /**
@@ -163,18 +126,7 @@ class DashboardService
     {
         try {
             $user = Auth::user();
-            $query = User::query()->whereNull('deleted_at');
-            DashboardFilters::applyUserOrganisationFilter($query, $filters);
-            DashboardFilters::applyDateFilter($query, $filters, 'created_at');
-
-            if ($user && empty($filters['organisation_ids'])) {
-                $visibleUserIds = UserAccessScope::getVisibleUserIds($user);
-                if (!empty($visibleUserIds)) {
-                    $query->whereIn('id', $visibleUserIds);
-                }
-            }
-
-            return $query->count();
+            return $this->dashboardRepository->getTotalUserCount($filters, $user);
         } catch (Exception $e) {
             Log::error('Error fetching total user count', ['exception' => $e]);
             return 0;
@@ -206,17 +158,7 @@ class DashboardService
         try {
             $user = Auth::user();
             $charts = $this->getChartMetrics($filters);
-
-            $leadQuery = Lead::query()
-                ->accessibleToUser($user)
-                ->whereNull('deleted_at');
-            DashboardFilters::applyLeadDashboardFilters($leadQuery, $filters, 'leads');
-
-            $briefQuery = Brief::query()
-                ->accessibleToUser($user)
-                ->whereNull('deleted_at')
-                ->whereRaw('briefs.status != 15');
-            DashboardFilters::applyBriefDashboardFilters($briefQuery, $filters, 'briefs');
+            $pipelineCounts = $this->dashboardRepository->getSalesPipelineCounts($filters, $user);
 
             $byOrganisation = array_map(static function (array $row) {
                 return [
@@ -235,16 +177,7 @@ class DashboardService
                     'briefs' => $charts['totals']['briefs'],
                     'brief_budget' => $charts['totals']['brief_budget'],
                 ],
-                'pipeline' => [
-                    'new_leads' => (int) (clone $leadQuery)->count(),
-                    'follow_up' => (int) (clone $leadQuery)->whereHas('callStatusRelation', function ($query) {
-                        $query->where('slug', 'follow-up');
-                    })->count(),
-                    'meeting_scheduled' => (int) (clone $leadQuery)->whereHas('callStatusRelation', function ($query) {
-                        $query->where('slug', 'meeting-schedule');
-                    })->count(),
-                    'briefs' => (int) (clone $briefQuery)->count(),
-                ],
+                'pipeline' => $pipelineCounts,
             ];
         } catch (Exception $e) {
             Log::error('Error fetching sales dashboard chart metrics', ['exception' => $e]);
@@ -266,11 +199,7 @@ class DashboardService
             $plannerRows = $this->getPlannerOrganisationMetrics($filters);
             $plannerByOrgId = collect($plannerRows)->keyBy('organisation_id');
 
-            $briefQuery = Brief::query()
-                ->accessibleToUser($user)
-                ->whereNull('deleted_at')
-                ->whereRaw('briefs.status != 15');
-            DashboardFilters::applyBriefDashboardFilters($briefQuery, $filters, 'briefs');
+            $briefStatusCounts = $this->dashboardRepository->getPlannerBriefStatusCounts($filters, $user);
 
             $byOrganisation = array_map(static function (array $row) use ($plannerByOrgId) {
                 $planner = $plannerByOrgId->get($row['organisation_id'], []);
@@ -285,7 +214,7 @@ class DashboardService
                 ];
             }, $charts['by_organisation']);
 
-            $overallAvgAssignmentDays = $this->calculateOverallAssignmentDays($user, $filters);
+            $overallAvgAssignmentDays = $this->dashboardRepository->getOverallAssignmentDays($filters, $user);
 
             return [
                 'by_organisation' => $byOrganisation,
@@ -295,13 +224,7 @@ class DashboardService
                     'assigned_plans' => (int) array_sum(array_column($byOrganisation, 'assigned_plans')),
                     'avg_assignment_days' => $overallAvgAssignmentDays,
                 ],
-                'brief_status' => [
-                    'active_briefs' => (int) (clone $briefQuery)->whereDate('submission_date', '>=', now())->count(),
-                    'closed_briefs' => (int) (clone $briefQuery)->whereHas('briefStatus', function ($query) {
-                        $query->where('slug', 'closed');
-                    })->count(),
-                    'overdue_briefs' => (int) (clone $briefQuery)->where('submission_date', '<', now())->count(),
-                ],
+                'brief_status' => $briefStatusCounts,
             ];
         } catch (Exception $e) {
             Log::error('Error fetching planner dashboard chart metrics', ['exception' => $e]);
@@ -325,94 +248,27 @@ class DashboardService
             empty($filters['organisation_ids'])
             && empty(UserAccessScope::getAccessibleOrganisationIds($user))
         ) {
-            return [$this->buildOrganisationPlannerRow($user, 0, 'My Data', $filters)];
+            return [$this->dashboardRepository->getPlannerOrganisationRow($filters, $user, 0, 'My Data')];
         }
 
-        $organisationsQuery = Organisation::query()->orderBy('name');
-        if (!empty($filters['organisation_ids'])) {
-            $organisationsQuery->whereIn('id', $filters['organisation_ids']);
-        } else {
-            $accessibleOrgIds = UserAccessScope::getAccessibleOrganisationIds($user);
-            if (!empty($accessibleOrgIds)) {
-                $organisationsQuery->whereIn('id', $accessibleOrgIds);
-            }
-        }
-
+        $organisations = $this->dashboardRepository->getAccessibleOrganisations($filters, $user);
         $rows = [];
-        foreach ($organisationsQuery->get(['id', 'name']) as $organisation) {
+        foreach ($organisations as $organisation) {
             $organisationFilter = array_merge($filters, [
                 'organisation_ids' => [(int) $organisation->id],
             ]);
-            $rows[] = $this->buildOrganisationPlannerRow(
+            $rows[] = $this->dashboardRepository->getPlannerOrganisationRow(
+                $organisationFilter,
                 $user,
                 (int) $organisation->id,
-                (string) $organisation->name,
-                $organisationFilter
+                (string) $organisation->name
             );
         }
 
         if ($rows === [] && empty(UserAccessScope::getAccessibleOrganisationIds($user))) {
-            return [$this->buildOrganisationPlannerRow($user, 0, 'My Data', $filters)];
+            return [$this->dashboardRepository->getPlannerOrganisationRow($filters, $user, 0, 'My Data')];
         }
 
         return $rows;
-    }
-
-    /**
-     * @param array<string, mixed> $filters
-     * @return array<string, mixed>
-     */
-    private function buildOrganisationPlannerRow($user, int $organisationId, string $organisationName, array $filters): array
-    {
-        $plannerQuery = Planner::query()
-            ->whereNull('planners.deleted_at')
-            ->whereHas('brief', function ($query) use ($user, $filters) {
-                $query->accessibleToUser($user)
-                    ->whereNull('briefs.deleted_at')
-                    ->whereRaw('briefs.status != 15');
-                DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
-            });
-
-        $assignedPlans = (int) (clone $plannerQuery)->count();
-        $avgAssignmentDays = self::calculateAverageAssignmentToSubmissionDays($plannerQuery);
-
-        return [
-            'organisation_id' => $organisationId,
-            'organisation_name' => $organisationName,
-            'assigned_plans' => $assignedPlans,
-            'avg_assignment_days' => $avgAssignmentDays ? round((float) $avgAssignmentDays, 1) : 0,
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $filters
-     */
-    private function calculateOverallAssignmentDays($user, array $filters): float
-    {
-        $plannerQuery = Planner::query()
-            ->whereNull('planners.deleted_at')
-            ->whereHas('brief', function ($query) use ($user, $filters) {
-                $query->accessibleToUser($user)
-                    ->whereNull('briefs.deleted_at')
-                    ->whereRaw('briefs.status != 15');
-                DashboardFilters::applyBriefDashboardFilters($query, $filters, 'briefs');
-            });
-
-        return self::calculateAverageAssignmentToSubmissionDays($plannerQuery);
-    }
-
-    /**
-     * Average days from plan assignment (planner created) to plan submission.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $plannerQuery
-     */
-    private static function calculateAverageAssignmentToSubmissionDays($plannerQuery): float
-    {
-        $submittedQuery = PlannerMetrics::applySubmittedPlansScope(clone $plannerQuery);
-        $avgDays = $submittedQuery
-            ->selectRaw('AVG(' . PlannerMetrics::assignmentToSubmissionDaysSql() . ') as avg_days')
-            ->value('avg_days');
-
-        return $avgDays ? round((float) $avgDays, 1) : 0;
     }
 }

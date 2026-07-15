@@ -78,9 +78,10 @@ class PlannerRepository
      */
     public function getPlannerById(int $id): ?Planner
     {
-        return $this->model
-            ->with(self::DEFAULT_RELATIONSHIPS)
-            ->find($id);
+        $query = $this->model->with(self::DEFAULT_RELATIONSHIPS)->accessibleToUser(Auth::user());
+        $this->applyOrganisationValidation($query, Auth::user());
+        
+        return $query->find($id);
     }
 
     /**
@@ -199,7 +200,10 @@ class PlannerRepository
      */
     public function countByBriefId(int $briefId): int
     {
-        return $this->model->where('brief_id', $briefId)->count();
+        $query = $this->model->accessibleToUser(Auth::user())->where('brief_id', $briefId);
+        $this->applyOrganisationValidation($query, Auth::user());
+        
+        return $query->count();
     }
 
     /**
@@ -221,10 +225,14 @@ class PlannerRepository
      */
     public function getPlannerByUuid(string $uuid): ?Planner
     {
-        return $this->model
+        $query = $this->model
             ->with(self::DEFAULT_RELATIONSHIPS)
-            ->where('uuid', $uuid)
-            ->first();
+            ->accessibleToUser(Auth::user())
+            ->where('uuid', $uuid);
+            
+        $this->applyOrganisationValidation($query, Auth::user());
+        
+        return $query->first();
     }
 
     /**
