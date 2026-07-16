@@ -107,7 +107,8 @@ class DashboardFilters
                 $query->where(function ($q) use ($ancestorIds, $user, $createdByCol, $assignedToCol) {
                     $q->whereNotIn($createdByCol, $ancestorIds);
                     if ($assignedToCol) {
-                        $q->orWhere($assignedToCol, $user->id);
+                        $descendantIds = UserAccessScope::getStrictDescendantIds($user);
+                        $q->orWhereIn($assignedToCol, $descendantIds);
                     }
                 });
             }
@@ -143,6 +144,24 @@ class DashboardFilters
         ?string $table = 'leads'
     ): Builder {
         self::applyDateFilter($query, $filters, "{$table}.created_at");
+        self::applyOrganisationUserFilter(
+            $query,
+            $filters,
+            ['created_by', 'current_assign_user'],
+            $table
+        );
+        self::applyLeadPriorityFilter($query, $filters, $table);
+
+        return $query;
+    }
+
+    public static function applyPendingLeadDashboardFilters(
+        Builder $query,
+        array $filters,
+        ?string $table = 'leads'
+    ): Builder {
+        // Pending leads should be filtered by when they were last updated (assigned), not just created
+        self::applyDateFilter($query, $filters, "{$table}.updated_at");
         self::applyOrganisationUserFilter(
             $query,
             $filters,
@@ -212,8 +231,9 @@ class DashboardFilters
             $ancestorIds = UserAccessScope::getAncestorIds($user);
             if (!empty($ancestorIds)) {
                 $query->where(function ($q) use ($ancestorIds, $user, $table) {
+                    $descendantIds = UserAccessScope::getStrictDescendantIds($user);
                     $q->whereNotIn("{$table}.assign_by", $ancestorIds)
-                      ->orWhere("{$table}.assign_to", $user->id);
+                      ->orWhereIn("{$table}.assign_to", $descendantIds);
                 });
             }
         }

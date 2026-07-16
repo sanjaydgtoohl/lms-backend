@@ -29,11 +29,9 @@ class Dashboard extends Model
         DashboardFilters::applyUserOrganisationFilter($query, $filters);
         DashboardFilters::applyDateFilter($query, $filters, 'created_at');
 
-        if ($user && empty($filters['organisation_ids'])) {
-            $visibleUserIds = UserAccessScope::getVisibleUserIds($user);
-            if (!empty($visibleUserIds)) {
-                $query->whereIn('id', $visibleUserIds);
-            }
+        if ($user) {
+            $strictDescendantIds = UserAccessScope::getStrictDescendantsInOrganisation($user);
+            $query->whereIn('id', $strictDescendantIds);
         }
 
         return $query->count();

@@ -211,30 +211,11 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             return;
         }
 
-        $visibleUserIds = \App\Support\UserAccessScope::getVisibleUserIds($user);
-        $userOrgIds = \App\Support\UserAccessScope::getAccessibleOrganisationIds($user);
-
-        if (empty($userOrgIds)) {
-            // If user has no organisation, they can only see their hierarchy descendants
-            $query->whereIn('users.id', $visibleUserIds);
-        } else {
-            // If user has an organisation, they MUST only see users from that organisation OR their own descendants
-            $orgUserIds = \App\Support\DashboardFilters::getOrganisationUserIds($userOrgIds);
-
-            if (empty($orgUserIds)) {
-                $query->whereIn('users.id', $visibleUserIds);
-            } else {
-                $query->where(function ($q) use ($orgUserIds, $visibleUserIds) {
-                    $q->whereIn('users.id', $orgUserIds)
-                      ->orWhereIn('users.id', $visibleUserIds);
-                });
-                
-                // Explicitly exclude ancestors (e.g. parents)
-                $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
-                if (!empty($ancestorIds)) {
-                    $query->whereNotIn('users.id', $ancestorIds);
-                }
-            }
-        }
+        // First check with the organization, AND then check with the parent child flow.
+        // This ensures a user can ONLY see their descendants who are ALSO in their organization.
+        // Peers in the organization will NOT be shown.
+        $strictDescendantIds = \App\Support\UserAccessScope::getStrictDescendantsInOrganisation($user);
+        
+        $query->whereIn('users.id', $strictDescendantIds);
     }
 }

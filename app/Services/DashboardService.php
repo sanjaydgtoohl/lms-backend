@@ -9,17 +9,22 @@ use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
+use App\Contracts\Repositories\UserRepositoryInterface;
+
 class DashboardService
 {
     protected LeadRepositoryInterface $leadRepository;
     protected DashboardRepositoryInterface $dashboardRepository;
+    protected UserRepositoryInterface $userRepository;
 
     public function __construct(
         LeadRepositoryInterface $leadRepository,
-        DashboardRepositoryInterface $dashboardRepository
+        DashboardRepositoryInterface $dashboardRepository,
+        UserRepositoryInterface $userRepository
     ) {
         $this->leadRepository = $leadRepository;
         $this->dashboardRepository = $dashboardRepository;
+        $this->userRepository = $userRepository;
     }
 
     /**
@@ -125,8 +130,9 @@ class DashboardService
     public function getTotalUserCount(array $filters = []): int
     {
         try {
-            $user = Auth::user();
-            return $this->dashboardRepository->getTotalUserCount($filters, $user);
+            // Get it directly from the Users API logic (UserRepository)
+            $stats = $this->userRepository->getStatistics();
+            return (int) ($stats['total'] ?? 0);
         } catch (Exception $e) {
             Log::error('Error fetching total user count', ['exception' => $e]);
             return 0;

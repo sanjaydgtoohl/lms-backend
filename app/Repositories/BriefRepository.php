@@ -600,8 +600,9 @@ class BriefRepository implements BriefRepositoryInterface
                 $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
                 if (!empty($ancestorIds)) {
                     $query->where(function ($q) use ($ancestorIds, $user) {
+                        $descendantIds = \App\Support\UserAccessScope::getStrictDescendantIds($user);
                         $q->whereNotIn('created_by', $ancestorIds)
-                          ->orWhere('assign_user_id', $user->id);
+                          ->orWhereIn('assign_user_id', $descendantIds);
                     });
                 }
             }

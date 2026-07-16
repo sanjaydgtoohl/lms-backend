@@ -240,8 +240,9 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
                 $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
                 if (!empty($ancestorIds)) {
                     $query->where(function ($q) use ($ancestorIds, $user) {
+                        $descendantIds = \App\Support\UserAccessScope::getStrictDescendantIds($user);
                         $q->whereNotIn('assign_by', $ancestorIds)
-                          ->orWhere('assign_to', $user->id);
+                          ->orWhereIn('assign_to', $descendantIds);
                     });
                 }
             }
