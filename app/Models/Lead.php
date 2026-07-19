@@ -58,6 +58,7 @@ class Lead extends Model
         'comment',
         'status',
         'pre_lead_id',
+        'organisation_id'
     ];
 
     /**
@@ -256,5 +257,13 @@ class Lead extends Model
     public function notifications(): MorphMany
     {
         return $this->morphMany(Notification::class, 'notifiable');
+    }
+
+    /**
+     * Get the organisation associated with this lead.
+     */
+    public function organisation()
+    {
+        return $this->belongsTo(Organisation::class, 'organisation_id');
     }
 }

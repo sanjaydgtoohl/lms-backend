@@ -41,6 +41,7 @@ class MissCampaignRepository implements MissCampaignRepositoryInterface
             'city',
             'assignBy' => $notTrashed('users'),
             'assignTo' => $notTrashed('users'),
+            'lead.organisation',
         ];
     }
 

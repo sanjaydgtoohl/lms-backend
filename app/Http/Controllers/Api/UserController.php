@@ -422,4 +422,164 @@ class UserController extends Controller
         
         return $tree;
     }
+
+    /**
+     * Get child users list filtered by organisation
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getChildUsersByOrganisation(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            $organisationId = $request->input('organisation_id');
+            if (!$organisationId) {
+                return $this->responseService->validationError(['organisation_id' => ['Organisation ID is required']]);
+            }
+
+            // Get all descendants in nested tree format filtered by organisation
+            $childTree = $user->getChildTreeByOrganisation($organisationId);
+            
+            return $this->responseService->success(
+                $childTree,
+                'Child users hierarchy filtered by organisation retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve child users: ' . $e->getMessage());
+        }
+    }
+
+    public function getChildUsersByLead(Request $request, int $leadId): JsonResponse
+    {
+        try {
+            $lead = \App\Models\Lead::find($leadId);
+            if (!$lead) {
+                return $this->responseService->notFound('Lead not found');
+            }
+
+            $creator = \App\Models\User::find($lead->created_by);
+            if (!$creator) {
+                return $this->responseService->notFound('Lead creator not found');
+            }
+
+            $organisationId = $lead->organisation_id;
+            if (!$organisationId) {
+                return $this->responseService->validationError(['lead_id' => ['Lead does not have an organisation assigned']]);
+            }
+
+            // Get all descendants of the creator in nested tree format filtered by the lead's organisation
+            $childTree = $creator->getChildTreeByOrganisation($organisationId);
+            
+            return $this->responseService->success(
+                $childTree,
+                'Child users hierarchy for lead retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve child users for lead: ' . $e->getMessage());
+        }
+    }
+
+    public function getChildUsersForBriefCreation(Request $request, int $leadId): JsonResponse
+    {
+        try {
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            $lead = \App\Models\Lead::find($leadId);
+            if (!$lead) {
+                return $this->responseService->notFound('Lead not found');
+            }
+
+            $organisationId = $lead->organisation_id;
+            if (!$organisationId) {
+                return $this->responseService->validationError(['lead_id' => ['Lead does not have an organisation assigned']]);
+            }
+
+            // Get all descendants of the AUTH user in nested tree format filtered by the lead's organisation
+            $childTree = $user->getChildTreeByOrganisation($organisationId);
+            
+            return $this->responseService->success(
+                $childTree,
+                'Child users hierarchy for brief creation retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve child users for brief creation: ' . $e->getMessage());
+        }
+    }
+
+    public function getChildUsersByMissCampaign(Request $request, int $campaignId): JsonResponse
+    {
+        try {
+            $campaign = \App\Models\MissCampaign::with('lead')->find($campaignId);
+            if (!$campaign) {
+                return $this->responseService->notFound('Miss campaign not found');
+            }
+
+            // In miss campaigns, assign_by represents the person who created/assigned it
+            $creator = \App\Models\User::find($campaign->assign_by);
+            if (!$creator) {
+                return $this->responseService->notFound('Miss campaign creator not found');
+            }
+
+            // Miss campaigns store organisation_id in their connected Lead
+            $lead = $campaign->lead;
+            if (!$lead || !$lead->organisation_id) {
+                return $this->responseService->validationError(['campaign_id' => ['Miss campaign does not have an organisation assigned']]);
+            }
+            
+            $organisationId = $lead->organisation_id;
+
+            // Get all descendants of the creator in nested tree format filtered by the organisation
+            $childTree = $creator->getChildTreeByOrganisation($organisationId);
+            
+            return $this->responseService->success(
+                $childTree,
+                'Child users hierarchy for miss campaign retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve child users for miss campaign: ' . $e->getMessage());
+        }
+    }
+
+    public function getChildUsersByBrief(Request $request, int $briefId): JsonResponse
+    {
+        try {
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            $brief = \App\Models\Brief::with('contactPerson')->find($briefId);
+            if (!$brief) {
+                return $this->responseService->notFound('Brief not found');
+            }
+
+            // The brief is linked to a lead via contact_person_id
+            $lead = $brief->contactPerson;
+            if (!$lead || !$lead->organisation_id) {
+                return $this->responseService->validationError(['brief_id' => ['The associated lead for this brief does not have an organisation assigned']]);
+            }
+            
+            $organisationId = $lead->organisation_id;
+
+            // Get all descendants of the AUTH user in nested tree format filtered by the lead's organisation
+            $childTree = $user->getChildTreeByOrganisation($organisationId);
+            
+            return $this->responseService->success(
+                $childTree,
+                'Child users hierarchy for brief retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve child users for brief: ' . $e->getMessage());
+        }
+    }
 }

@@ -144,7 +144,7 @@ class DashboardFilters
         ?string $table = 'leads'
     ): Builder {
         self::applyDateFilter($query, $filters, "{$table}.created_at");
-        self::applyOrganisationUserFilter(
+        self::applyLeadOrganisationFilter(
             $query,
             $filters,
             ['created_by', 'current_assign_user'],
@@ -162,7 +162,7 @@ class DashboardFilters
     ): Builder {
         // Pending leads should be filtered by when they were last updated (assigned), not just created
         self::applyDateFilter($query, $filters, "{$table}.updated_at");
-        self::applyOrganisationUserFilter(
+        self::applyLeadOrganisationFilter(
             $query,
             $filters,
             ['created_by', 'current_assign_user'],
@@ -173,19 +173,85 @@ class DashboardFilters
         return $query;
     }
 
+    public static function applyLeadOrganisationFilter(
+        Builder $query,
+        array $filters,
+        array $columns,
+        ?string $table = null
+    ): Builder {
+        if (empty($filters['organisation_ids'])) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        $query->whereIn("{$table}.organisation_id", $filters['organisation_ids']);
+
+        $user = auth()->user();
+        if ($user) {
+            $ancestorIds = UserAccessScope::getAncestorIds($user);
+            if (!empty($ancestorIds)) {
+                $createdByCol = $table ? "{$table}.{$columns[0]}" : $columns[0];
+                $assignedToCol = isset($columns[1]) ? ($table ? "{$table}.{$columns[1]}" : $columns[1]) : null;
+
+                $query->where(function ($q) use ($ancestorIds, $user, $createdByCol, $assignedToCol) {
+                    $q->whereNotIn($createdByCol, $ancestorIds);
+                    if ($assignedToCol) {
+                        $descendantIds = UserAccessScope::getStrictDescendantIds($user);
+                        $q->orWhereIn($assignedToCol, $descendantIds);
+                    }
+                });
+            }
+        }
+
+        return $query;
+    }
+
     public static function applyBriefDashboardFilters(
         Builder $query,
         array $filters,
         ?string $table = 'briefs'
     ): Builder {
         self::applyDateFilter($query, $filters, "{$table}.created_at");
-        self::applyOrganisationUserFilter(
+        self::applyBriefOrganisationFilter(
             $query,
             $filters,
             ['created_by', 'assign_user_id'],
             $table
         );
         self::applyLeadPriorityFilter($query, $filters, $table);
+
+        return $query;
+    }
+
+    public static function applyBriefOrganisationFilter(
+        Builder $query,
+        array $filters,
+        array $columns,
+        ?string $table = null
+    ): Builder {
+        if (empty($filters['organisation_ids'])) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        $query->whereHas('contactPerson', function ($q) use ($filters) {
+            $q->whereIn('organisation_id', $filters['organisation_ids']);
+        });
+
+        $user = auth()->user();
+        if ($user) {
+            $ancestorIds = UserAccessScope::getAncestorIds($user);
+            if (!empty($ancestorIds)) {
+                $createdByCol = $table ? "{$table}.{$columns[0]}" : $columns[0];
+                $assignedToCol = isset($columns[1]) ? ($table ? "{$table}.{$columns[1]}" : $columns[1]) : null;
+
+                $query->where(function ($q) use ($ancestorIds, $user, $createdByCol, $assignedToCol) {
+                    $q->whereNotIn($createdByCol, $ancestorIds);
+                    if ($assignedToCol) {
+                        $descendantIds = UserAccessScope::getStrictDescendantIds($user);
+                        $q->orWhereIn($assignedToCol, $descendantIds);
+                    }
+                });
+            }
+        }
 
         return $query;
     }
@@ -210,20 +276,8 @@ class DashboardFilters
             return $query->whereRaw('0 = 1');
         }
 
-        $userIds = self::getOrganisationUserIds($filters['organisation_ids']);
-        if (empty($userIds)) {
-            return $query->whereRaw('0 = 1');
-        }
-
-        $query->where(function (Builder $builder) use ($userIds, $table) {
-            $builder->whereIn("{$table}.assign_by", $userIds)
-                ->orWhereIn("{$table}.assign_to", $userIds)
-                ->orWhereHas('lead', function (Builder $leadQuery) use ($userIds) {
-                    $leadQuery->where(function (Builder $leadBuilder) use ($userIds) {
-                        $leadBuilder->whereIn('created_by', $userIds)
-                            ->orWhereIn('current_assign_user', $userIds);
-                    });
-                });
+        $query->whereHas('lead', function ($q) use ($filters) {
+            $q->whereIn('organisation_id', $filters['organisation_ids']);
         });
 
         $user = auth()->user();

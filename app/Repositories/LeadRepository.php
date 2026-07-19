@@ -46,6 +46,7 @@ class LeadRepository implements LeadRepositoryInterface
             'callStatusRelation' => $notTrashed('call_statuses'),
             'leadStatusRelation' => $notTrashed('statuses'),
             'mobileNumbers',
+            'organisation',
         ];
     }
 

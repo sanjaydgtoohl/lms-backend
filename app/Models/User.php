@@ -164,6 +164,34 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     }
 
     /**
+     * Build nested tree structure for children recursively filtered by organisation
+     * 
+     * @param int $organisationId
+     * @return array
+     */
+    public function getChildTreeByOrganisation($organisationId): array
+    {
+        $children = $this->children()
+            ->whereHas('organisations', function($query) use ($organisationId) {
+                $query->where('organisations.id', $organisationId);
+            })
+            ->select('users.id', 'users.name')
+            ->orderBy('users.name', 'asc')
+            ->get();
+        
+        $tree = [];
+        foreach ($children as $child) {
+            $tree[] = [
+                'id' => $child->id,
+                'name' => $child->name,
+                'children' => $child->getChildTreeByOrganisation($organisationId)
+            ];
+        }
+        
+        return $tree;
+    }
+
+    /**
      * Scope for verified users
      */
     public function scopeVerified($query)
