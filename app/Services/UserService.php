@@ -505,40 +505,7 @@ class UserService
      */
     public function syncUserDepartments(int $userId, array $departmentIds): void
     {
-        $user = User::find($userId);
-
-        if (!$user) {
-            return;
-        }
-
-        DB::table('user_department')
-            ->where('user_id', $userId)
-            ->delete();
-
-        $insertData = [];
-        $uniqueDepartmentIds = [];
-
-        foreach ($departmentIds as $departmentId) {
-            $departmentId = (int) $departmentId;
-
-            if ($departmentId <= 0 || in_array($departmentId, $uniqueDepartmentIds, true)) {
-                continue;
-            }
-
-            if (DB::table('departments')->where('id', $departmentId)->exists()) {
-                $uniqueDepartmentIds[] = $departmentId;
-                $insertData[] = [
-                    'user_id' => $userId,
-                    'department_id' => $departmentId,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-        }
-
-        if (!empty($insertData)) {
-            DB::table('user_department')->insert($insertData);
-        }
+        $this->userRepository->syncDepartments($userId, $departmentIds);
     }
 
     /**

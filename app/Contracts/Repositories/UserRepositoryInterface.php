@@ -89,4 +89,13 @@ interface UserRepositoryInterface
      * @return array
      */
     public function getStatistics(): array;
+
+    /**
+     * Sync user departments.
+     *
+     * @param int $userId
+     * @param array $departmentIds
+     * @return void
+     */
+    public function syncDepartments(int $userId, array $departmentIds): void;
 }

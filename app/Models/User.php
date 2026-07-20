@@ -226,6 +226,24 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     }
 
     /**
+     * Sync valid departments for this user.
+     *
+     * @param array $departmentIds
+     * @return void
+     */
+    public function syncValidDepartments(array $departmentIds): void
+    {
+        $uniqueIds = array_unique(array_filter(array_map('intval', $departmentIds), fn($id) => $id > 0));
+
+        $validIds = [];
+        if (!empty($uniqueIds)) {
+            $validIds = Department::whereIn('id', $uniqueIds)->pluck('id')->toArray();
+        }
+
+        $this->departments()->sync($validIds);
+    }
+
+    /**
      * Organisation-user pivot records.
      */
     public function organisationUsers(): HasMany

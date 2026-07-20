@@ -285,12 +285,9 @@ class BriefService
     {
         try {
             return $this->briefRepository->getBriefCountStatsForPriority($priorityId, $filters);
-        } catch (QueryException $e) {
-            Log::error('Database error fetching brief count stats for priority', ['priority_id' => $priorityId, 'exception' => $e]);
-            throw new DomainException('Database error while fetching brief count stats for priority.');
         } catch (Exception $e) {
-            Log::error('Unexpected error fetching brief count stats for priority', ['priority_id' => $priorityId, 'exception' => $e]);
-            throw new DomainException('Unexpected error while fetching brief count stats for priority.');
+            Log::error('Error fetching brief count stats for priority', ['priority_id' => $priorityId, 'exception' => $e]);
+            throw new DomainException('Error while fetching brief count stats for priority.');
         }
     }
 

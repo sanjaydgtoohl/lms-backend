@@ -218,4 +218,23 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         
         $query->whereIn('users.id', $strictDescendantIds);
     }
+
+    /**
+     * Sync user departments.
+     *
+     * @param int $userId
+     * @param array $departmentIds
+     * @return void
+     */
+    public function syncDepartments(int $userId, array $departmentIds): void
+    {
+        $modelClass = $this->modelClass;
+        $user = $modelClass::find($userId);
+
+        if (!$user) {
+            return;
+        }
+
+        $user->syncValidDepartments($departmentIds);
+    }
 }
