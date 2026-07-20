@@ -155,7 +155,7 @@ class PriorityController extends Controller
      * @param int $id
      * @return JsonResponse
      */
-    public function getLeadCount(int $id, Request $request): JsonResponse
+    public function getLeadCount(int $id, Request $request, \App\Services\LeadService $leadService): JsonResponse
     {
         try {
             $priority = $this->priorityService->getPriority($id);
@@ -165,18 +165,11 @@ class PriorityController extends Controller
             }
 
             $filters = \App\Support\DashboardFilters::fromRequest($request);
-
-            $totalLeadQuery = \App\Models\Lead::accessibleToUser()->whereNull('deleted_at');
-            \App\Support\DashboardFilters::applyLeadDashboardFilters($totalLeadQuery, $filters, 'leads');
-
-            $priorityLeadQuery = \App\Models\Lead::accessibleToUser()
-                ->whereNull('deleted_at')
-                ->where('priority_id', $id);
-            \App\Support\DashboardFilters::applyLeadDashboardFilters($priorityLeadQuery, $filters, 'leads');
+            $stats = $leadService->getLeadCountStatsForPriority($id, $filters);
 
             $data = [
-                'total_leads' => $totalLeadQuery->count(),
-                'priority_lead_count' => $priorityLeadQuery->count(),
+                'total_leads' => $stats['total_leads'],
+                'priority_lead_count' => $stats['priority_lead_count'],
                 'priority_id' => $priority->id,
                 'priority_name' => $priority->name,
             ];
@@ -198,7 +191,7 @@ class PriorityController extends Controller
      * @param int $id
      * @return JsonResponse
      */
-    public function getBriefCount(int $id, Request $request): JsonResponse
+    public function getBriefCount(int $id, Request $request, \App\Services\BriefService $briefService): JsonResponse
     {
         try {
             $priority = $this->priorityService->getPriority($id);
@@ -208,21 +201,11 @@ class PriorityController extends Controller
             }
 
             $filters = \App\Support\DashboardFilters::fromRequest($request);
-
-            $totalBriefQuery = \App\Models\Brief::accessibleToUser()
-                ->whereNull('deleted_at')
-                ->whereRaw('briefs.status != 15');
-            \App\Support\DashboardFilters::applyBriefDashboardFilters($totalBriefQuery, $filters, 'briefs');
-
-            $priorityBriefQuery = \App\Models\Brief::accessibleToUser()
-                ->whereNull('deleted_at')
-                ->whereRaw('briefs.status != 15')
-                ->where('priority_id', $id);
-            \App\Support\DashboardFilters::applyBriefDashboardFilters($priorityBriefQuery, $filters, 'briefs');
+            $stats = $briefService->getBriefCountStatsForPriority($id, $filters);
 
             $data = [
-                'total_briefs' => $totalBriefQuery->count(),
-                'priority_brief_count' => $priorityBriefQuery->count(),
+                'total_briefs' => $stats['total_briefs'],
+                'priority_brief_count' => $stats['priority_brief_count'],
                 'priority_id' => $priority->id,
                 'priority_name' => $priority->name,
             ];

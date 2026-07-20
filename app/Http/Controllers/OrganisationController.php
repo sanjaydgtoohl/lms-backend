@@ -75,14 +75,7 @@ class OrganisationController extends Controller
                 return $this->responseService->success([], 'Organisations list fetched successfully.');
             }
 
-            $data = Organisation::query()
-                ->whereIn('id', $accessibleOrgIds)
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn ($organisation) => [
-                    'id' => $organisation->id,
-                    'name' => $organisation->name,
-                ]);
+            $data = $this->organisationService->getOrganisationsListByIds($accessibleOrgIds);
 
             return $this->responseService->success(
                 $data,

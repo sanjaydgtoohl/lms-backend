@@ -1110,4 +1110,16 @@ class LeadRepository implements LeadRepositoryInterface
             ->limit(2)
             ->get();
     }
+
+    /**
+     * Get lead count statistics for a given priority.
+     *
+     * @param int $priorityId
+     * @param array $filters
+     * @return array
+     */
+    public function getLeadCountStatsForPriority(int $priorityId, array $filters): array
+    {
+        return $this->model->getLeadCountStatsForPriority($priorityId, $filters);
+    }
 }

@@ -608,4 +608,15 @@ class BriefRepository implements BriefRepositoryInterface
             }
         }
     }
+    /**
+     * Get brief count statistics for a given priority.
+     *
+     * @param int $priorityId
+     * @param array $filters
+     * @return array
+     */
+    public function getBriefCountStatsForPriority(int $priorityId, array $filters): array
+    {
+        return $this->model->getBriefCountStatsForPriority($priorityId, $filters);
+    }
 }

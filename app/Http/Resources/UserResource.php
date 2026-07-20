@@ -39,6 +39,19 @@ class UserResource extends BaseResource
                     ];
                 })->values();
             }),
+
+            'department_ids' => $this->whenLoaded('departments', function () {
+                return $this->departments->pluck('id')->values();
+            }),
+
+            'departments' => $this->whenLoaded('departments', function () {
+                return $this->departments->map(function ($department) {
+                    return [
+                        'id' => $department->id,
+                        'name' => $department->name,
+                    ];
+                })->values();
+            }),
             
             'zone_name' => $this->relationLoaded('zone')
                 ? $this->zone?->name

@@ -92,6 +92,22 @@ class Lead extends Model
         return $query->whereNull($this->getTable() . '.deleted_at');
     }
 
+    public static function getLeadCountStatsForPriority(int $priorityId, array $filters): array
+    {
+        $totalLeadQuery = self::accessibleToUser()->whereNull('deleted_at');
+        \App\Support\DashboardFilters::applyLeadDashboardFilters($totalLeadQuery, $filters, 'leads');
+
+        $priorityLeadQuery = self::accessibleToUser()
+            ->whereNull('deleted_at')
+            ->where('priority_id', $priorityId);
+        \App\Support\DashboardFilters::applyLeadDashboardFilters($priorityLeadQuery, $filters, 'leads');
+
+        return [
+            'total_leads' => $totalLeadQuery->count(),
+            'priority_lead_count' => $priorityLeadQuery->count(),
+        ];
+    }
+
     public function scopeAccessibleToUser(Builder $query, $user = null): Builder
     {
         $user = $user ?? auth()->user();

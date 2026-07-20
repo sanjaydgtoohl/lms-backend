@@ -140,6 +140,8 @@ class UserController extends Controller
                 'organisation_ids' => 'required_without:organisation_id|nullable|array|min:1',
                 'organisation_ids.*' => 'integer|exists:organisations,id',
                 'zone_id' => 'required|integer|exists:zones,id',
+                'department_ids' => 'nullable|array',
+                'department_ids.*' => 'integer|exists:departments,id',
             ];
 
             $validated = \Illuminate\Support\Facades\Validator::make($request->all(), $rules);
