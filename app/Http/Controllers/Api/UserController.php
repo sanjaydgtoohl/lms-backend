@@ -459,14 +459,16 @@ class UserController extends Controller
     public function getChildUsersByLead(Request $request, int $leadId): JsonResponse
     {
         try {
+            /** @var \App\Models\User $user */
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
             $lead = \App\Models\Lead::find($leadId);
             if (!$lead) {
                 return $this->responseService->notFound('Lead not found');
-            }
-
-            $creator = \App\Models\User::find($lead->created_by);
-            if (!$creator) {
-                return $this->responseService->notFound('Lead creator not found');
             }
 
             $organisationId = $lead->organisation_id;
@@ -474,8 +476,8 @@ class UserController extends Controller
                 return $this->responseService->validationError(['lead_id' => ['Lead does not have an organisation assigned']]);
             }
 
-            // Get all descendants of the creator in nested tree format filtered by the lead's organisation
-            $childTree = $creator->getChildTreeByOrganisation($organisationId);
+            // Get all descendants of the current logged-in user in nested tree format filtered by the lead's organisation
+            $childTree = $user->getChildTreeByOrganisation($organisationId);
             
             return $this->responseService->success(
                 $childTree,
@@ -520,15 +522,16 @@ class UserController extends Controller
     public function getChildUsersByMissCampaign(Request $request, int $campaignId): JsonResponse
     {
         try {
+            /** @var \App\Models\User $user */
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
             $campaign = \App\Models\MissCampaign::with('lead')->find($campaignId);
             if (!$campaign) {
                 return $this->responseService->notFound('Miss campaign not found');
-            }
-
-            // In miss campaigns, assign_by represents the person who created/assigned it
-            $creator = \App\Models\User::find($campaign->assign_by);
-            if (!$creator) {
-                return $this->responseService->notFound('Miss campaign creator not found');
             }
 
             // Miss campaigns store organisation_id in their connected Lead
@@ -539,8 +542,8 @@ class UserController extends Controller
             
             $organisationId = $lead->organisation_id;
 
-            // Get all descendants of the creator in nested tree format filtered by the organisation
-            $childTree = $creator->getChildTreeByOrganisation($organisationId);
+            // Get all descendants of the current logged-in user in nested tree format filtered by the organisation
+            $childTree = $user->getChildTreeByOrganisation($organisationId);
             
             return $this->responseService->success(
                 $childTree,
