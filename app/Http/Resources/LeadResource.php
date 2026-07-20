@@ -113,6 +113,13 @@ class LeadResource extends JsonResource
                 ];
             }),
 
+            'organisation' => $this->whenLoaded('organisation', function () {
+                return [
+                    'id' => $this->organisation->id ?? null,
+                    'name' => $this->organisation->name ?? null,
+                ];
+            }),
+
             'priority' => $this->whenLoaded('priority', function () {
                 return [
                     'id' => $this->priority->id ?? null,

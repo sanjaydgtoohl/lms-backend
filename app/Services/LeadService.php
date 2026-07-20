@@ -223,6 +223,27 @@ class LeadService
         }
     }
 
+    /**
+     * Get lead count statistics for a priority.
+     *
+     * @param int $priorityId
+     * @param array $filters
+     * @return array
+     * @throws DomainException
+     */
+    public function getLeadCountStatsForPriority(int $priorityId, array $filters): array
+    {
+        try {
+            return $this->leadRepository->getLeadCountStatsForPriority($priorityId, $filters);
+        } catch (QueryException $e) {
+            Log::error('Database error fetching lead count stats for priority', ['priority_id' => $priorityId, 'exception' => $e]);
+            throw new DomainException('Database error while fetching lead count stats for priority.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching lead count stats for priority', ['priority_id' => $priorityId, 'exception' => $e]);
+            throw new DomainException('Unexpected error while fetching lead count stats for priority.');
+        }
+    }
+
     // ============================================================================
     // WRITE OPERATIONS
     // ============================================================================

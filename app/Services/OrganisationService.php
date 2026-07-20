@@ -71,4 +71,20 @@ class OrganisationService
             throw new DomainException('Unexpected error while fetching organisation.');
         }
     }
+
+    /**
+     * Get basic list of organisations by IDs
+     */
+    public function getOrganisationsListByIds(array $ids)
+    {
+        try {
+            return $this->organisationRepository->getOrganisationsListByIds($ids);
+        } catch (QueryException $e) {
+            Log::error('Database error fetching organisations list: ' . $e->getMessage());
+            throw new DomainException('Database error while fetching organisations list.');
+        } catch (Exception $e) {
+            Log::error('Unexpected error fetching organisations list: ' . $e->getMessage());
+            throw new DomainException('Unexpected error while fetching organisations list.');
+        }
+    }
 }

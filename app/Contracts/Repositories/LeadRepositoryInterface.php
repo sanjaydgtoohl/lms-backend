@@ -196,4 +196,13 @@ interface LeadRepositoryInterface
      * @return Collection
      */
     public function getLatestTwoMeetingDoneLeads();
+
+    /**
+     * Get lead count statistics for a given priority.
+     *
+     * @param int $priorityId
+     * @param array $filters
+     * @return array
+     */
+    public function getLeadCountStatsForPriority(int $priorityId, array $filters): array;
 }

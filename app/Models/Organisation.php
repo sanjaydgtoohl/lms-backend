@@ -41,4 +41,22 @@ class Organisation extends Model
     {
         return $this->hasMany(OrganisationUser::class);
     }
+
+    /**
+     * Get a formatted list of organisations by IDs.
+     *
+     * @param array $ids
+     * @return \Illuminate\Support\Collection
+     */
+    public static function getListByIds(array $ids)
+    {
+        return self::query()
+            ->whereIn('id', $ids)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn ($organisation) => [
+                'id' => $organisation->id,
+                'name' => $organisation->name,
+            ]);
+    }
 }

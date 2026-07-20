@@ -119,6 +119,50 @@ class UserAccessScope
     }
 
     /**
+     * Get strict hierarchy descendants (self + children), completely ignoring 
+     * Super Admin or Role bypasses. Used for strict Parent/Child validation.
+     *
+     * @return array<int>
+     */
+    public static function getStrictDescendantIds(User $user): array
+    {
+        $ids = [(int) $user->id];
+        self::collectDescendantIds($user, $ids);
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * Get strict hierarchy descendants, BUT filtered by the user's assigned organisation(s).
+     * This combines Parent/Child hierarchy with Multi-Tenancy (Organisation) separation.
+     *
+     * @return array<int>
+     */
+    public static function getStrictDescendantsInOrganisation(User $user): array
+    {
+        $descendantIds = self::getStrictDescendantIds($user);
+        
+        $userOrgIds = self::getAccessibleOrganisationIds($user);
+        if (empty($userOrgIds)) {
+            return [(int) $user->id];
+        }
+
+        $orgUserIds = \App\Support\DashboardFilters::getOrganisationUserIds($userOrgIds);
+        
+        if (empty($orgUserIds)) {
+            return [(int) $user->id];
+        }
+
+        // Return the intersection: ONLY descendants who are ALSO in the same organization
+        $combinedIds = array_intersect($descendantIds, $orgUserIds);
+        
+        // A user can always see themselves, even if the pivot table has an issue
+        $combinedIds[] = (int) $user->id;
+        
+        return array_values(array_unique($combinedIds));
+    }
+
+    /**
      * @param array<int> $ids
      */
     private static function collectDescendantIds(User $user, array &$ids): void

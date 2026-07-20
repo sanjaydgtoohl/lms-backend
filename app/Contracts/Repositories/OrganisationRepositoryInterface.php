@@ -19,4 +19,5 @@ interface OrganisationRepositoryInterface
 {
     public function getAllOrganisations(int $perPage = 10, ?string $searchTerm = null);
     public function getOrganisationById(int $id);
+    public function getOrganisationsListByIds(array $ids);
 }

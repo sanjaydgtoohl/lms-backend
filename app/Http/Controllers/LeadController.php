@@ -375,8 +375,21 @@ class LeadController extends Controller
                 'status' => 'nullable|in:1,2,15',
             ];
 
+            $user = auth()->user();
+            $orgIds = \App\Support\UserAccessScope::getAccessibleOrganisationIds($user);
+
+            if (count($orgIds) > 1) {
+                $rules['organisation_id'] = 'required|integer|in:' . implode(',', $orgIds);
+            } elseif (count($orgIds) === 1) {
+                $rules['organisation_id'] = 'nullable|integer|in:' . $orgIds[0];
+            } else {
+                $rules['organisation_id'] = 'nullable|integer';
+            }
             $validatedData = $this->validate($request, $rules);
 
+            if (count($orgIds) === 1) {
+                $validatedData['organisation_id'] = $orgIds[0];
+            }
             // Validate that mobile numbers in the array are unique (no duplicates within the array)
             if (!empty($validatedData['mobile_number'])) {
                 $mobileNumbers = $validatedData['mobile_number'];
@@ -473,7 +486,22 @@ class LeadController extends Controller
                 'status' => 'sometimes|nullable|in:1,2,15',
             ];
 
+            $user = auth()->user();
+            $orgIds = \App\Support\UserAccessScope::getAccessibleOrganisationIds($user);
+
+            if (count($orgIds) > 1) {
+                $rules['organisation_id'] = 'sometimes|required|integer|in:' . implode(',', $orgIds);
+            } elseif (count($orgIds) === 1) {
+                $rules['organisation_id'] = 'sometimes|nullable|integer|in:' . $orgIds[0];
+            } else {
+                $rules['organisation_id'] = 'sometimes|nullable|integer';
+            }
+
             $validatedData = $this->validate($request, $rules);
+
+            if (count($orgIds) === 1) {
+                $validatedData['organisation_id'] = $orgIds[0];
+            }
 
             // If updating brand_id or agency_id, validate that exactly ONE is selected
             if ($request->has('brand_id') || $request->has('agency_id')) {

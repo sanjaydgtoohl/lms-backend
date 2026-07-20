@@ -170,4 +170,12 @@ interface BriefRepositoryInterface
     public function getBusinessForecast(array $filters = []): array;
 
     
+    /**
+     * Get brief count statistics for a given priority.
+     *
+     * @param int $priorityId
+     * @param array $filters
+     * @return array
+     */
+    public function getBriefCountStatsForPriority(int $priorityId, array $filters): array;
 }

@@ -58,6 +58,7 @@ class Lead extends Model
         'comment',
         'status',
         'pre_lead_id',
+        'organisation_id'
     ];
 
     /**
@@ -89,6 +90,22 @@ class Lead extends Model
     public function scopeNotDeleted(Builder $query): Builder
     {
         return $query->whereNull($this->getTable() . '.deleted_at');
+    }
+
+    public static function getLeadCountStatsForPriority(int $priorityId, array $filters): array
+    {
+        $totalLeadQuery = self::accessibleToUser()->whereNull('deleted_at');
+        \App\Support\DashboardFilters::applyLeadDashboardFilters($totalLeadQuery, $filters, 'leads');
+
+        $priorityLeadQuery = self::accessibleToUser()
+            ->whereNull('deleted_at')
+            ->where('priority_id', $priorityId);
+        \App\Support\DashboardFilters::applyLeadDashboardFilters($priorityLeadQuery, $filters, 'leads');
+
+        return [
+            'total_leads' => $totalLeadQuery->count(),
+            'priority_lead_count' => $priorityLeadQuery->count(),
+        ];
     }
 
     public function scopeAccessibleToUser(Builder $query, $user = null): Builder
@@ -256,5 +273,13 @@ class Lead extends Model
     public function notifications(): MorphMany
     {
         return $this->morphMany(Notification::class, 'notifiable');
+    }
+
+    /**
+     * Get the organisation associated with this lead.
+     */
+    public function organisation()
+    {
+        return $this->belongsTo(Organisation::class, 'organisation_id');
     }
 }

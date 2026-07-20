@@ -600,11 +600,23 @@ class BriefRepository implements BriefRepositoryInterface
                 $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
                 if (!empty($ancestorIds)) {
                     $query->where(function ($q) use ($ancestorIds, $user) {
+                        $descendantIds = \App\Support\UserAccessScope::getStrictDescendantIds($user);
                         $q->whereNotIn('created_by', $ancestorIds)
-                          ->orWhere('assign_user_id', $user->id);
+                          ->orWhereIn('assign_user_id', $descendantIds);
                     });
                 }
             }
         }
+    }
+    /**
+     * Get brief count statistics for a given priority.
+     *
+     * @param int $priorityId
+     * @param array $filters
+     * @return array
+     */
+    public function getBriefCountStatsForPriority(int $priorityId, array $filters): array
+    {
+        return $this->model->getBriefCountStatsForPriority($priorityId, $filters);
     }
 }

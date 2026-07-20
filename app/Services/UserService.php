@@ -62,7 +62,7 @@ class UserService
      */
     public function getUserById(int $id): ?User
     {
-        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children', 'organisation', 'organisations', 'zone']);
+        return $this->userRepository->findWithRelations($id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children', 'organisation', 'organisations', 'departments', 'zone']);
     }
 
     /**
@@ -107,6 +107,10 @@ class UserService
 
         // Extract organisation IDs for organisation_user relationships
         $organisationIds = $this->extractOrganisationIds($data);
+
+        // Extract department IDs for user_department relationships
+        $departmentIds = $data['department_ids'] ?? [];
+
         $data = $this->stripNonPersistedFields($data);
 
         $user = $this->userRepository->create($data);
@@ -126,8 +130,13 @@ class UserService
             $this->syncUserOrganisations($user->id, $organisationIds);
         }
 
+        // Sync departments if provided
+        if (!empty($departmentIds)) {
+            $this->syncUserDepartments($user->id, $departmentIds);
+        }
+
         // Reload user with relationships
-        return $this->userRepository->findWithRelations($user->id, ['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children', 'organisation', 'organisations', 'zone']);
+        return $user->load(['profile', 'roles', 'permissions', 'parentRelationships', 'parents', 'children', 'organisation', 'organisations', 'departments', 'zone']);
     }
 
     /**
@@ -162,6 +171,9 @@ class UserService
             ? $this->extractOrganisationIds($data)
             : (array_key_exists('organisation_id', $data) ? [(int) $data['organisation_id']] : null);
 
+        // Extract department IDs for user_department relationships
+        $departmentIds = $data['department_ids'] ?? null;
+
         // Hash password if provided
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
@@ -184,6 +196,11 @@ class UserService
         // Sync organisations if provided
         if ($organisationIds !== null && is_array($organisationIds)) {
             $this->syncUserOrganisations($id, $organisationIds);
+        }
+
+        // Sync departments if provided
+        if ($departmentIds !== null && is_array($departmentIds)) {
+            $this->syncUserDepartments($id, $departmentIds);
         }
 
         return $success;
@@ -301,6 +318,8 @@ class UserService
             'is_parent.*' => 'integer|exists:users,id',
             'organisation_ids' => 'nullable|array',
             'organisation_ids.*' => 'integer|exists:organisations,id',
+            'department_ids' => 'nullable|array',
+            'department_ids.*' => 'integer|exists:departments,id',
         ];
 
         // Make organisation_id and zone_id required for new users, nullable for updates
@@ -356,7 +375,7 @@ class UserService
      */
     public function syncUserRoles(int $userId, array $roleIds): void
     {
-        $user = $this->userRepository->find($userId);
+        $user = User::find($userId);
         
         if (!$user) {
             return;
@@ -396,7 +415,7 @@ class UserService
      */
     public function syncUserParents(int $userId, array $parentIds): void
     {
-        $user = $this->userRepository->find($userId);
+        $user = User::find($userId);
         
         if (!$user) {
             return;
@@ -417,7 +436,7 @@ class UserService
             }
 
             // Ensure parent user exists and is not the same as the user
-            if ($parentId !== $userId && $this->userRepository->find($parentId)) {
+            if ($parentId !== $userId && User::find($parentId)) {
                 $insertData[] = [
                     'user_id' => $userId,
                     'is_parent' => $parentId,
@@ -441,7 +460,7 @@ class UserService
      */
     public function syncUserOrganisations(int $userId, array $organisationIds): void
     {
-        $user = $this->userRepository->find($userId);
+        $user = User::find($userId);
 
         if (!$user) {
             return;
@@ -478,6 +497,18 @@ class UserService
     }
 
     /**
+     * Sync user departments
+     *
+     * @param int $userId
+     * @param array $departmentIds
+     * @return void
+     */
+    public function syncUserDepartments(int $userId, array $departmentIds): void
+    {
+        $this->userRepository->syncDepartments($userId, $departmentIds);
+    }
+
+    /**
      * Normalize request aliases before validation and persistence.
      */
     protected function prepareUserInput(array $data): array
@@ -492,6 +523,10 @@ class UserService
 
         if (isset($data['zone']) && !isset($data['zone_id'])) {
             $data['zone_id'] = $data['zone'];
+        }
+
+        if (isset($data['department_id']) && !isset($data['department_ids'])) {
+            $data['department_ids'] = [(int) $data['department_id']];
         }
 
         $organisationIds = $this->extractOrganisationIds($data);
@@ -529,6 +564,7 @@ class UserService
             $data['role'],
             $data['is_parent'],
             $data['organisation_ids'],
+            $data['department_ids'],
             $data['organisation'],
             $data['origination'],
             $data['organisation_name'],

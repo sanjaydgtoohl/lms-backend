@@ -164,6 +164,34 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     }
 
     /**
+     * Build nested tree structure for children recursively filtered by organisation
+     * 
+     * @param int $organisationId
+     * @return array
+     */
+    public function getChildTreeByOrganisation($organisationId): array
+    {
+        $children = $this->children()
+            ->whereHas('organisations', function($query) use ($organisationId) {
+                $query->where('organisations.id', $organisationId);
+            })
+            ->select('users.id', 'users.name')
+            ->orderBy('users.name', 'asc')
+            ->get();
+        
+        $tree = [];
+        foreach ($children as $child) {
+            $tree[] = [
+                'id' => $child->id,
+                'name' => $child->name,
+                'children' => $child->getChildTreeByOrganisation($organisationId)
+            ];
+        }
+        
+        return $tree;
+    }
+
+    /**
      * Scope for verified users
      */
     public function scopeVerified($query)
@@ -186,6 +214,33 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     {
         return $this->belongsToMany(Organisation::class, 'organisation_user', 'user_id', 'organisation_id')
             ->withTimestamps();
+    }
+
+    /**
+     * Departments assigned to this user.
+     */
+    public function departments(): BelongsToMany
+    {
+        return $this->belongsToMany(Department::class, 'user_department', 'user_id', 'department_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Sync valid departments for this user.
+     *
+     * @param array $departmentIds
+     * @return void
+     */
+    public function syncValidDepartments(array $departmentIds): void
+    {
+        $uniqueIds = array_unique(array_filter(array_map('intval', $departmentIds), fn($id) => $id > 0));
+
+        $validIds = [];
+        if (!empty($uniqueIds)) {
+            $validIds = Department::whereIn('id', $uniqueIds)->pluck('id')->toArray();
+        }
+
+        $this->departments()->sync($validIds);
     }
 
     /**

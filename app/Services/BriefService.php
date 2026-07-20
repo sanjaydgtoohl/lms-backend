@@ -273,6 +273,24 @@ class BriefService
 
     
 
+    /**
+     * Get brief count statistics for a priority.
+     *
+     * @param int $priorityId
+     * @param array $filters
+     * @return array
+     * @throws DomainException
+     */
+    public function getBriefCountStatsForPriority(int $priorityId, array $filters): array
+    {
+        try {
+            return $this->briefRepository->getBriefCountStatsForPriority($priorityId, $filters);
+        } catch (Exception $e) {
+            Log::error('Error fetching brief count stats for priority', ['priority_id' => $priorityId, 'exception' => $e]);
+            throw new DomainException('Error while fetching brief count stats for priority.');
+        }
+    }
+
     // ============================================================================
     // WRITE OPERATIONS
     // ============================================================================

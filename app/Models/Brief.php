@@ -108,6 +108,32 @@ class Brief extends Model
     }
 
     /**
+     * Get brief count statistics for a priority.
+     *
+     * @param int $priorityId
+     * @param array $filters
+     * @return array
+     */
+    public static function getBriefCountStatsForPriority(int $priorityId, array $filters): array
+    {
+        $totalBriefQuery = self::accessibleToUser()
+            ->whereNull('deleted_at')
+            ->whereRaw('briefs.status != 15');
+        \App\Support\DashboardFilters::applyBriefDashboardFilters($totalBriefQuery, $filters, 'briefs');
+
+        $priorityBriefQuery = self::accessibleToUser()
+            ->whereNull('deleted_at')
+            ->whereRaw('briefs.status != 15')
+            ->where('priority_id', $priorityId);
+        \App\Support\DashboardFilters::applyBriefDashboardFilters($priorityBriefQuery, $filters, 'briefs');
+
+        return [
+            'total_briefs' => $totalBriefQuery->count(),
+            'priority_brief_count' => $priorityBriefQuery->count(),
+        ];
+    }
+
+    /**
      * Scope to filter briefs accessible to the given user.
      * Super Admin sees all. Others see only briefs where they are creator or assigned user.
      *

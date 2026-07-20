@@ -46,6 +46,7 @@ class LeadRepository implements LeadRepositoryInterface
             'callStatusRelation' => $notTrashed('call_statuses'),
             'leadStatusRelation' => $notTrashed('statuses'),
             'mobileNumbers',
+            'organisation',
         ];
     }
 
@@ -394,8 +395,9 @@ class LeadRepository implements LeadRepositoryInterface
                 $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
                 if (!empty($ancestorIds)) {
                     $query->where(function ($q) use ($ancestorIds, $user) {
+                        $descendantIds = \App\Support\UserAccessScope::getStrictDescendantIds($user);
                         $q->whereNotIn('created_by', $ancestorIds)
-                          ->orWhere('current_assign_user', $user->id);
+                          ->orWhereIn('current_assign_user', $descendantIds);
                     });
                 }
             }
@@ -911,7 +913,7 @@ class LeadRepository implements LeadRepositoryInterface
 
         $this->applyOrganisationValidation($query, Auth::user());
 
-        \App\Support\DashboardFilters::applyLeadDashboardFilters($query, $filters, 'leads');
+        \App\Support\DashboardFilters::applyPendingLeadDashboardFilters($query, $filters, 'leads');
 
         return $query
             ->orderBy('leads.created_at', 'desc')
@@ -1107,5 +1109,17 @@ class LeadRepository implements LeadRepositoryInterface
             ->orderBy('created_at', 'desc')
             ->limit(2)
             ->get();
+    }
+
+    /**
+     * Get lead count statistics for a given priority.
+     *
+     * @param int $priorityId
+     * @param array $filters
+     * @return array
+     */
+    public function getLeadCountStatsForPriority(int $priorityId, array $filters): array
+    {
+        return $this->model->getLeadCountStatsForPriority($priorityId, $filters);
     }
 }

@@ -76,6 +76,11 @@ $router->group(['prefix' => 'v1', 'middleware' => 'jwt.auth'], function () use (
         $router->get('/', 'Api\UserController@me');
         $router->get('login-history', 'Api\UserController@getLoginHistory');
         $router->get('child-users', 'Api\UserController@getChildUsers');
+        $router->get('child-users-by-organisation', 'Api\UserController@getChildUsersByOrganisation');
+        $router->get('child-users-by-lead/{leadId:[0-9]+}', 'Api\UserController@getChildUsersByLead');
+        $router->get('child-users-for-brief-creation/{leadId:[0-9]+}', 'Api\UserController@getChildUsersForBriefCreation');
+        $router->get('child-users-by-miss-campaign/{campaignId:[0-9]+}', 'Api\UserController@getChildUsersByMissCampaign');
+        $router->get('child-users-by-brief/{briefId:[0-9]+}', 'Api\UserController@getChildUsersByBrief');
     });
 
     $router->group(['prefix' => 'profile', 'middleware' => 'permission:profile.update'], function () use ($router) {

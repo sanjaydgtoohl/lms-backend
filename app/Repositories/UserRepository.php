@@ -24,7 +24,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function all(int $perPage = 15): LengthAwarePaginator
     {
         $modelClass = $this->modelClass;
-        $query = $modelClass::with(['roles', 'permissions', 'parents', 'children', 'organisation', 'organisations', 'zone']);
+        $query = $modelClass::with(['roles', 'permissions', 'parents', 'children', 'organisation', 'organisations', 'departments', 'zone']);
         $this->applyOrganisationValidation($query, auth()->user());
         
         return $query->latest()->paginate($perPage);
@@ -96,7 +96,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function search(array $criteria, int $perPage = 15): LengthAwarePaginator
     {
         $modelClass = $this->modelClass;
-        $query = $modelClass::with(['roles', 'permissions', 'parents', 'children', 'organisation', 'organisations', 'zone']);
+        $query = $modelClass::with(['roles', 'permissions', 'parents', 'children', 'organisation', 'organisations', 'departments', 'zone']);
 
         // Handle the generic 'search' parameter
         if (!empty($criteria['search'])) {
@@ -211,30 +211,30 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             return;
         }
 
-        $visibleUserIds = \App\Support\UserAccessScope::getVisibleUserIds($user);
-        $userOrgIds = \App\Support\UserAccessScope::getAccessibleOrganisationIds($user);
+        // First check with the organization, AND then check with the parent child flow.
+        // This ensures a user can ONLY see their descendants who are ALSO in their organization.
+        // Peers in the organization will NOT be shown.
+        $strictDescendantIds = \App\Support\UserAccessScope::getStrictDescendantsInOrganisation($user);
+        
+        $query->whereIn('users.id', $strictDescendantIds);
+    }
 
-        if (empty($userOrgIds)) {
-            // If user has no organisation, they can only see their hierarchy descendants
-            $query->whereIn('users.id', $visibleUserIds);
-        } else {
-            // If user has an organisation, they MUST only see users from that organisation OR their own descendants
-            $orgUserIds = \App\Support\DashboardFilters::getOrganisationUserIds($userOrgIds);
+    /**
+     * Sync user departments.
+     *
+     * @param int $userId
+     * @param array $departmentIds
+     * @return void
+     */
+    public function syncDepartments(int $userId, array $departmentIds): void
+    {
+        $modelClass = $this->modelClass;
+        $user = $modelClass::find($userId);
 
-            if (empty($orgUserIds)) {
-                $query->whereIn('users.id', $visibleUserIds);
-            } else {
-                $query->where(function ($q) use ($orgUserIds, $visibleUserIds) {
-                    $q->whereIn('users.id', $orgUserIds)
-                      ->orWhereIn('users.id', $visibleUserIds);
-                });
-                
-                // Explicitly exclude ancestors (e.g. parents)
-                $ancestorIds = \App\Support\UserAccessScope::getAncestorIds($user);
-                if (!empty($ancestorIds)) {
-                    $query->whereNotIn('users.id', $ancestorIds);
-                }
-            }
+        if (!$user) {
+            return;
         }
+
+        $user->syncValidDepartments($departmentIds);
     }
 }
