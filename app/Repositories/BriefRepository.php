@@ -17,7 +17,7 @@ class BriefRepository implements BriefRepositoryInterface
      * @var array<string>
      */
     protected const DEFAULT_RELATIONSHIPS = [
-        'contactPerson',
+        'contactPerson.organisation',
         'brand',
         'agency',
         'assignedUser',
