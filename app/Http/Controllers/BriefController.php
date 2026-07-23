@@ -343,13 +343,9 @@ class BriefController extends Controller
             if (!isset($data['status'])) {
                 $data['status'] = '1';
             }
-            // Set brief_status_id default to 1 if not provided
-            if (!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) {
-                $data['brief_status_id'] = 1;   
-            }
             // Fetch priority_id from brief status if not provided
             if (!isset($data['priority_id']) || is_null($data['priority_id'])) {
-                $briefStatus = BriefStatus::find($data['brief_status_id']);
+                $briefStatus = isset($data['brief_status_id']) ? BriefStatus::find($data['brief_status_id']) : null;
                 if ($briefStatus && $briefStatus->priority_id) {
                     $data['priority_id'] = $briefStatus->priority_id;
                 } else {
@@ -448,13 +444,9 @@ class BriefController extends Controller
                 );
                 $data['attachment'] = $uploaded['path'];
             }
-            // Set brief_status_id default to 1 if not provided
-            if (!isset($data['brief_status_id']) || is_null($data['brief_status_id'])) {
-                $data['brief_status_id'] = 1;
-            }
             // Fetch priority_id from brief status if not provided
             if (!isset($data['priority_id']) || is_null($data['priority_id'])) {
-                $briefStatus = BriefStatus::find($data['brief_status_id']);
+                $briefStatus = isset($data['brief_status_id']) ? BriefStatus::find($data['brief_status_id']) : null;
                 if ($briefStatus && $briefStatus->priority_id) {
                     $data['priority_id'] = $briefStatus->priority_id;
                 } else {

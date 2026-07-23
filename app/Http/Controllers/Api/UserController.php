@@ -587,4 +587,84 @@ class UserController extends Controller
             return $this->responseService->serverError('Failed to retrieve child users for brief: ' . $e->getMessage());
         }
     }
+
+
+    /**
+     * Get child planners filtered by brief's lead's organisation and planner department slug
+     * 
+     * @param Request $request
+     * @param int $briefId
+     * @return JsonResponse
+     */
+    public function getChildPlannersByBrief(Request $request, int $briefId): JsonResponse
+    {
+        try {
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            $brief = \App\Models\Brief::with('contactPerson')->find($briefId);
+            if (!$brief) {
+                return $this->responseService->notFound('Brief not found');
+            }
+
+            // The brief is linked to a lead via contact_person_id
+            $lead = $brief->contactPerson;
+            if (!$lead || !$lead->organisation_id) {
+                return $this->responseService->validationError(['brief_id' => ['The associated lead for this brief does not have an organisation assigned']]);
+            }
+            
+            $organisationId = $lead->organisation_id;
+
+            // Get all descendants of the AUTH user in nested tree format filtered by the lead's organisation and the planner department slug
+            $childTree = $user->getChildTreeByOrganisationAndDepartmentSlug($organisationId, 'planner');
+            
+            return $this->responseService->success(
+                $childTree,
+                'Child planners hierarchy for brief retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve child planners for brief: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get child planners filtered by lead's organisation and planner department slug
+     * 
+     * @param Request $request
+     * @param int $leadId
+     * @return JsonResponse
+     */
+    public function getChildPlannersByLead(Request $request, int $leadId): JsonResponse
+    {
+        try {
+            $user = $request->user ?? auth()->user();
+            
+            if (!$user) {
+                return $this->responseService->unauthorized('User not authenticated');
+            }
+
+            $lead = \App\Models\Lead::find($leadId);
+            if (!$lead) {
+                return $this->responseService->notFound('Lead not found');
+            }
+
+            $organisationId = $lead->organisation_id;
+            if (!$organisationId) {
+                return $this->responseService->validationError(['lead_id' => ['Lead does not have an organisation assigned']]);
+            }
+
+            // Get all descendants of the AUTH user in nested tree format filtered by the lead's organisation and the planner department slug
+            $childTree = $user->getChildTreeByOrganisationAndDepartmentSlug($organisationId, 'planner');
+            
+            return $this->responseService->success(
+                $childTree,
+                'Child planners hierarchy for lead retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->responseService->serverError('Failed to retrieve child planners for lead: ' . $e->getMessage());
+        }
+    }
 }

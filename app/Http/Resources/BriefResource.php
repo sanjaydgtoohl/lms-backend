@@ -41,6 +41,15 @@ class BriefResource extends JsonResource
                     'email' => $this->contactPerson->email,
                 ];
             }),
+            'organisation' => $this->whenLoaded('contactPerson', function () {
+                if ($this->contactPerson && $this->contactPerson->relationLoaded('organisation') && $this->contactPerson->organisation) {
+                    return [
+                        'id' => $this->contactPerson->organisation->id,
+                        'name' => $this->contactPerson->organisation->name,
+                    ];
+                }
+                return null;
+            }),
             'brand' => $this->whenLoaded('brand', function () {
                 return [
                     'id' => $this->brand->id,
