@@ -29,7 +29,7 @@ class MediaTypeRepository implements MediaTypeRepositoryInterface
     public function getAllMediaTypes(int $perPage = 15): LengthAwarePaginator
     {
         return $this->model
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', 'asc')
             ->paginate($perPage);
     }
 

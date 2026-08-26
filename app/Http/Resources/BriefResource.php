@@ -62,12 +62,14 @@ class BriefResource extends JsonResource
                     'name' => $this->agency->name,
                 ];
             }),
-            'assigned_user' => $this->whenLoaded('assignedUser', function () {
-                return [
-                    'id' => $this->assignedUser->id,
-                    'name' => $this->assignedUser->name,
-                    'email' => $this->assignedUser->email,
-                ];
+            'assigned_user' => $this->when($request->user() && $request->user()->hasRole('Super Admin'), function () {
+                return $this->whenLoaded('assignedUser', function () {
+                    return [
+                        'id' => $this->assignedUser->id,
+                        'name' => $this->assignedUser->name,
+                        'email' => $this->assignedUser->email,
+                    ];
+                });
             }),
             'created_by_user' => $this->whenLoaded('createdByUser', function () {
                 return [

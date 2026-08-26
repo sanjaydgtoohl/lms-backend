@@ -5,6 +5,7 @@ namespace App\Providers;
 use Laravel\Lumen\Providers\EventServiceProvider as ServiceProvider;
 use App\Observers\ActivityLogObserver;
 use App\Observers\PlannerObserver;
+use App\Observers\BriefObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -61,6 +62,7 @@ class EventServiceProvider extends ServiceProvider
         \App\Models\Brand::observe(ActivityLogObserver::class);
         \App\Models\Lead::observe(ActivityLogObserver::class);
         \App\Models\Brief::observe(ActivityLogObserver::class);
+        \App\Models\Brief::observe(BriefObserver::class);
         \App\Models\User::observe(ActivityLogObserver::class);
         \App\Models\Department::observe(ActivityLogObserver::class);
         \App\Models\Designation::observe(ActivityLogObserver::class);

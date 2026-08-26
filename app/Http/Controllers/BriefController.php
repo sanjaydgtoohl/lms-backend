@@ -70,12 +70,16 @@ class BriefController extends Controller
             $perPage = (int) $request->input('per_page', 15);
             $searchTerm = $request->input('search', null);
 
+            $user = $request->user ?? auth()->user();
+            $isSuperAdmin = $user && $user->hasRole('Super Admin');
+            $assignUserId = $isSuperAdmin ? $request->input('assign_user_id') : null;
+
             // If filters are provided, use the filter method
             if ($request->anyFilled(['brand_id', 'agency_id', 'assign_user_id', 'brief_status_id', 'priority_id', 'status'])) {
                 $filters = array_filter([
                     'brand_id' => $request->input('brand_id'),
                     'agency_id' => $request->input('agency_id'),
-                    'assign_user_id' => $request->input('assign_user_id'),
+                    'assign_user_id' => $assignUserId,
                     'brief_status_id' => $request->input('brief_status_id'),
                     'priority_id' => $request->input('priority_id'),
                     'status' => $request->input('status'),

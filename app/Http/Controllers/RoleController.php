@@ -88,7 +88,7 @@ class RoleController extends Controller
             unset($validatedData['permission']);
             
             // Explicitly get slug from request if not in validated data
-            if (empty($validatedData['slug'])) {
+            if (empty($validatedData['slug']) && $request->has('slug')) {
                 $validatedData['slug'] = $request->input('slug');
             }
             
@@ -151,6 +151,11 @@ class RoleController extends Controller
             $permissions = $validatedData['permissions'] ?? $validatedData['permission'] ?? null;
             unset($validatedData['permissions']);
             unset($validatedData['permission']);
+
+            // Explicitly get slug from request if not in validated data
+            if (empty($validatedData['slug']) && $request->has('slug')) {
+                $validatedData['slug'] = $request->input('slug');
+            }
 
             // Update the role
             $updated = $this->roleService->update($id, $validatedData, $permissions);

@@ -60,6 +60,10 @@ class RoleService
 	 */
 	public function create(array $data, array $permissions = []): Role
 	{
+		if (empty($data['slug']) && !empty($data['name'])) {
+			$data['slug'] = \Illuminate\Support\Str::slug($data['name']);
+		}
+
 		$this->validateRoleData($data);
 
 		// Create the role
@@ -86,6 +90,10 @@ class RoleService
 	 */
 	public function update(int $id, array $data, ?array $permissions = null): bool
 	{
+		if (isset($data['name']) && empty($data['slug'])) {
+			$data['slug'] = \Illuminate\Support\Str::slug($data['name']);
+		}
+
 		$this->validateRoleData($data, $id);
 
 		// Update the role
