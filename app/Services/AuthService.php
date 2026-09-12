@@ -87,6 +87,8 @@ class AuthService
             // Save refresh token to database
             $user->refresh_token = $refreshToken;
             $user->save();
+
+            $user->load(['roles', 'organisations', 'organisation', 'departments']);
     
             return [
                 'user' => $user,
@@ -261,7 +263,7 @@ class AuthService
         $user->refresh_token = $refreshToken;
         $user->save();
 
-        $user->load(['roles', 'organisations', 'organisation']);
+        $user->load(['roles', 'organisations', 'organisation', 'departments']);
 
         return [
             'user' => $user,
@@ -283,7 +285,7 @@ class AuthService
             $user = JWTAuth::parseToken()->authenticate();
             // Eager load roles to include role_id and role_name in response
             if ($user) {
-                $user->load(['roles', 'organisations', 'organisation']);
+                $user->load(['roles', 'organisations', 'organisation', 'departments']);
             }
             return $user;
         } catch (JWTException $e) {
